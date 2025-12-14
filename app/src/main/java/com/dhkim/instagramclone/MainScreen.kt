@@ -27,6 +27,8 @@ import androidx.navigation.compose.NavHost
 import com.dhkim.add.navigation.add
 import com.dhkim.home.navigation.HOME_ROUTE
 import com.dhkim.home.navigation.home
+import com.dhkim.login.navigation.LOGIN_ROUTE
+import com.dhkim.login.navigation.login
 import com.dhkim.profile.navigation.profile
 import com.dhkim.reels.navigation.reels
 import com.dhkim.search.navigation.search
@@ -82,8 +84,9 @@ fun MainScreen(
                         .calculateBottomPadding()
                 ),
             navController = appState.navController,
-            startDestination = HOME_ROUTE
+            startDestination = LOGIN_ROUTE
         ) {
+            login()
             home()
             search()
             add()
