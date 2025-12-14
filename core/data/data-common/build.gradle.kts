@@ -1,22 +1,12 @@
-import java.io.FileInputStream
-import java.util.Properties
-import kotlin.apply
-
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.google.service)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
 }
 
-val localProperties = Properties().apply {
-    load(FileInputStream(rootProject.file("local.properties")))
-}
-
 android {
-    namespace = "com.dhkim.login"
+    namespace = "com.dhkim.data.common"
     compileSdk {
         version = release(36)
     }
@@ -26,8 +16,6 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
-
-        buildConfigField("String", "WEB_CLIENT_ID", localProperties["WEB_CLIENT_ID"] as String)
     }
 
     buildTypes {
@@ -43,24 +31,14 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
-    buildFeatures {
-        buildConfig = true
-    }
 }
 
 dependencies {
-    implementation(project(":core:designsystem"))
-    implementation(project(":core:domain:domain-login"))
-
-    implementation(libs.bundles.androidx.compose.main)
-    implementation(libs.bundles.androidx.compose.side)
-    implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.core.ktx)
     implementation(platform(libs.google.firebase.bom))
     implementation(libs.google.firebase.auth)
-    implementation(libs.bundles.crendentials)
-    implementation(libs.google.identity.googleid)
-
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.material)
     implementation(libs.hilt)
     ksp(libs.hilt.compiler)
 
