@@ -55,6 +55,7 @@ android {
 dependencies {
     implementation(project(":feature:main"))
     implementation(project(":core:data:data-login"))
+    implementation(project(":core:data:data-user"))
 
     implementation(libs.bundles.androidx.compose.main)
     implementation(libs.bundles.androidx.compose.side)

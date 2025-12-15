@@ -12,4 +12,8 @@ class LoginRepositoryImpl @Inject constructor(
     override fun login(): Flow<Unit> {
         return remoteSource.login()
     }
+
+    override fun logout(): Flow<Unit> {
+        return remoteSource.logout()
+    }
 }

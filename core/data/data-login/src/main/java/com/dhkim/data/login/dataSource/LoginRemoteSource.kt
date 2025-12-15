@@ -1,6 +1,7 @@
 package com.dhkim.data.login.dataSource
 
 import android.content.Context
+import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import com.dhkim.domain.login.exception.LoginFailException
@@ -29,6 +30,15 @@ class LoginRemoteSource @Inject constructor(
             )
             val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(result.credential.data)
             val user = firebaseAuthWithGoogleToken(auth, googleIdTokenCredential.idToken)
+            emit(Unit)
+        }
+    }
+
+    fun logout(): Flow<Unit> {
+        return flow {
+            auth.signOut()
+            credentialManager.clearCredentialState(ClearCredentialStateRequest())
+            emit(Unit)
         }
     }
 
