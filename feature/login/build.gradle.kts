@@ -50,6 +50,7 @@ android {
 
 dependencies {
     implementation(project(":core:designsystem"))
+    implementation(project(":core:common"))
     implementation(project(":core:domain:domain-login"))
 
     implementation(libs.bundles.androidx.compose.main)

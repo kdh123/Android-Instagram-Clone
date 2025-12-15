@@ -1,12 +1,13 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
 }
 
 android {
-    namespace = "com.dhkim.data.login"
+    namespace = "com.dhkim.main"
     compileSdk {
         version = release(36)
     }
@@ -31,19 +32,29 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
+    buildFeatures {
+        buildConfig = true
+    }
 }
 
 dependencies {
-    implementation(project(":core:domain:domain-login"))
-    implementation(project(":core:data:data-common"))
+    implementation(project(":core:designsystem"))
+    implementation(project(":feature:login"))
+    implementation(project(":feature:home"))
+    implementation(project(":feature:search"))
+    implementation(project(":feature:add"))
+    implementation(project(":feature:reels"))
+    implementation(project(":feature:profile"))
 
+    implementation(libs.bundles.androidx.compose.main)
+    implementation(libs.bundles.androidx.compose.side)
+    implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.appcompat)
-    implementation(libs.material)
     implementation(platform(libs.google.firebase.bom))
     implementation(libs.google.firebase.auth)
     implementation(libs.bundles.crendentials)
     implementation(libs.google.identity.googleid)
+
     implementation(libs.hilt)
     ksp(libs.hilt.compiler)
 

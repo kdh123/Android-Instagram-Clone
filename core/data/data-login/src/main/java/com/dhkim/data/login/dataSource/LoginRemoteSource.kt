@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
-internal class LoginRemoteSource @Inject constructor(
+class LoginRemoteSource @Inject constructor(
     private val credentialRequest: GetCredentialRequest,
     private val credentialManager: CredentialManager,
     private val auth: FirebaseAuth,

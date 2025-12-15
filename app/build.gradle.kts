@@ -53,13 +53,8 @@ android {
 }
 
 dependencies {
-    implementation(project(":core:designsystem"))
-    implementation(project(":feature:login"))
-    implementation(project(":feature:home"))
-    implementation(project(":feature:search"))
-    implementation(project(":feature:add"))
-    implementation(project(":feature:reels"))
-    implementation(project(":feature:profile"))
+    implementation(project(":feature:main"))
+    implementation(project(":core:data:data-login"))
 
     implementation(libs.bundles.androidx.compose.main)
     implementation(libs.bundles.androidx.compose.side)

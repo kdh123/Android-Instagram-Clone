@@ -1,5 +1,6 @@
-package com.dhkim.instagramclone
+package com.dhkim.main
 
+import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -25,7 +26,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.IntOffset
 import androidx.navigation.compose.NavHost
 import com.dhkim.add.navigation.add
-import com.dhkim.home.navigation.HOME_ROUTE
 import com.dhkim.home.navigation.home
 import com.dhkim.login.navigation.LOGIN_ROUTE
 import com.dhkim.login.navigation.login
@@ -33,6 +33,7 @@ import com.dhkim.profile.navigation.profile
 import com.dhkim.reels.navigation.reels
 import com.dhkim.search.navigation.search
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun MainScreen(
     appState: InstagramAppState

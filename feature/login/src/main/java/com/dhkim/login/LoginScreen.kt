@@ -38,22 +38,25 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 @Composable
-fun LoginScreen() {
-    val context = LocalContext.current
+fun LoginScreen(
+    onAction: (LoginAction) -> Unit
+) {
+    /*val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val credentialManager = remember { CredentialManager.create(context) }
 
     val auth: FirebaseAuth = remember { Firebase.auth }
 
     var currentUser by remember { mutableStateOf(auth.currentUser) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }*/
 
     LoginContent(
-        name = currentUser?.displayName,
-        email = currentUser?.email,
-        errorMessage = errorMessage,
+        name = "s",
+        email = "s",
+        errorMessage = "s",
         onGoogleSignInClick = {
-            coroutineScope.launch {
+            onAction(LoginAction.Login)
+            /*coroutineScope.launch {
                 try {
                     val googleIdOption: GetGoogleIdOption = GetGoogleIdOption.Builder()
                         .setFilterByAuthorizedAccounts(false)
@@ -76,14 +79,14 @@ fun LoginScreen() {
                     errorMessage = "Google sign in failed: ${e.message}"
                     Log.w("LoginScreen", "GetCredentialException", e)
                 }
-            }
+            }*/
         },
         onSignOutClick = {
-            coroutineScope.launch {
+            /*coroutineScope.launch {
                 auth.signOut()
                 credentialManager.clearCredentialState(ClearCredentialStateRequest())
                 currentUser = null
-            }
+            }*/
         }
     )
 }

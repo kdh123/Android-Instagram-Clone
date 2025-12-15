@@ -1,4 +1,4 @@
-package com.dhkim.instagramclone
+package com.dhkim.main
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AddCircle

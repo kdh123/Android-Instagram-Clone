@@ -5,7 +5,7 @@ import com.dhkim.domain.login.repository.LoginRepository
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
-internal class LoginRepositoryImpl @Inject constructor(
+class LoginRepositoryImpl @Inject constructor(
     private val remoteSource: LoginRemoteSource,
 ): LoginRepository {
 
