@@ -28,6 +28,12 @@ android {
         consumerProguardFiles("consumer-rules.pro")
 
         buildConfigField("String", "WEB_CLIENT_ID", localProperties["WEB_CLIENT_ID"] as String)
+
+        testOptions {
+            unitTests {
+                isIncludeAndroidResources = true
+            }
+        }
     }
 
     buildTypes {
@@ -67,6 +73,7 @@ dependencies {
     ksp(libs.hilt.compiler)
 
     testImplementation(libs.junit)
+    testImplementation(libs.bundles.test)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 }

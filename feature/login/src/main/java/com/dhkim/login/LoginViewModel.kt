@@ -59,7 +59,7 @@ class LoginViewModel @Inject constructor(
             block = {
                 logoutUseCase().first()
                 user.restart()
-                _sideEffect.send(LoginSideEffect.ShowToastMessage("Login Fail"))
+                _sideEffect.send(LoginSideEffect.ShowToastMessage("Logout Success"))
             },
             onError = {
                 viewModelScope.launch {
