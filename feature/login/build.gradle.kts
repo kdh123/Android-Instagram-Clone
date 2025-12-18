@@ -21,6 +21,12 @@ android {
         version = release(36)
     }
 
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
+    }
+
     defaultConfig {
         minSdk = 26
 
@@ -28,12 +34,6 @@ android {
         consumerProguardFiles("consumer-rules.pro")
 
         buildConfigField("String", "WEB_CLIENT_ID", localProperties["WEB_CLIENT_ID"] as String)
-
-        testOptions {
-            unitTests {
-                isIncludeAndroidResources = true
-            }
-        }
     }
 
     buildTypes {
@@ -74,6 +74,7 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.bundles.test)
+    debugImplementation(libs.bundles.debug.ui.test)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 }

@@ -43,7 +43,7 @@ jetbrainsKotlinJvm = "1.9.0"
 gson = "2.8.6"
 composeFoundation = "1.7.0-alpha02"
 airbnbLottieCompose = "4.0.0"
-roboletric = "4.12"
+roboletric = "4.16"
 coroutineTest = "1.8.1"
 collectionImmutable = "0.3.7"
 uiTooling = "1.6.8"
@@ -155,6 +155,7 @@ androidx-profileinstaller = { group = "androidx.profileinstaller", name = "profi
 
 app-cash-turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
+mockk-android = { module = "io.mockk:mockk-android", version.ref = "mockk" }
 
 
 [bundles]
@@ -215,7 +216,8 @@ test = [
     "androidx-ui-test-junit4",
     "hilt-test",
     "app-cash-turbine",
-    "mockk"
+    "mockk",
+    "mockk-android"
 ]
 
 debug-ui-test = [
