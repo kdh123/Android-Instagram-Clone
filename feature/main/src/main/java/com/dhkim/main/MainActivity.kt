@@ -6,6 +6,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dhkim.designsystem.InstagramTheme
@@ -28,14 +31,16 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             InstagramTheme {
+                var hasNavigatedAfterLogin by rememberSaveable { mutableStateOf(false) }
                 val appState = rememberInstagramAppState()
                 val viewModel = hiltViewModel<MainViewModel>()
                 val isLoggedIn by viewModel.isLoggedIn.collectAsStateWithLifecycle()
                 if (isLoggedIn == null) EventSplashApi.attachTo(this).with(splashConfig).show()
 
                 LaunchedEffect(isLoggedIn) {
-                    if (isLoggedIn == true) {
+                    if (isLoggedIn == true && !hasNavigatedAfterLogin) {
                         appState.navigateToHomeFromLogin()
+                        hasNavigatedAfterLogin = true
                     }
                 }
 
