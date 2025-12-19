@@ -66,7 +66,7 @@ class InstagramAppState(
     fun navigateToTopLevelDestination(route: String) {
         navController.navigate(route) {
             if (!route.contains(ADD_ROUTE)) {
-                popUpTo(navController.graph.findStartDestination().id) {
+                popUpTo(HOME_ROUTE) {
                     saveState = true
                 }
                 launchSingleTop = true
