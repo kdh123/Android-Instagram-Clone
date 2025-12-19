@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.IntOffset
 import androidx.navigation.compose.NavHost
 import com.dhkim.add.navigation.add
+import com.dhkim.home.navigation.HOME_ROUTE
 import com.dhkim.home.navigation.home
 import com.dhkim.login.navigation.LOGIN_ROUTE
 import com.dhkim.login.navigation.login
@@ -36,6 +37,7 @@ import com.dhkim.search.navigation.search
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun MainScreen(
+    isLoggedIn: Boolean,
     appState: InstagramAppState
 ) {
     Scaffold(
@@ -85,7 +87,7 @@ fun MainScreen(
                         .calculateBottomPadding()
                 ),
             navController = appState.navController,
-            startDestination = LOGIN_ROUTE
+            startDestination = if (isLoggedIn) HOME_ROUTE else LOGIN_ROUTE
         ) {
             login(navigateToHome = appState::navigateToHomeFromLogin)
             home()
