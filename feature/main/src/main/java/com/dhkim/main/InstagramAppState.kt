@@ -16,6 +16,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.dhkim.add.navigation.ADD_ROUTE
 import com.dhkim.home.navigation.HOME_ROUTE
+import com.dhkim.login.navigation.LOGIN_ROUTE
 import com.dhkim.profile.navigation.PROFILE_ROUTE
 import com.dhkim.reels.navigation.REELS_ROUTE
 import com.dhkim.search.navigation.SEARCH_ROUTE
@@ -52,6 +53,15 @@ class InstagramAppState(
 
             return route
         }
+
+    fun navigateToHomeFromLogin() {
+        navController.navigate(HOME_ROUTE) {
+            popUpTo(LOGIN_ROUTE) {
+                inclusive = true
+            }
+            launchSingleTop = true
+        }
+    }
 
     fun navigateToTopLevelDestination(route: String) {
         navController.navigate(route) {

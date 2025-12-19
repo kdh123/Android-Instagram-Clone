@@ -1,63 +1,52 @@
 package com.dhkim.login
 
 import android.content.res.Configuration
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.dhkim.designsystem.InstagramTheme
-import com.dhkim.domain.user.model.User
 
 @Composable
 fun LoginScreen(
-    user: User?,
     onAction: (LoginAction) -> Unit
 ) {
-    LoginContent(
-        name = user?.name,
-        email = user?.email,
-        onGoogleSignInClick = { onAction(LoginAction.Login) },
-        onSignOutClick = { onAction(LoginAction.Logout) }
-    )
-}
-@Composable
-private fun LoginContent(
-    name: String?,
-    email: String?,
-    onGoogleSignInClick: () -> Unit,
-    onSignOutClick: () -> Unit,
-) {
     Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+        modifier = Modifier
+            .fillMaxSize()
     ) {
-        if (name == null) {
-            Text(
-                text = "LoginScreen",
-                style = InstagramTheme.typography.bodyLargeBold
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = onGoogleSignInClick) {
-                Text("Sign in with Google")
-            }
-        } else {
-            Text("Welcome, $name : $email")
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = onSignOutClick) {
-                Text("Sign Out")
-            }
-        }
+        Text(
+            text = "Instagram",
+            style = InstagramTheme.typography.headlineLarge,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .padding(top = 48.dp)
+        )
+
+        Image(
+            painter = painterResource(id = R.drawable.ic_google_login),
+            contentDescription = null,
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .padding(bottom = 32.dp)
+                .clickable { onAction(LoginAction.Login) }
+                .testTag("login_button")
+        )
     }
 }
 
@@ -69,29 +58,8 @@ private fun LoginScreenPreview() {
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background
         ) {
-            LoginContent(
-                name = null,
-                email = null,
-                onGoogleSignInClick = {},
-                onSignOutClick = {}
-            )
-        }
-    }
-}
-
-@LoginScreenPreviews
-@Composable
-private fun LoggedInScreenPreview() {
-    InstagramTheme {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background
-        ) {
-            LoginContent(
-                name = "Tom",
-                email = "abc@gmail.com",
-                onGoogleSignInClick = {},
-                onSignOutClick = {}
+            LoginScreen(
+                onAction = {}
             )
         }
     }

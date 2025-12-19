@@ -87,7 +87,7 @@ fun MainScreen(
             navController = appState.navController,
             startDestination = LOGIN_ROUTE
         ) {
-            login()
+            login(navigateToHome = appState::navigateToHomeFromLogin)
             home()
             search()
             add()

@@ -1,24 +1,19 @@
 package com.dhkim.login
 
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dhkim.domain.login.repository.LoginRepository
 import com.dhkim.domain.login.useCase.LoginUseCase
-import com.dhkim.domain.login.useCase.LogoutUseCase
 import com.dhkim.domain.user.model.User
 import com.dhkim.domain.user.repository.UserRepository
-import com.dhkim.domain.user.useCase.GetUserUseCase
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -42,8 +37,6 @@ class LoginScreenTest {
     private val userRepository = mockk<UserRepository>(relaxed = true)
 
     private val loginUseCase = LoginUseCase(loginRepository)
-    private val logoutUseCase = LogoutUseCase(loginRepository)
-    private val getUserUseCase = GetUserUseCase(userRepository)
 
     private val testUser = User(
         id = "testId",
@@ -58,6 +51,9 @@ class LoginScreenTest {
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
+        viewModel = LoginViewModel(
+            loginUseCase = loginUseCase
+        )
     }
 
     @After
@@ -66,72 +62,17 @@ class LoginScreenTest {
     }
 
     @Test
-    fun whenScreenIsFirstLoaded_andUserIsLoggedOut_showsLoginUi() {
-        composeRule.setContent {
-            LoginScreen(user = null, onAction = {})
-        }
-
-        composeRule.onNodeWithText("LoginScreen").assertIsDisplayed()
-        composeRule.onNodeWithText("Sign in with Google").assertIsDisplayed()
-    }
-
-    @Test
     fun whenLoginSucceeds_uiIsUpdatedWithUserInfo() = runTest {
-        val fakeUserFlow = MutableStateFlow<User?>(null)
-
         coEvery { loginRepository.login() } returns flowOf(Unit)
-        coEvery { userRepository.getUser() } returns fakeUserFlow
-
-        viewModel = LoginViewModel(
-            loginUseCase = loginUseCase,
-            logoutUseCase = logoutUseCase,
-            getUserUseCase = getUserUseCase
-        )
+        coEvery { userRepository.getUser() } returns flowOf(testUser)
 
         composeRule.setContent {
-            val user by viewModel.user.collectAsStateWithLifecycle()
-            LoginScreen(user = user, onAction = viewModel::onAction)
+            LoginScreen(onAction = viewModel::onAction)
         }
 
-        composeRule.onNodeWithText("Sign in with Google").assertIsDisplayed()
-        composeRule.onNodeWithText("Sign in with Google").performClick()
+        composeRule.onNodeWithTag(testTag = "login_button").assertIsDisplayed()
+        composeRule.onNodeWithTag(testTag = "login_button").performClick()
 
-        fakeUserFlow.value = testUser
-
-        val expectedWelcomeMessage = "Welcome, ${testUser.name} : ${testUser.email}"
-
-        composeRule.waitUntilAtLeastOneExists(
-            hasText(expectedWelcomeMessage),
-            500
-        )
-    }
-
-    @Test
-    fun whenLogoutSucceeds_uiIsUpdatedWithUserInfo() = runTest {
-        val fakeUserFlow = MutableStateFlow<User?>(testUser)
-
-        coEvery { loginRepository.login() } returns flowOf(Unit)
-        coEvery { userRepository.getUser() } returns fakeUserFlow
-
-        viewModel = LoginViewModel(
-            loginUseCase = loginUseCase,
-            logoutUseCase = logoutUseCase,
-            getUserUseCase = getUserUseCase
-        )
-
-        composeRule.setContent {
-            val user by viewModel.user.collectAsStateWithLifecycle()
-            LoginScreen(user = user, onAction = viewModel::onAction)
-        }
-
-        composeRule.onNodeWithText("Sign Out").assertIsDisplayed()
-        composeRule.onNodeWithText("Sign Out").performClick()
-
-        fakeUserFlow.value = null
-
-        composeRule.waitUntilAtLeastOneExists(
-            hasText("LoginScreen"),
-            500
-        )
+        coVerify(exactly = 1) { loginUseCase() }
     }
 }
