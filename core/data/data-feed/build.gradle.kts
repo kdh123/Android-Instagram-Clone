@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.dhkim.data.common"
+    namespace = "com.dhkim.data.feed"
     compileSdk {
         version = release(36)
     }
@@ -34,12 +34,16 @@ android {
 }
 
 dependencies {
-    implementation(platform(libs.google.firebase.bom))
-    implementation(libs.google.firebase.auth)
-    implementation(libs.google.firebase.database.ktx)
+    implementation(project(":core:data:data-common"))
+    implementation(project(":core:domain:domain-feed"))
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
+    implementation(platform(libs.google.firebase.bom))
+    implementation(libs.google.firebase.database.ktx)
+    implementation(libs.bundles.androidx.workManager)
+    implementation(libs.androidx.paging.common)
     implementation(libs.hilt)
     ksp(libs.hilt.compiler)
 

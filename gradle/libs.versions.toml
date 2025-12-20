@@ -105,7 +105,7 @@ google-identity-googleid = { module = "com.google.android.libraries.identity.goo
 
 
 google-firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebase" }
-google-firebase-database-ktx = { group = "com.google.firebase", name = "firebase-database-ktx" }
+google-firebase-database-ktx = { group = "com.google.firebase", name = "firebase-database" }
 androidx-camera-core = { module = "androidx.camera:camera-core", version.ref = "camerax" }
 androidx-camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "camerax" }
 androidx-camera-lifecycle = { module = "androidx.camera:camera-lifecycle", version.ref = "camerax" }
