@@ -52,7 +52,7 @@ Development is progressing step-by-step by feature unit and will be updated upon
 
 [x] Phase 1 ([Auth](https://github.com/kdh123/Android-Instagram-Clone/tree/feature/login)): Implementation of sign-up/login flow based on Firebase Auth
 
-[ ] Phase 2 (Feed): Image post upload and real-time feed list implementation
+[ ] Phase 2 ([Feed](https://github.com/kdh123/Android-Instagram-Clone/tree/feature/feed)): Image post upload and real-time feed list implementation
 
 [ ] Phase 3 (Social): User search and Follow/Following system construction
 
