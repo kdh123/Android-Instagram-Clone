@@ -26,7 +26,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.dhkim.designsystem.InstagramTheme
 import com.dhkim.domain.feed.model.Feed
 import com.skydoves.landscapist.glide.GlideImage
-import kotlin.random.Random
 
 @Composable
 fun AddScreen(
@@ -95,16 +94,9 @@ fun AddScreen(
                 onAction(
                     AddAction.UploadFeed(
                         feed = Feed(
-                            feedId = "testFeedId${Random.nextInt(0, 1_000)}",
-                            userId = "testUserId2",
-                            userName = "testName",
-                            userProfileImage = "testUserProfileImage",
-                            imageUrls = listOf("$imageUri"),
-                            caption = "Hello World",
-                            timestamp = 1234567890,
-                            likeCount = 100,
-                            commentCount = 50,
-                        )
+                            caption = "Hello World"
+                        ),
+                        imageUrls = listOf("$imageUri")
                     )
                 )
             }

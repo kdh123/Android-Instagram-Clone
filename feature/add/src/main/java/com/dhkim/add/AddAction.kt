@@ -4,5 +4,8 @@ import com.dhkim.domain.feed.model.Feed
 
 sealed interface AddAction {
 
-    data class UploadFeed(val feed: Feed) : AddAction
+    data class UploadFeed(
+        val feed: Feed,
+        val imageUrls: List<String>
+    ) : AddAction
 }

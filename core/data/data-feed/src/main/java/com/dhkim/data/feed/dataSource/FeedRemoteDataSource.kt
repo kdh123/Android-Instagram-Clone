@@ -4,6 +4,7 @@ import androidx.core.net.toUri
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
+import com.dhkim.data.feed.model.FeedDto
 import com.dhkim.data.feed.model.toDto
 import com.dhkim.domain.feed.model.Feed
 import com.google.firebase.database.FirebaseDatabase
@@ -20,7 +21,7 @@ class FeedRemoteDataSource @Inject constructor(
     private val feedRef = database.getReference("feeds")
     private val storageRef = storage.reference
 
-    fun getFeeds(pageSize: Int): Flow<PagingData<Feed>> {
+    fun getFeeds(pageSize: Int): Flow<PagingData<FeedDto>> {
         return Pager(
             config = PagingConfig(
                 pageSize = pageSize,
@@ -42,10 +43,10 @@ class FeedRemoteDataSource @Inject constructor(
         }
     }
 
-    fun uploadImages(userId: String, images: List<String>): Flow<Unit> {
+    fun uploadImage(filePath: String, imageUrl: String): Flow<Unit> {
         return callbackFlow {
-            val imageRef = storageRef.child("feeds/${userId}/photo_${System.currentTimeMillis()}.jpg")
-            imageRef.putFile(images[0].toUri())
+            val imageRef = storageRef.child(filePath)
+            imageRef.putFile(imageUrl.toUri())
                 .addOnSuccessListener {
                     trySend(Unit)
                 }.addOnFailureListener {

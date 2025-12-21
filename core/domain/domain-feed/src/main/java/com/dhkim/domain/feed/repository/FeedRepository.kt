@@ -8,5 +8,5 @@ interface FeedRepository {
 
     fun getFeeds(): Flow<PagingData<Feed>>
     fun uploadFeed(feed: Feed): Flow<Unit>
-    fun uploadImages(userId: String, images: List<String>): Flow<Unit>
+    fun uploadImages(filePath: String, imageUrl: String): Flow<Unit>
 }

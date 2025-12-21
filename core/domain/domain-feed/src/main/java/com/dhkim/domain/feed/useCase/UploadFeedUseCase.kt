@@ -4,6 +4,10 @@ import com.dhkim.domain.feed.model.Feed
 import com.dhkim.domain.feed.repository.FeedRepository
 import com.dhkim.domain.user.exception.NouUserFoundException
 import com.dhkim.domain.user.useCase.GetUserUseCase
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
@@ -14,12 +18,28 @@ class UploadFeedUseCase @Inject constructor(
     private val getUserUseCase: GetUserUseCase
 ) {
 
-    operator fun invoke(feed: Feed): Flow<Unit> {
+    context(CoroutineScope)
+    operator fun invoke(feed: Feed, imageUrls: List<String>): Flow<Unit> {
         return flow {
             val user = getUserUseCase().first() ?: throw NouUserFoundException()
-            val updateFeed = feed.copy(userId = user.id)
+            val uploadImageJobs = mutableListOf<Deferred<Unit>>()
+            val feedImageUrls = mutableListOf<String>()
+            for (imageUrl in imageUrls) {
+                val filePath = "feeds/${user.id}/photo_${System.currentTimeMillis()}.jpg"
+                val job = async { feedRepository.uploadImages(filePath, imageUrl).first() }
+                uploadImageJobs.add(job)
+                feedImageUrls.add(filePath)
+            }
+            uploadImageJobs.awaitAll()
+            val updateFeed = feed.copy(
+                feedId = "feedId${System.currentTimeMillis()}",
+                userId = user.id,
+                userName = user.name,
+                userProfileImage = user.profileUrl,
+                timestamp = System.currentTimeMillis(),
+                imageUrls = feedImageUrls
+            )
             feedRepository.uploadFeed(updateFeed).first()
-            feedRepository.uploadImages(updateFeed.userId, updateFeed.imageUrls).first()
             emit(Unit)
         }
     }

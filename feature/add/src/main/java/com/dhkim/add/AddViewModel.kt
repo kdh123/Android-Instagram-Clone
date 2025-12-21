@@ -24,15 +24,16 @@ class AddViewModel @Inject constructor(
     fun onAction(action: AddAction) {
         when (action) {
             is AddAction.UploadFeed -> {
-                uploadFeed(action.feed)
+                uploadFeed(action.feed, action.imageUrls)
             }
         }
     }
 
-    private fun uploadFeed(feed: Feed) {
+    private fun uploadFeed(feed: Feed, imageUrls: List<String>) {
         viewModelScope.handle(
             block = {
-                uploadFeedUseCase(feed).first()
+                uploadFeedUseCase(feed = feed, imageUrls = imageUrls).first()
+                _sideEffect.send(AddSideEffect.ShowToast("Feed Uploaded"))
             },
             onError = {
                 viewModelScope.launch {
