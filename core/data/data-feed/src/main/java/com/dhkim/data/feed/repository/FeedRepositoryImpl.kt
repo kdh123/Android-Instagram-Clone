@@ -5,7 +5,6 @@ import com.dhkim.data.feed.dataSource.FeedRemoteDataSource
 import com.dhkim.domain.feed.model.Feed
 import com.dhkim.domain.feed.repository.FeedRepository
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
 import javax.inject.Inject
 
 class FeedRepositoryImpl @Inject constructor(
@@ -13,7 +12,7 @@ class FeedRepositoryImpl @Inject constructor(
 ) : FeedRepository {
 
     override fun getFeeds(): Flow<PagingData<Feed>> {
-        return flowOf()
+        return remoteDataSource.getFeeds(pageSize = 10)
     }
 
     override fun uploadFeed(feed: Feed) {
