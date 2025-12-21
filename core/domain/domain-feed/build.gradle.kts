@@ -13,6 +13,8 @@ kotlin {
     }
 }
 dependencies {
+    implementation(project(":core:domain:domain-user"))
+
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.androidx.paging.common)
     implementation(libs.hilt.core)

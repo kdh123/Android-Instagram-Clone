@@ -42,6 +42,7 @@ dependencies {
     implementation(libs.material)
     implementation(platform(libs.google.firebase.bom))
     implementation(libs.google.firebase.database.ktx)
+    implementation(libs.google.firebase.storage)
     implementation(libs.bundles.androidx.workManager)
     implementation(libs.androidx.paging.common)
     implementation(libs.hilt)

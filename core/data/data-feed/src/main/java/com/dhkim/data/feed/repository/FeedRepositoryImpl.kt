@@ -15,7 +15,11 @@ class FeedRepositoryImpl @Inject constructor(
         return remoteDataSource.getFeeds(pageSize = 10)
     }
 
-    override fun uploadFeed(feed: Feed) {
-        remoteDataSource.uploadFeed(feed)
+    override fun uploadFeed(feed: Feed): Flow<Unit> {
+        return remoteDataSource.uploadFeed(feed)
+    }
+
+    override fun uploadImages(userId: String, images: List<String>): Flow<Unit> {
+        return remoteDataSource.uploadImages(userId, images)
     }
 }

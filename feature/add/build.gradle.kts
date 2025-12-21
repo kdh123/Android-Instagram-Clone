@@ -35,7 +35,9 @@ android {
 }
 
 dependencies {
+    implementation(project(":core:common"))
     implementation(project(":core:designsystem"))
+    implementation(project(":core:domain:domain-user"))
     implementation(project(":core:domain:domain-feed"))
 
     implementation(libs.bundles.androidx.compose.main)
