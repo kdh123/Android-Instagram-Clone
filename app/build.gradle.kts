@@ -54,6 +54,7 @@ android {
 
 dependencies {
     implementation(project(":feature:main"))
+    implementation(project(":core:data:data-common"))
     implementation(project(":core:data:data-login"))
     implementation(project(":core:data:data-user"))
     implementation(project(":core:data:data-feed"))

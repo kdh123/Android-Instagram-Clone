@@ -24,7 +24,7 @@ class MainActivity : ComponentActivity() {
 
         val splashConfig = DefaultConfig(
             appIcon = getDrawable(R.drawable.ic_app_launcher_white) ?: packageManager.getApplicationIcon(applicationInfo),
-            outDuration = 800,
+            outDuration = 1_000,
             bgColor = listOf("#405DE6", "#833AB4", "#C13584", "#F56040", "#FCAF45"),
         )
 

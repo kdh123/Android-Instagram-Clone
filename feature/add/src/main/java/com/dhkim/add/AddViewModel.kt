@@ -2,7 +2,9 @@ package com.dhkim.add
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.paging.cachedIn
 import com.dhkim.common.handle
+import com.dhkim.domain.common.useCase.GetGalleryImagesUseCase
 import com.dhkim.domain.feed.model.Feed
 import com.dhkim.domain.feed.useCase.UploadFeedUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -14,9 +16,13 @@ import javax.inject.Inject
 
 @HiltViewModel
 class AddViewModel @Inject constructor(
-    private val uploadFeedUseCase: UploadFeedUseCase
+    private val uploadFeedUseCase: UploadFeedUseCase,
+    private val getGalleryImagesUseCase: GetGalleryImagesUseCase
 ) : ViewModel(
 ) {
+
+    val galleryImages = getGalleryImagesUseCase(pageSize = 10)
+        .cachedIn(viewModelScope)
 
     private val _sideEffect = Channel<AddSideEffect>(Channel.BUFFERED)
     val sideEffect = _sideEffect.receiveAsFlow()

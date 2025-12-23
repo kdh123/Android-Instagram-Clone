@@ -38,6 +38,7 @@ android {
 dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:designsystem"))
+    implementation(project(":core:domain:domain-common"))
     implementation(project(":core:domain:domain-user"))
     implementation(project(":core:domain:domain-feed"))
 
@@ -45,6 +46,7 @@ dependencies {
     implementation(libs.bundles.androidx.compose.side)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.core.ktx)
+    implementation(libs.bundles.androidx.paging3)
     implementation(libs.hilt)
     ksp(libs.hilt.compiler)
     testImplementation(libs.junit)

@@ -6,6 +6,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
+import androidx.paging.compose.collectAsLazyPagingItems
 import com.dhkim.add.AddScreen
 import com.dhkim.add.AddSideEffect
 import com.dhkim.add.AddViewModel
@@ -16,6 +17,7 @@ fun NavGraphBuilder.add() {
     composable(ADD_ROUTE) {
         val viewModel = hiltViewModel<AddViewModel>()
         val context = LocalContext.current
+        val galleryImages = viewModel.galleryImages.collectAsLazyPagingItems()
 
         LaunchedEffect(Unit) {
             viewModel.sideEffect.collect {
@@ -28,6 +30,7 @@ fun NavGraphBuilder.add() {
         }
 
         AddScreen(
+            galleryImages = galleryImages,
             onAction = viewModel::onAction
         )
     }
