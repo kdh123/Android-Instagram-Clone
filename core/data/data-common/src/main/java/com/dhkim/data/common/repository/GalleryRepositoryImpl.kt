@@ -8,11 +8,18 @@ import com.dhkim.data.common.dataSource.GalleryPagingSource
 import com.dhkim.domain.common.model.GalleryImage
 import com.dhkim.domain.common.repository.GalleryRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
 
 class GalleryRepositoryImpl @Inject constructor(
     private val galleryDataSource: GalleryDataSource
 ) : GalleryRepository {
+
+    override fun getRecentGalleryImageUseCase(): Flow<GalleryImage?> {
+        return flow {
+            emit(galleryDataSource.fetchImages(limit = 1, offset = 0).firstOrNull())
+        }
+    }
 
     override fun getGalleryImages(pageSize: Int): Flow<PagingData<GalleryImage>> {
         return Pager(

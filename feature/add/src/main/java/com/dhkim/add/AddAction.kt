@@ -8,4 +8,8 @@ sealed interface AddAction {
         val feed: Feed,
         val imageUrls: List<String>
     ) : AddAction
+
+    data class SelectImage(
+        val imageUri: String
+    ) : AddAction
 }

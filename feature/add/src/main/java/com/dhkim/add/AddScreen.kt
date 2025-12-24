@@ -60,6 +60,7 @@ import kotlinx.coroutines.flow.flowOf
 @Composable
 fun AddScreen(
     galleryImages: LazyPagingItems<GalleryImage>,
+    selectImageMode: SelectImageMode,
     onAction: (AddAction) -> Unit,
     onBack: () -> Unit
 ) {
@@ -142,20 +143,64 @@ fun AddScreen(
                         GridItemSpan(span)
                     }
                 ) { index ->
-                    if (index == 1) {
-                        SelectMultipleImagesButton(
-                            onClick = {}
-                        )
-                    } else {
-                        val galleryImage = galleryImages[index]
-                        galleryImage?.run {
+                    when (index) {
+                        0 -> {
+                            val selectedGalleryImage = when (selectImageMode) {
+                                is SelectImageMode.Single -> selectImageMode.imageUri
+                                is SelectImageMode.Multiple -> if (selectImageMode.imageUris.isNotEmpty()) {
+                                    selectImageMode.imageUris[0]
+                                } else {
+                                    null
+                                }
+                            }
+
                             GlideImage(
-                                imageModel = { uri },
+                                imageModel = { selectedGalleryImage ?: "" },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .aspectRatio(1.0f),
                                 previewPlaceholder = painterResource(R.drawable.ic_dummy_background)
                             )
+                        }
+
+                        1 -> {
+                            SelectMultipleImagesButton(
+                                onClick = {}
+                            )
+                        }
+
+                        else -> {
+                            val galleryImage = galleryImages[index - 2]
+                            if (galleryImage != null) {
+                                val isSelected = when (selectImageMode) {
+                                    is SelectImageMode.Single -> selectImageMode.imageUri == galleryImage.uri
+                                    is SelectImageMode.Multiple -> selectImageMode.imageUris.contains(galleryImage.uri)
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .aspectRatio(1.0f),
+                                ) {
+                                    GlideImage(
+                                        imageModel = { galleryImage.uri },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .aspectRatio(1.0f),
+                                        previewPlaceholder = painterResource(R.drawable.ic_dummy_background)
+                                    )
+
+
+                                    if (isSelected) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .aspectRatio(1.0f)
+                                                .background(color = Color.Black.copy(alpha = 0.5f))
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -235,6 +280,7 @@ private fun AddScreenPreview() {
         ) {
             AddScreen(
                 galleryImages = galleryImages,
+                selectImageMode = SelectImageMode.Single(),
                 onAction = {},
                 onBack = {}
             )

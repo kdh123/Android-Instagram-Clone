@@ -6,5 +6,6 @@ import kotlinx.coroutines.flow.Flow
 
 interface GalleryRepository {
 
+    fun getRecentGalleryImageUseCase(): Flow<GalleryImage?>
     fun getGalleryImages(pageSize: Int): Flow<PagingData<GalleryImage>>
 }

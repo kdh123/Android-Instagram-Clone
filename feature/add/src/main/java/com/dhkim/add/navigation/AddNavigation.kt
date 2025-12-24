@@ -2,8 +2,10 @@ package com.dhkim.add.navigation
 
 import android.widget.Toast
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.paging.compose.collectAsLazyPagingItems
@@ -20,6 +22,7 @@ fun NavGraphBuilder.add(
         val viewModel = hiltViewModel<AddViewModel>()
         val context = LocalContext.current
         val galleryImages = viewModel.galleryImages.collectAsLazyPagingItems()
+        val selectImageMode by viewModel.selectImageMode.collectAsStateWithLifecycle()
 
         LaunchedEffect(Unit) {
             viewModel.sideEffect.collect {
@@ -33,6 +36,7 @@ fun NavGraphBuilder.add(
 
         AddScreen(
             galleryImages = galleryImages,
+            selectImageMode = selectImageMode,
             onAction = viewModel::onAction,
             onBack = onBack
         )
