@@ -102,12 +102,24 @@ internal val Typography = InstagramTypography(
         letterSpacing = 0.5.sp,
         fontWeight = FontWeight.SemiBold
     ),
+    labelMediumBold = InstagramStyle.copy( // 14sp: 탭 바 라벨
+        fontSize = 14.sp,
+        lineHeight = 16.sp,
+        letterSpacing = 0.5.sp,
+        fontWeight = FontWeight.Bold
+    ),
     labelSmall = InstagramStyle.copy( // 12sp: 아주 작은 라벨
         fontSize = 12.sp,
         lineHeight = 16.sp,
         letterSpacing = 0.5.sp,
         fontWeight = FontWeight.SemiBold
     ),
+    labelSmallBold = InstagramStyle.copy(
+        fontSize = 12.sp,
+        lineHeight = 16.sp,
+        letterSpacing = 0.5.sp,
+        fontWeight = FontWeight.Bold
+    )
 )
 
 val LocalTypography = staticCompositionLocalOf {
@@ -127,7 +139,9 @@ val LocalTypography = staticCompositionLocalOf {
         bodySmallGray = InstagramStyle,
         labelLarge = InstagramStyle,
         labelMedium = InstagramStyle,
-        labelSmall = InstagramStyle
+        labelMediumBold = InstagramStyle,
+        labelSmall = InstagramStyle,
+        labelSmallBold = InstagramStyle,
     )
 }
 
@@ -151,5 +165,7 @@ data class InstagramTypography(
     // 4. Label
     val labelLarge: TextStyle,
     val labelMedium: TextStyle,
-    val labelSmall: TextStyle
+    val labelMediumBold: TextStyle,
+    val labelSmall: TextStyle,
+    val labelSmallBold: TextStyle
 )

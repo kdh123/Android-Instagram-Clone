@@ -13,7 +13,7 @@ class AddState(
 ) {
 
     val isAtTop by derivedStateOf {
-        galleryListState.firstVisibleItemIndex == 1 && galleryListState.firstVisibleItemScrollOffset == 0
+        galleryListState.firstVisibleItemIndex >= 1
     }
 }
 

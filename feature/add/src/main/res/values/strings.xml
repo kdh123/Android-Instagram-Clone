@@ -1,0 +1,5 @@
+<resources>
+    <string name="select_multiple_images">여러 항목 선택</string>
+    <string name="new_feed">새 게시물</string>
+    <string name="next">다음</string>
+</resources>

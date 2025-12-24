@@ -13,7 +13,9 @@ import com.dhkim.add.AddViewModel
 
 const val ADD_ROUTE = "add_route"
 
-fun NavGraphBuilder.add() {
+fun NavGraphBuilder.add(
+    onBack: () -> Unit
+) {
     composable(ADD_ROUTE) {
         val viewModel = hiltViewModel<AddViewModel>()
         val context = LocalContext.current
@@ -31,7 +33,8 @@ fun NavGraphBuilder.add() {
 
         AddScreen(
             galleryImages = galleryImages,
-            onAction = viewModel::onAction
+            onAction = viewModel::onAction,
+            onBack = onBack
         )
     }
 }
