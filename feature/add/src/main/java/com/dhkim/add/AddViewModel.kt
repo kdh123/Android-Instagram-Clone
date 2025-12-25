@@ -120,18 +120,24 @@ class AddViewModel @Inject constructor(
             currentImageUri = currentImageUri,
             selectedImages = updateSelectedImages
         )
-        _sideEffect.send(AddSideEffect.ScrollToItem(currentImageUri ?: ""))
+        _sideEffect.send(AddSideEffect.ScrollToItem(currentImageUri))
     }
 
     private fun changeSelectImageMode() {
-        when (val currentSelectImageMode = selectImageState.value) {
-            is SelectImageState.Single -> {
-                val image = SelectedImage(number = 1, imageUri = currentSelectImageMode.imageUri ?: "")
-                _selectImageState.value = SelectImageState.Multiple(currentImageUri = image.imageUri, selectedImages = listOf(image))
-            }
+        viewModelScope.launch {
+            when (val currentSelectImageMode = selectImageState.value) {
+                is SelectImageState.Single -> {
+                    val image = SelectedImage(number = 1, imageUri = currentSelectImageMode.imageUri ?: "")
+                    val currentImageUri = image.imageUri
+                    _selectImageState.value = SelectImageState.Multiple(currentImageUri = currentImageUri, selectedImages = listOf(image))
+                    _sideEffect.send(AddSideEffect.ScrollToItem(currentImageUri))
+                }
 
-            is SelectImageState.Multiple -> {
-                _selectImageState.value = SelectImageState.Single(imageUri = currentSelectImageMode.selectedImages.map { it.imageUri }.lastOrNull())
+                is SelectImageState.Multiple -> {
+                    val currentImageUri = currentSelectImageMode.selectedImages.map { it.imageUri }.lastOrNull()
+                    _selectImageState.value = SelectImageState.Single(imageUri = currentImageUri)
+                    _sideEffect.send(AddSideEffect.ScrollToItem(currentImageUri))
+                }
             }
         }
     }

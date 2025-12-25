@@ -32,7 +32,6 @@ fun NavGraphBuilder.add(
 
         LaunchedEffect(Unit) {
             viewModel.sideEffect
-                .debounce(1_000)
                 .collectLatest {
                     when (it) {
                         is AddSideEffect.ShowToast -> {
