@@ -62,65 +62,72 @@ class AddViewModel @Inject constructor(
     }
 
     private fun selectImage(selectedImageUri: String) {
-        when (val currentSelectImageMode = selectImageState.value) {
-            is SelectImageState.Single -> {
-                _selectImageState.value = SelectImageState.Single(selectedImageUri)
-            }
+        viewModelScope.launch {
+            when (val currentSelectImageMode = selectImageState.value) {
+                is SelectImageState.Single -> {
+                    _selectImageState.value = SelectImageState.Single(selectedImageUri)
+                    _sideEffect.send(AddSideEffect.ScrollToItem(selectedImageUri))
+                }
 
-            is SelectImageState.Multiple -> {
-                val currentSelectedImages = currentSelectImageMode.selectedImages
-                val isAlreadySelected = currentSelectedImages.any { it.imageUri == selectedImageUri }
-                val isCurrentFocused = currentSelectImageMode.currentImage == selectedImageUri
-                val shouldUnselect = currentSelectedImages.size > 1 && isCurrentFocused
+                is SelectImageState.Multiple -> {
+                    val currentSelectedImages = currentSelectImageMode.selectedImages
+                    val isAlreadySelected = currentSelectedImages.any { it.imageUri == selectedImageUri }
+                    val isCurrentFocused = currentSelectImageMode.currentImageUri == selectedImageUri
+                    val shouldUnselect = currentSelectedImages.size > 1 && isCurrentFocused
 
-                when {
-                    // Already focused image is clicked and multiple items are selected
-                    shouldUnselect -> {
-                        unselectImage(unselectedImageUri = selectedImageUri)
-                    }
+                    when {
+                        // Already focused image is clicked and multiple items are selected
+                        shouldUnselect -> {
+                            unselectImage(unselectedImageUri = selectedImageUri)
+                        }
 
-                    // Update the current image focus if it's already in the selection list
-                    isAlreadySelected -> {
-                        _selectImageState.value = SelectImageState.Multiple(
-                            currentImage = selectedImageUri,
-                            selectedImages = currentSelectedImages
-                        )
-                    }
+                        // Update the current image focus if it's already in the selection list
+                        isAlreadySelected -> {
+                            _selectImageState.value = SelectImageState.Multiple(
+                                currentImageUri = selectedImageUri,
+                                selectedImages = currentSelectedImages
+                            )
+                            _sideEffect.send(AddSideEffect.ScrollToItem(selectedImageUri))
+                        }
 
-                    // Select: Add a new image to the list and update focus
-                    else -> {
-                        val newSelectedImages = currentSelectedImages + SelectedImage(
-                            number = currentSelectedImages.size + 1,
-                            imageUri = selectedImageUri
-                        )
-                        _selectImageState.value = SelectImageState.Multiple(
-                            currentImage = selectedImageUri,
-                            selectedImages = newSelectedImages
-                        )
+                        // Select: Add a new image to the list and update focus
+                        else -> {
+                            val newSelectedImages = currentSelectedImages + SelectedImage(
+                                number = currentSelectedImages.size + 1,
+                                imageUri = selectedImageUri
+                            )
+                            _selectImageState.value = SelectImageState.Multiple(
+                                currentImageUri = selectedImageUri,
+                                selectedImages = newSelectedImages
+                            )
+                            _sideEffect.send(AddSideEffect.ScrollToItem(selectedImageUri))
+                        }
                     }
                 }
             }
         }
     }
 
-    private fun unselectImage(unselectedImageUri: String) {
+    private suspend fun unselectImage(unselectedImageUri: String) {
         val currentSelectedImages = (selectImageState.value as? SelectImageState.Multiple) ?: return
         val updateSelectedImages = currentSelectedImages.selectedImages
             .filter { it.imageUri != unselectedImageUri }
             .mapIndexed { index, selectedImage ->
                 selectedImage.copy(number = index + 1)
             }
+        val currentImageUri = updateSelectedImages.lastOrNull()?.imageUri
         _selectImageState.value = SelectImageState.Multiple(
-            currentImage = updateSelectedImages.lastOrNull()?.imageUri,
+            currentImageUri = currentImageUri,
             selectedImages = updateSelectedImages
         )
+        _sideEffect.send(AddSideEffect.ScrollToItem(currentImageUri ?: ""))
     }
 
     private fun changeSelectImageMode() {
         when (val currentSelectImageMode = selectImageState.value) {
             is SelectImageState.Single -> {
                 val image = SelectedImage(number = 1, imageUri = currentSelectImageMode.imageUri ?: "")
-                _selectImageState.value = SelectImageState.Multiple(currentImage = image.imageUri, selectedImages = listOf(image))
+                _selectImageState.value = SelectImageState.Multiple(currentImageUri = image.imageUri, selectedImages = listOf(image))
             }
 
             is SelectImageState.Multiple -> {

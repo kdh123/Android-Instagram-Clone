@@ -38,7 +38,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.UiComposable
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -66,12 +65,12 @@ import kotlinx.coroutines.flow.flowOf
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddScreen(
+    addState: AddState,
     galleryImages: LazyPagingItems<GalleryImage>,
     selectImageState: SelectImageState,
     onAction: (AddAction) -> Unit,
     onBack: () -> Unit
 ) {
-    val addState = rememberAddState()
     val imagePermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { state ->
@@ -82,7 +81,15 @@ fun AddScreen(
     }
 
     BoxWithConstraints {
-        val screenHeight = maxHeight - 64.dp - 64.dp
+        val screenWidth = maxWidth
+        val topBarHeight = 64.dp
+        val buttonHeight = 64.dp
+        val screenHeight = maxHeight - topBarHeight - buttonHeight
+        val itemHeight = screenWidth / 4 + WindowInsets.navigationBars
+            .asPaddingValues()
+            .calculateBottomPadding()
+        val gridBottomPadding = screenHeight - itemHeight
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -102,7 +109,7 @@ fun AddScreen(
                     state = addState.galleryListState,
                     columns = GridCells.Fixed(4),
                     contentPadding = PaddingValues(
-                        bottom = WindowInsets.navigationBars
+                        bottom = gridBottomPadding + WindowInsets.navigationBars
                             .asPaddingValues()
                             .calculateBottomPadding()
                     ),
@@ -178,7 +185,7 @@ internal fun PreviewSelectedImage(
 ) {
     val selectedGalleryImage: String? = when (selectImageState) {
         is SelectImageState.Single -> selectImageState.imageUri
-        is SelectImageState.Multiple -> selectImageState.currentImage
+        is SelectImageState.Multiple -> selectImageState.currentImageUri
     }
 
     GlideImage(
@@ -412,6 +419,7 @@ private fun AddScreenPreview(
             color = MaterialTheme.colorScheme.background
         ) {
             AddScreen(
+                addState = rememberAddState(),
                 galleryImages = galleryImages,
                 selectImageState = selectImageState,
                 onAction = {},
@@ -427,7 +435,7 @@ class AddScreenPreviewParameterProvider : PreviewParameterProvider<SelectImageSt
         get() = sequenceOf(
             SelectImageState.Single("imageUri0"),
             SelectImageState.Multiple(
-                currentImage = "imageUri0",
+                currentImageUri = "imageUri0",
                 selectedImages = listOf("imageUri0", "imageUri2", "imageUri3")
                     .map {
                         SelectedImage(number = 1, imageUri = it)
