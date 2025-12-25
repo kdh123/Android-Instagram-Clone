@@ -22,7 +22,7 @@ fun NavGraphBuilder.add(
         val viewModel = hiltViewModel<AddViewModel>()
         val context = LocalContext.current
         val galleryImages = viewModel.galleryImages.collectAsLazyPagingItems()
-        val selectImageMode by viewModel.selectImageMode.collectAsStateWithLifecycle()
+        val selectImageMode by viewModel.selectImageState.collectAsStateWithLifecycle()
 
         LaunchedEffect(Unit) {
             viewModel.sideEffect.collect {
@@ -36,7 +36,7 @@ fun NavGraphBuilder.add(
 
         AddScreen(
             galleryImages = galleryImages,
-            selectImageMode = selectImageMode,
+            selectImageState = selectImageMode,
             onAction = viewModel::onAction,
             onBack = onBack
         )

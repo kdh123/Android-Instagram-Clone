@@ -27,8 +27,8 @@ class AddViewModel @Inject constructor(
 ) : ViewModel(
 ) {
 
-    private val _selectImageMode = MutableStateFlow<SelectImageMode>(SelectImageMode.Single(null))
-    val selectImageMode = _selectImageMode.asStateFlow()
+    private val _selectImageState = MutableStateFlow<SelectImageState>(SelectImageState.Single(null))
+    val selectImageState = _selectImageState.asStateFlow()
 
     private val _sideEffect = Channel<AddSideEffect>(Channel.BUFFERED)
     val sideEffect = _sideEffect.receiveAsFlow()
@@ -40,28 +40,48 @@ class AddViewModel @Inject constructor(
         viewModelScope.launch {
             val firstImage = getRecentGalleryImageUseCase().first()
             if (firstImage != null) {
-                _selectImageMode.value = SelectImageMode.Single(firstImage.uri)
+                _selectImageState.value = SelectImageState.Single(firstImage.uri)
             }
         }
     }
 
     fun onAction(action: AddAction) {
         when (action) {
+            is AddAction.ChangeSelectImageMode -> {
+                changeSelectImageMode()
+            }
+
             is AddAction.UploadFeed -> {
                 uploadFeed(action.feed, action.imageUrls)
             }
 
             is AddAction.SelectImage -> {
-                when (val currentSelectImageMode = selectImageMode.value) {
-                    is SelectImageMode.Single -> {
-                        _selectImageMode.value = SelectImageMode.Single(action.imageUri)
-                    }
+                selectImage(action.imageUri)
+            }
+        }
+    }
 
-                    is SelectImageMode.Multiple -> {
-                        val updateSelectedImageUris = currentSelectImageMode.imageUris + action.imageUri
-                        _selectImageMode.value = SelectImageMode.Multiple(updateSelectedImageUris)
-                    }
-                }
+    private fun selectImage(selectedImageUri: String) {
+        when (val currentSelectImageMode = selectImageState.value) {
+            is SelectImageState.Single -> {
+                _selectImageState.value = SelectImageState.Single(selectedImageUri)
+            }
+
+            is SelectImageState.Multiple -> {
+                val updateSelectedImageUris = currentSelectImageMode.imageUris + selectedImageUri
+                _selectImageState.value = SelectImageState.Multiple(updateSelectedImageUris)
+            }
+        }
+    }
+
+    private fun changeSelectImageMode() {
+        when (val currentSelectImageMode = selectImageState.value) {
+            is SelectImageState.Single -> {
+                _selectImageState.value = SelectImageState.Multiple(imageUris = listOf(currentSelectImageMode.imageUri ?: ""))
+            }
+
+            is SelectImageState.Multiple -> {
+                _selectImageState.value = SelectImageState.Single(imageUri = currentSelectImageMode.imageUris.last())
             }
         }
     }

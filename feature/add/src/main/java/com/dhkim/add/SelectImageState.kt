@@ -1,12 +1,12 @@
 package com.dhkim.add
 
-sealed interface SelectImageMode {
+sealed interface SelectImageState {
 
     data class Single(
         val imageUri: String? = null
-    ) : SelectImageMode
+    ) : SelectImageState
 
     data class Multiple(
         val imageUris: List<String> = listOf()
-    ) : SelectImageMode
+    ) : SelectImageState
 }

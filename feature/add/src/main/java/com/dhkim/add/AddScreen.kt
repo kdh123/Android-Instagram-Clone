@@ -1,9 +1,7 @@
 package com.dhkim.add
 
 import android.content.res.Configuration
-import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -34,10 +32,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,6 +39,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import androidx.paging.PagingData
 import androidx.paging.compose.LazyPagingItems
@@ -60,28 +56,17 @@ import kotlinx.coroutines.flow.flowOf
 @Composable
 fun AddScreen(
     galleryImages: LazyPagingItems<GalleryImage>,
-    selectImageMode: SelectImageMode,
+    selectImageState: SelectImageState,
     onAction: (AddAction) -> Unit,
     onBack: () -> Unit
 ) {
     val addState = rememberAddState()
-    var imageUri by remember { mutableStateOf<Uri?>(null) }
-
-    val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia()
-    ) { uri: Uri? ->
-        imageUri = uri
-    }
     val imagePermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { state ->
         val isGranted = state.keys.count { state[it] == false } == 0
         if (isGranted) {
-            imagePickerLauncher.launch(
-                PickVisualMediaRequest(
-                    ActivityResultContracts.PickVisualMedia.ImageOnly
-                )
-            )
+
         }
     }
 
@@ -145,13 +130,9 @@ fun AddScreen(
                 ) { index ->
                     when (index) {
                         0 -> {
-                            val selectedGalleryImage = when (selectImageMode) {
-                                is SelectImageMode.Single -> selectImageMode.imageUri
-                                is SelectImageMode.Multiple -> if (selectImageMode.imageUris.isNotEmpty()) {
-                                    selectImageMode.imageUris[0]
-                                } else {
-                                    null
-                                }
+                            val selectedGalleryImage: String? = when (selectImageState) {
+                                is SelectImageState.Single -> selectImageState.imageUri
+                                is SelectImageState.Multiple -> selectImageState.imageUris.lastOrNull()
                             }
 
                             GlideImage(
@@ -165,22 +146,28 @@ fun AddScreen(
 
                         1 -> {
                             SelectMultipleImagesButton(
-                                onClick = {}
+                                selectImageState = selectImageState,
+                                onClick = { onAction(AddAction.ChangeSelectImageMode) }
                             )
                         }
 
                         else -> {
                             val galleryImage = galleryImages[index - 2]
                             if (galleryImage != null) {
-                                val isSelected = when (selectImageMode) {
-                                    is SelectImageMode.Single -> selectImageMode.imageUri == galleryImage.uri
-                                    is SelectImageMode.Multiple -> selectImageMode.imageUris.contains(galleryImage.uri)
+                                val isSelected = when (selectImageState) {
+                                    is SelectImageState.Single -> selectImageState.imageUri == galleryImage.uri
+                                    is SelectImageState.Multiple -> selectImageState.imageUris.contains(galleryImage.uri)
                                 }
 
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .aspectRatio(1.0f),
+                                        .aspectRatio(1.0f)
+                                        .clickable {
+                                            onAction(
+                                                AddAction.SelectImage(imageUri = galleryImage.uri)
+                                            )
+                                        },
                                 ) {
                                     GlideImage(
                                         imageModel = { galleryImage.uri },
@@ -208,6 +195,7 @@ fun AddScreen(
 
             if (addState.isAtTop) {
                 SelectMultipleImagesButton(
+                    selectImageState = selectImageState,
                     onClick = {}
                 )
             }
@@ -217,8 +205,24 @@ fun AddScreen(
 
 @Composable
 fun SelectMultipleImagesButton(
+    selectImageState: SelectImageState,
     onClick: () -> Unit
 ) {
+    val buttonText = when (selectImageState) {
+        is SelectImageState.Single -> stringResource(R.string.select_multiple_images)
+        is SelectImageState.Multiple -> stringResource(R.string.cancel)
+    }
+
+    val buttonBackgroundColor = when (selectImageState) {
+        is SelectImageState.Single -> Color.DarkGray
+        is SelectImageState.Multiple -> Color.White
+    }
+
+    val buttonContentColor = when (selectImageState) {
+        is SelectImageState.Single -> Color.White
+        is SelectImageState.Multiple -> Color.Black
+    }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -229,7 +233,7 @@ fun SelectMultipleImagesButton(
             modifier = Modifier
                 .padding(10.dp)
                 .clip(shape = RoundedCornerShape(24.dp))
-                .background(color = Color.DarkGray)
+                .background(color = buttonBackgroundColor)
                 .padding(8.dp)
                 .align(Alignment.CenterEnd)
                 .clickable(onClick = onClick)
@@ -237,15 +241,15 @@ fun SelectMultipleImagesButton(
             Icon(
                 painter = painterResource(R.drawable.ic_multiple_images),
                 contentDescription = null,
-                tint = Color.White,
+                tint = buttonContentColor,
                 modifier = Modifier
                     .padding(end = 6.dp)
                     .size(16.dp)
             )
             Text(
-                text = stringResource(R.string.select_multiple_images),
+                text = buttonText,
                 style = InstagramTheme.typography.labelSmall,
-                color = Color.White,
+                color = buttonContentColor,
             )
         }
     }
@@ -253,7 +257,9 @@ fun SelectMultipleImagesButton(
 
 @AddScreenPreviews
 @Composable
-private fun AddScreenPreview() {
+private fun AddScreenPreview(
+    @PreviewParameter(AddScreenPreviewParameterProvider::class) selectImageState: SelectImageState
+) {
     val mockGalleyImages = flowOf(
         PagingData.from(
             mutableListOf<GalleryImage>().apply {
@@ -261,7 +267,7 @@ private fun AddScreenPreview() {
                     add(
                         GalleryImage(
                             id = it.toLong(),
-                            uri = "imageUri",
+                            uri = "imageUri$it",
                             name = "",
                             dateAdded = 0L
                         )
@@ -280,7 +286,7 @@ private fun AddScreenPreview() {
         ) {
             AddScreen(
                 galleryImages = galleryImages,
-                selectImageMode = SelectImageMode.Single(),
+                selectImageState = selectImageState,
                 onAction = {},
                 onBack = {}
             )
@@ -288,6 +294,14 @@ private fun AddScreenPreview() {
     }
 }
 
+class AddScreenPreviewParameterProvider : PreviewParameterProvider<SelectImageState> {
+
+    override val values: Sequence<SelectImageState>
+        get() = sequenceOf(
+            SelectImageState.Single("imageUri0"),
+            SelectImageState.Multiple(listOf("imageUri0", "imageUri2", "imageUri3"))
+        )
+}
 
 @Preview(showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Preview(showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_NO)
