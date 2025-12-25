@@ -8,6 +8,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -22,10 +23,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -34,10 +35,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.UiComposable
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -55,6 +62,7 @@ import com.dhkim.domain.common.model.GalleryImage
 import com.skydoves.landscapist.glide.GlideImage
 import kotlinx.coroutines.flow.flowOf
 
+@Suppress("COMPOSE_APPLIER_CALL_MISMATCH")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddScreen(
@@ -73,140 +81,151 @@ fun AddScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(64.dp)
-                .padding(10.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Close,
-                tint = InstagramTheme.colors.onBackground,
-                contentDescription = "",
-                modifier = Modifier
-                    .padding(end = 10.dp)
-                    .clickable(onClick = onBack)
-            )
-            Text(
-                text = stringResource(R.string.new_feed),
-                style = InstagramTheme.typography.titleMedium,
-                modifier = Modifier
-                    .width(0.dp)
-                    .weight(1f)
-            )
-            Text(
-                text = stringResource(R.string.next),
-                style = InstagramTheme.typography.labelMediumBold,
-                color = InstagramTheme.colors.primary,
-            )
-        }
-        Box(
+    BoxWithConstraints {
+        val screenHeight = maxHeight - 64.dp - 64.dp
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
         ) {
-            LazyVerticalGrid(
-                state = addState.galleryListState,
-                columns = GridCells.Fixed(4),
-                contentPadding = PaddingValues(
-                    bottom = WindowInsets.navigationBars
-                        .asPaddingValues()
-                        .calculateBottomPadding()
-                ),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-                horizontalArrangement = Arrangement.spacedBy(2.dp),
+            TopBar(onBack = onBack)
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .verticalScroll(state = addState.galleryScrollState)
             ) {
-                items(
-                    count = galleryImages.itemCount,
-                    key = galleryImages.itemKey(),
-                    contentType = galleryImages.itemContentType(),
-                    span = { index ->
-                        val span = if (index == 0 || index == 1) maxLineSpan else 1
-                        GridItemSpan(span)
-                    }
-                ) { index ->
-                    when (index) {
-                        0 -> {
-                            val selectedGalleryImage: String? = when (selectImageState) {
-                                is SelectImageState.Single -> selectImageState.imageUri
-                                is SelectImageState.Multiple -> selectImageState.currentImage
-                            }
-
-                            GlideImage(
-                                imageModel = { selectedGalleryImage ?: "" },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .aspectRatio(1.0f),
-                                previewPlaceholder = painterResource(R.drawable.ic_dummy_background)
-                            )
-                        }
-
-                        1 -> {
-                            SelectMultipleImagesButton(
-                                selectImageState = selectImageState,
-                                onClick = { onAction(AddAction.ChangeSelectImageMode) }
-                            )
-                        }
-
-                        else -> {
-                            val galleryImage = galleryImages[index - 2] ?: return@items
-                            val isSelected = when (selectImageState) {
-                                is SelectImageState.Single -> selectImageState.imageUri == galleryImage.uri
-                                is SelectImageState.Multiple -> selectImageState.selectedImages
-                                    .map { it.imageUri }
-                                    .contains(galleryImage.uri)
-                            }
-
-                            if (isSelected) {
-                                when (selectImageState) {
-                                    is SelectImageState.Single -> {
-                                        SelectedImage(
-                                            imageUri = galleryImage.uri,
-                                            onAction = onAction
-                                        )
-                                    }
-
-                                    is SelectImageState.Multiple -> {
-                                        val number = selectImageState.selectedImages
-                                            .firstOrNull { it.imageUri == galleryImage.uri }
-                                            ?.number
-                                            ?: 1
-                                        SelectedImageInMultipleSelectImageMode(
-                                            number = number,
-                                            imageUri = galleryImage.uri,
-                                            onAction = onAction
-                                        )
-                                    }
+                PreviewSelectedImage(selectImageState)
+                SelectMultipleImagesButton(
+                    selectImageState = selectImageState,
+                    onClick = { onAction(AddAction.ChangeSelectImageMode) }
+                )
+                LazyVerticalGrid(
+                    state = addState.galleryListState,
+                    columns = GridCells.Fixed(4),
+                    contentPadding = PaddingValues(
+                        bottom = WindowInsets.navigationBars
+                            .asPaddingValues()
+                            .calculateBottomPadding()
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(screenHeight)
+                        .nestedScroll(remember {
+                            object : NestedScrollConnection {
+                                override fun onPreScroll(
+                                    available: Offset,
+                                    source: NestedScrollSource
+                                ): Offset {
+                                    return if (available.y > 0) Offset.Zero else Offset(
+                                        x = 0f,
+                                        y = -addState.galleryScrollState.dispatchRawDelta(-available.y)
+                                    )
                                 }
-                            } else {
-                                NotSelectedImage(
-                                    imageUri = galleryImage.uri,
-                                    onAction = onAction
-                                )
                             }
+                        })
+                ) {
+                    items(
+                        count = galleryImages.itemCount,
+                        key = galleryImages.itemKey(),
+                        contentType = galleryImages.itemContentType(),
+                    ) { index ->
+                        val galleryImage = galleryImages[index] ?: return@items
+                        val isSelected = when (selectImageState) {
+                            is SelectImageState.Single -> selectImageState.imageUri == galleryImage.uri
+                            is SelectImageState.Multiple -> selectImageState.selectedImages
+                                .map { it.imageUri }
+                                .contains(galleryImage.uri)
+                        }
+
+                        if (isSelected) {
+                            when (selectImageState) {
+                                is SelectImageState.Single -> {
+                                    SelectedImage(
+                                        imageUri = galleryImage.uri,
+                                        onAction = onAction
+                                    )
+                                }
+
+                                is SelectImageState.Multiple -> {
+                                    val number = selectImageState.selectedImages
+                                        .firstOrNull { it.imageUri == galleryImage.uri }
+                                        ?.number
+                                        ?: 1
+                                    SelectedImageInMultipleSelectImageMode(
+                                        number = number,
+                                        imageUri = galleryImage.uri,
+                                        onAction = onAction
+                                    )
+                                }
+                            }
+                        } else {
+                            NotSelectedImage(
+                                imageUri = galleryImage.uri,
+                                onAction = onAction
+                            )
                         }
                     }
                 }
-            }
-
-            if (addState.isAtTop) {
-                SelectMultipleImagesButton(
-                    selectImageState = selectImageState,
-                    onClick = {}
-                )
             }
         }
     }
 }
 
 @Composable
-fun NotSelectedImage(
+internal fun PreviewSelectedImage(
+    selectImageState: SelectImageState
+) {
+    val selectedGalleryImage: String? = when (selectImageState) {
+        is SelectImageState.Single -> selectImageState.imageUri
+        is SelectImageState.Multiple -> selectImageState.currentImage
+    }
+
+    GlideImage(
+        imageModel = { selectedGalleryImage ?: "" },
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(1.0f),
+        previewPlaceholder = painterResource(R.drawable.ic_dummy_background)
+    )
+}
+
+@Composable
+internal fun TopBar(
+    onBack: () -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(64.dp)
+            .padding(horizontal = 10.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Close,
+            tint = InstagramTheme.colors.onBackground,
+            contentDescription = "",
+            modifier = Modifier
+                .padding(end = 10.dp)
+                .clickable(onClick = onBack)
+        )
+        Text(
+            text = stringResource(R.string.new_feed),
+            style = InstagramTheme.typography.titleMedium,
+            modifier = Modifier
+                .width(0.dp)
+                .weight(1f)
+        )
+        Text(
+            text = stringResource(R.string.next),
+            style = InstagramTheme.typography.labelMediumBold,
+            color = InstagramTheme.colors.primary,
+        )
+    }
+}
+
+@Composable
+internal fun NotSelectedImage(
     imageUri: String,
     onAction: (AddAction) -> Unit
 ) {
@@ -231,7 +250,7 @@ fun NotSelectedImage(
 }
 
 @Composable
-fun SelectedImage(
+internal fun SelectedImage(
     imageUri: String,
     onAction: (AddAction) -> Unit
 ) {
@@ -263,7 +282,7 @@ fun SelectedImage(
 }
 
 @Composable
-fun SelectedImageInMultipleSelectImageMode(
+internal fun SelectedImageInMultipleSelectImageMode(
     number: Int,
     imageUri: String,
     onAction: (AddAction) -> Unit
@@ -311,7 +330,7 @@ private fun SelectImageInMultipleSelectImageModePreview() {
 }
 
 @Composable
-fun SelectMultipleImagesButton(
+internal fun SelectMultipleImagesButton(
     selectImageState: SelectImageState,
     onClick: () -> Unit
 ) {
@@ -333,6 +352,7 @@ fun SelectMultipleImagesButton(
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .height(64.dp)
             .background(color = InstagramTheme.colors.background)
     ) {
         Row(
@@ -418,4 +438,4 @@ class AddScreenPreviewParameterProvider : PreviewParameterProvider<SelectImageSt
 
 @Preview(showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Preview(showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_NO)
-annotation class AddScreenPreviews
+internal annotation class AddScreenPreviews
