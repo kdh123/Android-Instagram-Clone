@@ -7,6 +7,12 @@ sealed interface SelectImageState {
     ) : SelectImageState
 
     data class Multiple(
-        val imageUris: List<String> = listOf()
+        val currentImage: String? = null,
+        val selectedImages: List<SelectedImage> = listOf()
     ) : SelectImageState
 }
+
+data class SelectedImage(
+    val number: Int,
+    val imageUri: String
+)

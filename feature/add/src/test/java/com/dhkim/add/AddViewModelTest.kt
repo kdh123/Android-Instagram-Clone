@@ -65,8 +65,8 @@ class AddViewModelTest {
 
             val item = awaitItem()
 
-            assertEquals((item as SelectImageState.Multiple).imageUris.size, 1)
-            assertEquals(item.imageUris[0], fakeGalleryImages[0].uri)
+            assertEquals((item as SelectImageState.Multiple).selectedImages.size, 1)
+            assertEquals(item.selectedImages[0].imageUri, fakeGalleryImages[0].uri)
         }
     }
 
@@ -93,12 +93,60 @@ class AddViewModelTest {
             viewModel.onAction(AddAction.SelectImage(fakeGalleryImages[3].uri))
             awaitItem()
             viewModel.onAction(AddAction.SelectImage(fakeGalleryImages[4].uri))
-            assertEquals((awaitItem() as SelectImageState.Multiple).imageUris.size, 3)
+            assertEquals((awaitItem() as SelectImageState.Multiple).selectedImages.size, 3)
 
             // Act: Switch back to single selection mode.
             viewModel.onAction(AddAction.ChangeSelectImageMode)
 
             assertEquals((awaitItem() as SelectImageState.Single).imageUri, fakeGalleryImages[4].uri)
+        }
+    }
+
+    @Test
+    fun whenSelectingImagesInMultipleMode_thenCorrectlyAddsAndRemovesFromSelectedList() = runTest {
+        coEvery { galleryRepository.getRecentGalleryImageUseCase() } returns flowOf(fakeGalleryImages[0])
+        coEvery { galleryRepository.getGalleryImages(any()) } returns flowOf(PagingData.from(fakeGalleryImages))
+
+        viewModel = AddViewModel(
+            uploadFeedUseCase,
+            getGalleryImagesUseCase,
+            getRecentGalleryImageUseCase
+        )
+
+        viewModel.selectImageState.test {
+            awaitItem() // Initial
+
+            // Act: Switch to multiple selection mode.
+            viewModel.onAction(AddAction.ChangeSelectImageMode)
+            awaitItem() // After mode change
+
+            // Act: Select image 3.
+            viewModel.onAction(AddAction.SelectImage(fakeGalleryImages[3].uri))
+            awaitItem()
+            
+            // Act: Select image 4.
+            viewModel.onAction(AddAction.SelectImage(fakeGalleryImages[4].uri))
+            assertEquals((awaitItem() as SelectImageState.Multiple).selectedImages.size, 3)
+
+            // Act: Select image 3 again (It should become the 'current' preview image).
+            viewModel.onAction(AddAction.SelectImage(fakeGalleryImages[3].uri))
+            val item = (awaitItem() as SelectImageState.Multiple)
+            assertEquals(item.currentImage, fakeGalleryImages[3].uri)
+            assertEquals(item.selectedImages.map { it.imageUri }.contains(fakeGalleryImages[3].uri), true)
+
+            // Act: Select image 4 again (It should become the 'current' preview image).
+            viewModel.onAction(AddAction.SelectImage(fakeGalleryImages[4].uri))
+            val item2 = (awaitItem() as SelectImageState.Multiple)
+            assertEquals(item2.currentImage, fakeGalleryImages[4].uri)
+            assertEquals(item2.selectedImages.map { it.imageUri }.contains(fakeGalleryImages[4].uri), true)
+
+            // Act: Select image 4 one more time (Since it's already current, it should be unselected).
+            viewModel.onAction(AddAction.SelectImage(fakeGalleryImages[4].uri))
+            val item3 = (awaitItem() as SelectImageState.Multiple)
+            // The current preview should fall back to the next available selected image.
+            assertEquals(item3.currentImage, fakeGalleryImages[3].uri)
+            // Image 4 should be removed from the selection list.
+            assertEquals(item3.selectedImages.map { it.imageUri }.contains(fakeGalleryImages[4].uri), false)
         }
     }
 

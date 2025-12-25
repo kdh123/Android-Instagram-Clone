@@ -68,20 +68,63 @@ class AddViewModel @Inject constructor(
             }
 
             is SelectImageState.Multiple -> {
-                val updateSelectedImageUris = currentSelectImageMode.imageUris + selectedImageUri
-                _selectImageState.value = SelectImageState.Multiple(updateSelectedImageUris)
+                val currentSelectedImages = currentSelectImageMode.selectedImages
+                val isAlreadySelected = currentSelectedImages.any { it.imageUri == selectedImageUri }
+                val isCurrentFocused = currentSelectImageMode.currentImage == selectedImageUri
+                val shouldUnselect = currentSelectedImages.size > 1 && isCurrentFocused
+
+                when {
+                    // Already focused image is clicked and multiple items are selected
+                    shouldUnselect -> {
+                        unselectImage(unselectedImageUri = selectedImageUri)
+                    }
+
+                    // Update the current image focus if it's already in the selection list
+                    isAlreadySelected -> {
+                        _selectImageState.value = SelectImageState.Multiple(
+                            currentImage = selectedImageUri,
+                            selectedImages = currentSelectedImages
+                        )
+                    }
+
+                    // Select: Add a new image to the list and update focus
+                    else -> {
+                        val newSelectedImages = currentSelectedImages + SelectedImage(
+                            number = currentSelectedImages.size + 1,
+                            imageUri = selectedImageUri
+                        )
+                        _selectImageState.value = SelectImageState.Multiple(
+                            currentImage = selectedImageUri,
+                            selectedImages = newSelectedImages
+                        )
+                    }
+                }
             }
         }
+    }
+
+    private fun unselectImage(unselectedImageUri: String) {
+        val currentSelectedImages = (selectImageState.value as? SelectImageState.Multiple) ?: return
+        val updateSelectedImages = currentSelectedImages.selectedImages
+            .filter { it.imageUri != unselectedImageUri }
+            .mapIndexed { index, selectedImage ->
+                selectedImage.copy(number = index + 1)
+            }
+        _selectImageState.value = SelectImageState.Multiple(
+            currentImage = updateSelectedImages.lastOrNull()?.imageUri,
+            selectedImages = updateSelectedImages
+        )
     }
 
     private fun changeSelectImageMode() {
         when (val currentSelectImageMode = selectImageState.value) {
             is SelectImageState.Single -> {
-                _selectImageState.value = SelectImageState.Multiple(imageUris = listOf(currentSelectImageMode.imageUri ?: ""))
+                val image = SelectedImage(number = 1, imageUri = currentSelectImageMode.imageUri ?: "")
+                _selectImageState.value = SelectImageState.Multiple(currentImage = image.imageUri, selectedImages = listOf(image))
             }
 
             is SelectImageState.Multiple -> {
-                _selectImageState.value = SelectImageState.Single(imageUri = currentSelectImageMode.imageUris.last())
+                _selectImageState.value = SelectImageState.Single(imageUri = currentSelectImageMode.selectedImages.map { it.imageUri }.lastOrNull())
             }
         }
     }

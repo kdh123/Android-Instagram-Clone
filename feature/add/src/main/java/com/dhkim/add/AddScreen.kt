@@ -4,6 +4,7 @@ import android.content.res.Configuration
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,6 +24,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
@@ -38,6 +40,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
@@ -132,7 +135,7 @@ fun AddScreen(
                         0 -> {
                             val selectedGalleryImage: String? = when (selectImageState) {
                                 is SelectImageState.Single -> selectImageState.imageUri
-                                is SelectImageState.Multiple -> selectImageState.imageUris.lastOrNull()
+                                is SelectImageState.Multiple -> selectImageState.currentImage
                             }
 
                             GlideImage(
@@ -152,41 +155,40 @@ fun AddScreen(
                         }
 
                         else -> {
-                            val galleryImage = galleryImages[index - 2]
-                            if (galleryImage != null) {
-                                val isSelected = when (selectImageState) {
-                                    is SelectImageState.Single -> selectImageState.imageUri == galleryImage.uri
-                                    is SelectImageState.Multiple -> selectImageState.imageUris.contains(galleryImage.uri)
-                                }
+                            val galleryImage = galleryImages[index - 2] ?: return@items
+                            val isSelected = when (selectImageState) {
+                                is SelectImageState.Single -> selectImageState.imageUri == galleryImage.uri
+                                is SelectImageState.Multiple -> selectImageState.selectedImages
+                                    .map { it.imageUri }
+                                    .contains(galleryImage.uri)
+                            }
 
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .aspectRatio(1.0f)
-                                        .clickable {
-                                            onAction(
-                                                AddAction.SelectImage(imageUri = galleryImage.uri)
-                                            )
-                                        },
-                                ) {
-                                    GlideImage(
-                                        imageModel = { galleryImage.uri },
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .aspectRatio(1.0f),
-                                        previewPlaceholder = painterResource(R.drawable.ic_dummy_background)
-                                    )
+                            if (isSelected) {
+                                when (selectImageState) {
+                                    is SelectImageState.Single -> {
+                                        SelectedImage(
+                                            imageUri = galleryImage.uri,
+                                            onAction = onAction
+                                        )
+                                    }
 
-
-                                    if (isSelected) {
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .aspectRatio(1.0f)
-                                                .background(color = Color.Black.copy(alpha = 0.5f))
+                                    is SelectImageState.Multiple -> {
+                                        val number = selectImageState.selectedImages
+                                            .firstOrNull { it.imageUri == galleryImage.uri }
+                                            ?.number
+                                            ?: 1
+                                        SelectedImageInMultipleSelectImageMode(
+                                            number = number,
+                                            imageUri = galleryImage.uri,
+                                            onAction = onAction
                                         )
                                     }
                                 }
+                            } else {
+                                NotSelectedImage(
+                                    imageUri = galleryImage.uri,
+                                    onAction = onAction
+                                )
                             }
                         }
                     }
@@ -201,6 +203,111 @@ fun AddScreen(
             }
         }
     }
+}
+
+@Composable
+fun NotSelectedImage(
+    imageUri: String,
+    onAction: (AddAction) -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(1.0f)
+            .clickable {
+                onAction(
+                    AddAction.SelectImage(imageUri = imageUri)
+                )
+            },
+    ) {
+        GlideImage(
+            imageModel = { imageUri },
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1.0f),
+            previewPlaceholder = painterResource(R.drawable.ic_dummy_background)
+        )
+    }
+}
+
+@Composable
+fun SelectedImage(
+    imageUri: String,
+    onAction: (AddAction) -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(1.0f)
+            .clickable {
+                onAction(
+                    AddAction.SelectImage(imageUri = imageUri)
+                )
+            },
+    ) {
+        GlideImage(
+            imageModel = { imageUri },
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1.0f),
+            previewPlaceholder = painterResource(R.drawable.ic_dummy_background)
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1.0f)
+                .background(color = Color.White.copy(alpha = 0.7f))
+        )
+    }
+}
+
+@Composable
+fun SelectedImageInMultipleSelectImageMode(
+    number: Int,
+    imageUri: String,
+    onAction: (AddAction) -> Unit
+) {
+    Box {
+        SelectedImage(
+            imageUri = imageUri,
+            onAction = onAction
+        )
+
+        Box(
+            modifier = Modifier
+                .padding(6.dp)
+                .clip(CircleShape)
+                .size(24.dp)
+                .border(
+                    width = 1.dp,
+                    color = Color.White,
+                    shape = CircleShape
+                )
+                .background(color = InstagramTheme.colors.primary)
+                .align(Alignment.TopEnd)
+        ) {
+            Text(
+                text = "$number",
+                color = Color.White,
+                textAlign = TextAlign.Center,
+                style = InstagramTheme.typography.labelSmall,
+                modifier = Modifier
+                    .align(Alignment.Center)
+
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun SelectImageInMultipleSelectImageModePreview() {
+    SelectedImageInMultipleSelectImageMode(
+        number = 1,
+        imageUri = "",
+        onAction = {}
+    )
 }
 
 @Composable
@@ -299,7 +406,13 @@ class AddScreenPreviewParameterProvider : PreviewParameterProvider<SelectImageSt
     override val values: Sequence<SelectImageState>
         get() = sequenceOf(
             SelectImageState.Single("imageUri0"),
-            SelectImageState.Multiple(listOf("imageUri0", "imageUri2", "imageUri3"))
+            SelectImageState.Multiple(
+                currentImage = "imageUri0",
+                selectedImages = listOf("imageUri0", "imageUri2", "imageUri3")
+                    .map {
+                        SelectedImage(number = 1, imageUri = it)
+                    }
+            )
         )
 }
 
