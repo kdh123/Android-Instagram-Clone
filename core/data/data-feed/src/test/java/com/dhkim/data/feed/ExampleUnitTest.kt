@@ -1,4 +1,4 @@
-package com.dhkim.home
+package com.dhkim.data.feed
 
 import org.junit.Test
 

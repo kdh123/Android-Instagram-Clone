@@ -90,7 +90,7 @@ fun MainScreen(
             login(navigateToHome = appState::navigateToHomeFromLogin)
             home()
             search()
-            add()
+            add(onBack = appState.navController::navigateUp)
             reels()
             profile()
         }

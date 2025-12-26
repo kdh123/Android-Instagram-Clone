@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="select_multiple_images">Select Multiple</string>
+    <string name="new_feed">New Feed</string>
+    <string name="next">Next</string>
+    <string name="cancel">cancel</string>
+</resources>

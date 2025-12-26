@@ -54,8 +54,10 @@ android {
 
 dependencies {
     implementation(project(":feature:main"))
+    implementation(project(":core:data:data-common"))
     implementation(project(":core:data:data-login"))
     implementation(project(":core:data:data-user"))
+    implementation(project(":core:data:data-feed"))
 
     implementation(libs.bundles.androidx.compose.main)
     implementation(libs.bundles.androidx.compose.side)
@@ -64,6 +66,7 @@ dependencies {
     implementation(platform(libs.google.firebase.bom))
     implementation(libs.google.firebase.auth)
     implementation(libs.goolge.play.service.auth)
+    implementation(libs.bundles.androidx.workManager)
     implementation(libs.hilt)
     ksp(libs.hilt.compiler)
 

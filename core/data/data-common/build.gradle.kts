@@ -34,10 +34,14 @@ android {
 }
 
 dependencies {
+    implementation(project(":core:domain:domain-common"))
+
     implementation(platform(libs.google.firebase.bom))
     implementation(libs.google.firebase.auth)
+    implementation(libs.google.firebase.database.ktx)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.paging.common)
     implementation(libs.material)
     implementation(libs.hilt)
     ksp(libs.hilt.compiler)
