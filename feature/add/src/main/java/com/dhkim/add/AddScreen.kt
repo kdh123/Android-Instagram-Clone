@@ -3,6 +3,11 @@ package com.dhkim.add
 import android.content.res.Configuration
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.VectorConverter
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -35,31 +40,46 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.paging.PagingData
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemContentType
 import androidx.paging.compose.itemKey
+import com.bumptech.glide.request.RequestOptions
 import com.dhkim.designsystem.InstagramTheme
 import com.dhkim.domain.common.model.GalleryImage
+import com.dhkim.ui.detectTransformGesturesWithEnd
 import com.skydoves.landscapist.glide.GlideImage
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
+import kotlin.math.absoluteValue
+import kotlin.math.max
 
 @Suppress("COMPOSE_APPLIER_CALL_MISMATCH")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -117,6 +137,7 @@ fun AddScreen(
                     horizontalArrangement = Arrangement.spacedBy(2.dp),
                     modifier = Modifier
                         .fillMaxWidth()
+                        .background(color = InstagramTheme.colors.background)
                         .height(screenHeight)
                         .nestedScroll(remember {
                             object : NestedScrollConnection {
@@ -183,18 +204,140 @@ fun AddScreen(
 internal fun PreviewSelectedImage(
     selectImageState: SelectImageState
 ) {
-    val selectedGalleryImage: String? = when (selectImageState) {
+    val selectedImageUri: String? = when (selectImageState) {
         is SelectImageState.Single -> selectImageState.imageUri
         is SelectImageState.Multiple -> selectImageState.currentImageUri
     }
+    var intrinsicSize by remember { mutableStateOf(Size.Zero) }
+    val aspectRatio = if (intrinsicSize == Size.Zero) 1f else intrinsicSize.width / intrinsicSize.height
+    val scope = rememberCoroutineScope()
+    val scale = remember { Animatable(1f) }
+    val offset = remember { Animatable(Offset.Zero, Offset.VectorConverter) }
+    var viewportSize by remember { mutableStateOf(IntSize.Zero) }
 
-    GlideImage(
-        imageModel = { selectedGalleryImage ?: "" },
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(1.0f),
-        previewPlaceholder = painterResource(R.drawable.ic_dummy_background)
-    )
+            .aspectRatio(1f)
+            .background(Color.Black)
+            .onSizeChanged { viewportSize = it },
+        contentAlignment = Alignment.Center
+    ) {
+        // Cropping area
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(aspectRatio)
+                .background(InstagramTheme.colors.background)
+                .pointerInput(Unit) {
+                    detectTransformGesturesWithEnd(
+                        onGesture = { centroid, pan, zoom, _ ->
+                            scope.launch {
+                                // Handle Zoom
+                                val nextScale = scale.value * zoom
+                                scale.snapTo(nextScale)
+
+                                // Handle Pan + Resistance
+                                // Calculate how much larger the image is compared to the viewport based on current scale
+                                val imageWidth = if (intrinsicSize.width / intrinsicSize.height <= 1f) {
+                                    intrinsicSize.width * scale.value
+                                } else {
+                                    viewportSize.width * scale.value
+                                }
+                                val imageHeight = if (intrinsicSize.height / intrinsicSize.height <= 1f) {
+                                    intrinsicSize.height * scale.value
+                                } else {
+                                    viewportSize.height * scale.value
+                                }
+
+                                // Maximum allowable offset (boundaries)
+                                val maxOffsetX = (imageWidth - viewportSize.width) / 2f
+                                val maxOffsetY = (imageHeight - viewportSize.height) / 2f
+
+                                // Calculate resistance for X and Y axes
+                                val resistanceX = if (offset.value.x.absoluteValue > maxOffsetX) 0.3f else 1f
+                                val resistanceY = if (offset.value.y.absoluteValue > maxOffsetY) 0.3f else 1f
+
+                                // Apply resistance to pan movement
+                                val targetOffset = offset.value + Offset(
+                                    pan.x * resistanceX,
+                                    pan.y * resistanceY
+                                )
+                                offset.snapTo(targetOffset)
+                            }
+                        },
+                        onGestureEnd = {
+                            scope.launch {
+                                // Bounce back if the image is out of boundaries when the gesture ends
+                                // Limit minimum scale (Bounce back to 1.0 if smaller)
+                                val targetScale = max(1f, scale.value)
+                                launch {
+                                    if (scale.value < 1f) {
+                                        scale.animateTo(1f, spring(Spring.DampingRatioMediumBouncy))
+                                    }
+                                }
+
+                                // Recalculate boundaries based on target scale
+                                val imageWidth = if (intrinsicSize.width / intrinsicSize.height <= 1f) {
+                                    intrinsicSize.width * targetScale
+                                } else {
+                                    viewportSize.width * targetScale
+                                }
+                                val imageHeight = if (intrinsicSize.width / intrinsicSize.height <= 1f) {
+                                    intrinsicSize.height * targetScale
+                                } else {
+                                    viewportSize.height * targetScale
+                                }
+
+                                val maxOffsetX = (imageWidth - viewportSize.width) / 2f
+                                val maxOffsetY = (imageHeight - viewportSize.height) / 2f
+                                val currentOffset = offset.value
+
+                                // Clamp X and Y within boundaries
+                                val newX = currentOffset.x.coerceIn(-maxOffsetX, maxOffsetX)
+                                val newY = currentOffset.y.coerceIn(-maxOffsetY, maxOffsetY)
+
+                                if (newX != currentOffset.x || newY != currentOffset.y) {
+                                    offset.animateTo(
+                                        Offset(newX, newY),
+                                        spring(Spring.DampingRatioLowBouncy)
+                                    )
+                                }
+                            }
+                        }
+                    )
+                }
+        ) {
+            GlideImage(
+                imageModel = { selectedImageUri ?: "" },
+                requestOptions = {
+                    RequestOptions()
+                        .override(viewportSize.width, viewportSize.height)
+                },
+                success = { _, painter ->
+                    scope.launch {
+                        scale.snapTo(1f)
+                        offset.snapTo(Offset.Zero)
+                    }
+                    intrinsicSize = painter.intrinsicSize
+                    Image(
+                        painter = painter,
+                        contentDescription = null,
+                        contentScale = ContentScale.FillWidth
+                    )
+                },
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        scaleX = scale.value
+                        scaleY = scale.value
+                        translationX = offset.value.x
+                        translationY = offset.value.y
+                    },
+                previewPlaceholder = painterResource(R.drawable.ic_dummy_background)
+            )
+        }
+    }
 }
 
 @Composable

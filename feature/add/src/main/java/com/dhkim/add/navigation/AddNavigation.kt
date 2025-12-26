@@ -42,7 +42,7 @@ fun NavGraphBuilder.add(
                             val scrollIndex = galleryImages.itemSnapshotList.items
                                 .indexOfFirst { galleryImage -> galleryImage.uri == it.imageUri }
                                 .let { index -> if (index == -1) 0 else index }
-                            addState.galleryScrollState.scrollTo(0)
+                            addState.galleryScrollState.animateScrollTo(0)
                             addState.galleryListState.animateScrollToItem(scrollIndex)
                         }
                     }
