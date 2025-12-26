@@ -1,5 +1,6 @@
 package com.dhkim.add
 
+import android.annotation.SuppressLint
 import android.content.res.Configuration
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -76,11 +77,13 @@ import com.dhkim.designsystem.InstagramTheme
 import com.dhkim.domain.common.model.GalleryImage
 import com.dhkim.ui.detectTransformGesturesWithEnd
 import com.skydoves.landscapist.glide.GlideImage
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
 import kotlin.math.max
 
+@SuppressLint("UnusedBoxWithConstraintsScope")
 @Suppress("COMPOSE_APPLIER_CALL_MISMATCH")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -120,7 +123,10 @@ fun AddScreen(
                     .fillMaxWidth()
                     .verticalScroll(state = addState.galleryScrollState)
             ) {
-                PreviewSelectedImage(selectImageState)
+                PreviewSelectedImage(
+                    selectImageState = selectImageState,
+                    onAction = onAction
+                )
                 SelectMultipleImagesButton(
                     selectImageState = selectImageState,
                     onClick = { onAction(AddAction.ChangeSelectImageMode) }
@@ -202,11 +208,12 @@ fun AddScreen(
 
 @Composable
 internal fun PreviewSelectedImage(
-    selectImageState: SelectImageState
+    selectImageState: SelectImageState,
+    onAction: (AddAction) -> Unit
 ) {
     val selectedImageUri: String? = when (selectImageState) {
         is SelectImageState.Single -> selectImageState.imageUri
-        is SelectImageState.Multiple -> selectImageState.currentImageUri
+        is SelectImageState.Multiple -> selectImageState.currentImage?.imageUri
     }
     var intrinsicSize by remember { mutableStateOf(Size.Zero) }
     val aspectRatio = if (intrinsicSize == Size.Zero) 1f else intrinsicSize.width / intrinsicSize.height
@@ -303,6 +310,8 @@ internal fun PreviewSelectedImage(
                                         spring(Spring.DampingRatioLowBouncy)
                                     )
                                 }
+
+                                onAction(AddAction.DragImage(scale.value, offset.value))
                             }
                         }
                     )
@@ -315,10 +324,20 @@ internal fun PreviewSelectedImage(
                         .override(viewportSize.width, viewportSize.height)
                 },
                 success = { _, painter ->
-                    scope.launch {
-                        scale.snapTo(1f)
-                        offset.snapTo(Offset.Zero)
+                    val initScale = when (selectImageState) {
+                        is SelectImageState.Single -> 1f
+                        is SelectImageState.Multiple -> selectImageState.currentImage?.scale ?: 1f
                     }
+                    val initOffset = when (selectImageState) {
+                        is SelectImageState.Single -> Offset.Zero
+                        is SelectImageState.Multiple -> selectImageState.currentImage?.offset ?: Offset.Zero
+                    }
+
+                    scope.launch {
+                        scale.snapTo(initScale)
+                        offset.snapTo(initOffset)
+                    }
+
                     intrinsicSize = painter.intrinsicSize
                     Image(
                         painter = painter,
@@ -469,16 +488,6 @@ internal fun SelectedImageInMultipleSelectImageMode(
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-private fun SelectImageInMultipleSelectImageModePreview() {
-    SelectedImageInMultipleSelectImageMode(
-        number = 1,
-        imageUri = "",
-        onAction = {}
-    )
-}
-
 @Composable
 internal fun SelectMultipleImagesButton(
     selectImageState: SelectImageState,
@@ -576,14 +585,14 @@ class AddScreenPreviewParameterProvider : PreviewParameterProvider<SelectImageSt
 
     override val values: Sequence<SelectImageState>
         get() = sequenceOf(
-            SelectImageState.Single("imageUri0"),
             SelectImageState.Multiple(
-                currentImageUri = "imageUri0",
+                currentImage = SelectedImage(number = 1, imageUri = "imageUri0"),
                 selectedImages = listOf("imageUri0", "imageUri2", "imageUri3")
                     .map {
                         SelectedImage(number = 1, imageUri = it)
                     }
-            )
+            ),
+            SelectImageState.Single("imageUri0"),
         )
 }
 

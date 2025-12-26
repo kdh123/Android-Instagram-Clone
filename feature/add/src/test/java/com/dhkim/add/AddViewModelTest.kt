@@ -131,20 +131,20 @@ class AddViewModelTest {
             // Act: Select image 3 again (It should become the 'current' preview image).
             viewModel.onAction(AddAction.SelectImage(fakeGalleryImages[3].uri))
             val item = (awaitItem() as SelectImageState.Multiple)
-            assertEquals(item.currentImageUri, fakeGalleryImages[3].uri)
+            assertEquals(item.currentImage?.imageUri, fakeGalleryImages[3].uri)
             assertEquals(item.selectedImages.map { it.imageUri }.contains(fakeGalleryImages[3].uri), true)
 
             // Act: Select image 4 again (It should become the 'current' preview image).
             viewModel.onAction(AddAction.SelectImage(fakeGalleryImages[4].uri))
             val item2 = (awaitItem() as SelectImageState.Multiple)
-            assertEquals(item2.currentImageUri, fakeGalleryImages[4].uri)
+            assertEquals(item2.currentImage?.imageUri, fakeGalleryImages[4].uri)
             assertEquals(item2.selectedImages.map { it.imageUri }.contains(fakeGalleryImages[4].uri), true)
 
             // Act: Select image 4 one more time (Since it's already current, it should be unselected).
             viewModel.onAction(AddAction.SelectImage(fakeGalleryImages[4].uri))
             val item3 = (awaitItem() as SelectImageState.Multiple)
             // The current preview should fall back to the next available selected image.
-            assertEquals(item3.currentImageUri, fakeGalleryImages[3].uri)
+            assertEquals(item3.currentImage?.imageUri, fakeGalleryImages[3].uri)
             // Image 4 should be removed from the selection list.
             assertEquals(item3.selectedImages.map { it.imageUri }.contains(fakeGalleryImages[4].uri), false)
         }
