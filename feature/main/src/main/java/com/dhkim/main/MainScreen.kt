@@ -25,7 +25,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.IntOffset
 import androidx.navigation.compose.NavHost
-import com.dhkim.add.navigation.add
+import androidx.navigation.navigation
+import com.dhkim.add.AddState
+import com.dhkim.add.navigation.ADD_IMAGE_ROUTE
+import com.dhkim.add.navigation.ADD_ROUTE
+import com.dhkim.add.navigation.addImage
+import com.dhkim.add.navigation.feedUpload
+import com.dhkim.add.rememberAddState
 import com.dhkim.home.navigation.home
 import com.dhkim.login.navigation.LOGIN_ROUTE
 import com.dhkim.login.navigation.login
@@ -36,7 +42,8 @@ import com.dhkim.search.navigation.search
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun MainScreen(
-    appState: InstagramAppState
+    appState: InstagramAppState,
+    addState: AddState = rememberAddState()
 ) {
     Scaffold(
         bottomBar = {
@@ -90,7 +97,21 @@ fun MainScreen(
             login(navigateToHome = appState::navigateToHomeFromLogin)
             home()
             search()
-            add(onBack = appState.navController::navigateUp)
+            navigation(
+                route = ADD_ROUTE,
+                startDestination = ADD_IMAGE_ROUTE
+            ) {
+                addImage(
+                    navController = appState.navController,
+                    addState = addState,
+                    onBack = appState.navController::navigateUp
+                )
+
+                feedUpload(
+                    navController = appState.navController,
+                )
+            }
+
             reels()
             profile()
         }

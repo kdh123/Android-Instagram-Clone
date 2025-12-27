@@ -10,12 +10,20 @@ import com.dhkim.domain.common.useCase.GetRecentGalleryImageUseCase
 import com.dhkim.domain.feed.model.Feed
 import com.dhkim.domain.feed.useCase.UploadFeedUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapConcat
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -31,13 +39,21 @@ class AddViewModel @Inject constructor(
     private val _selectImageState = MutableStateFlow<SelectImageState>(SelectImageState.Single(null))
     val selectImageState = _selectImageState.asStateFlow()
 
-    private val _sideEffect = Channel<AddSideEffect>(Channel.BUFFERED)
-    val sideEffect = _sideEffect.receiveAsFlow()
-
     val galleryImages = getGalleryImagesUseCase(pageSize = 10)
         .cachedIn(viewModelScope)
 
-    private val imageDragStates = mutableListOf<ImageDragState>()
+    private val imageDragStates: MutableStateFlow<MutableList<ImageDragState>> = MutableStateFlow(mutableListOf())
+    val currentSelectedImages = imageDragStates
+        .flatMapConcat { imageDragStates ->
+            imageDragStates.toSelectedImages()
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = persistentListOf()
+        )
+
+    private val _sideEffect = Channel<AddSideEffect>(Channel.BUFFERED)
+    val sideEffect = _sideEffect.receiveAsFlow()
 
     init {
         viewModelScope.launch {
@@ -72,8 +88,15 @@ class AddViewModel @Inject constructor(
 
     private fun dragImage(offset: Offset, scale: Float) {
         val currentImageUri = (selectImageState.value as? SelectImageState.Multiple)?.currentImage?.imageUri ?: return
-        val imageDragState = imageDragStates.find { it.imageUri == currentImageUri } ?: return
-        imageDragStates[imageDragStates.indexOf(imageDragState)] = imageDragState.copy(offset = offset, scale = scale)
+        val currentImageDragStates = imageDragStates.value
+        val updateImageDragStates = currentImageDragStates.map {
+            if (it.imageUri == currentImageUri) {
+                it.copy(offset = offset, scale = scale)
+            } else {
+                it
+            }
+        }.toMutableList()
+        imageDragStates.value = updateImageDragStates
     }
 
     private fun selectImage(selectedImageUri: String) {
@@ -98,7 +121,7 @@ class AddViewModel @Inject constructor(
 
                         // Update the current image focus if it's already in the selection list
                         isAlreadySelected -> {
-                            val currentImageDragState = imageDragStates.find { it.imageUri == selectedImageUri } ?: return@launch
+                            val currentImageDragState = imageDragStates.value.find { it.imageUri == selectedImageUri } ?: return@launch
                             _selectImageState.value = SelectImageState.Multiple(
                                 currentImage = currentSelectedImages
                                     .firstOrNull { it.imageUri == selectedImageUri }
@@ -122,7 +145,10 @@ class AddViewModel @Inject constructor(
                                 currentImage = newSelectedImage,
                                 selectedImages = newSelectedImages
                             )
-                            imageDragStates.add(ImageDragState(imageUri = selectedImageUri))
+                            val updateImageDragStates = imageDragStates.value.toMutableList().apply {
+                                add(ImageDragState(imageUri = selectedImageUri))
+                            }
+                            imageDragStates.value = updateImageDragStates
                             _sideEffect.send(AddSideEffect.ScrollToItem(selectedImageUri))
                         }
                     }
@@ -136,7 +162,7 @@ class AddViewModel @Inject constructor(
         val updateSelectedImages = currentSelectedImages.selectedImages
             .filter { it.imageUri != unselectedImageUri }
             .mapIndexed { index, selectedImage ->
-                val imageDragState = imageDragStates.find { it.imageUri == selectedImage.imageUri }
+                val imageDragState = imageDragStates.value.find { it.imageUri == selectedImage.imageUri }
                 selectedImage.copy(
                     number = index + 1,
                     offset = imageDragState?.offset ?: Offset.Zero,
@@ -157,7 +183,10 @@ class AddViewModel @Inject constructor(
                 is SelectImageState.Single -> {
                     val currentImage = SelectedImage(number = 1, imageUri = currentSelectImageMode.imageUri ?: "")
                     _selectImageState.value = SelectImageState.Multiple(currentImage = currentImage, selectedImages = listOf(currentImage))
-                    imageDragStates.add(ImageDragState(imageUri = currentImage.imageUri))
+                    val updateImageDragStates = imageDragStates.value.toMutableList().apply {
+                        add(ImageDragState(imageUri = currentImage.imageUri))
+                    }
+                    imageDragStates.value = updateImageDragStates
                     _sideEffect.send(AddSideEffect.ScrollToItem(currentImage.imageUri))
                 }
 
@@ -182,5 +211,36 @@ class AddViewModel @Inject constructor(
                 }
             }
         )
+    }
+
+    private fun List<ImageDragState>.toSelectedImages(): Flow<ImmutableList<SelectedImage>> {
+        return flow {
+            val selectedImages = when (val currentSelectImageState: SelectImageState = selectImageState.value) {
+                is SelectImageState.Single -> {
+                    val dragState = find { it.imageUri == currentSelectImageState.imageUri }
+                    persistentListOf(
+                        SelectedImage(
+                            number = 1,
+                            imageUri = currentSelectImageState.imageUri ?: "",
+                            offset = dragState?.offset ?: Offset.Zero,
+                            scale = dragState?.scale ?: 1f
+                        )
+                    )
+                }
+
+                is SelectImageState.Multiple -> {
+                    currentSelectImageState.selectedImages
+                        .map {
+                            val dragState = find { dragState -> dragState.imageUri == it.imageUri }
+                            it.copy(
+                                offset = dragState?.offset ?: Offset.Zero,
+                                scale = dragState?.scale ?: 1f
+                            )
+                        }.sortedBy { it.number }
+                        .toImmutableList()
+                }
+            }
+            emit(selectedImages)
+        }
     }
 }

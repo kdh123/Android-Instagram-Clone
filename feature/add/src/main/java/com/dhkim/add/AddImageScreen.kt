@@ -77,7 +77,6 @@ import com.dhkim.designsystem.InstagramTheme
 import com.dhkim.domain.common.model.GalleryImage
 import com.dhkim.ui.detectTransformGesturesWithEnd
 import com.skydoves.landscapist.glide.GlideImage
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
@@ -87,11 +86,12 @@ import kotlin.math.max
 @Suppress("COMPOSE_APPLIER_CALL_MISMATCH")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddScreen(
+fun AddImageScreen(
     addState: AddState,
     galleryImages: LazyPagingItems<GalleryImage>,
     selectImageState: SelectImageState,
     onAction: (AddAction) -> Unit,
+    navigateToFeedUpload: () -> Unit,
     onBack: () -> Unit
 ) {
     val imagePermissionLauncher = rememberLauncherForActivityResult(
@@ -117,7 +117,10 @@ fun AddScreen(
             modifier = Modifier
                 .fillMaxWidth()
         ) {
-            TopBar(onBack = onBack)
+            TopBar(
+                navigateToFeedUpload = navigateToFeedUpload,
+                onBack = onBack
+            )
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -361,6 +364,7 @@ internal fun PreviewSelectedImage(
 
 @Composable
 internal fun TopBar(
+    navigateToFeedUpload: () -> Unit,
     onBack: () -> Unit
 ) {
     Row(
@@ -389,6 +393,8 @@ internal fun TopBar(
             text = stringResource(R.string.next),
             style = InstagramTheme.typography.labelMediumBold,
             color = InstagramTheme.colors.primary,
+            modifier = Modifier
+                .clickable(onClick = navigateToFeedUpload)
         )
     }
 }
@@ -543,7 +549,7 @@ internal fun SelectMultipleImagesButton(
 
 @AddScreenPreviews
 @Composable
-private fun AddScreenPreview(
+private fun AddImageScreenPreview(
     @PreviewParameter(AddScreenPreviewParameterProvider::class) selectImageState: SelectImageState
 ) {
     val mockGalleyImages = flowOf(
@@ -570,11 +576,12 @@ private fun AddScreenPreview(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background
         ) {
-            AddScreen(
+            AddImageScreen(
                 addState = rememberAddState(),
                 galleryImages = galleryImages,
                 selectImageState = selectImageState,
                 onAction = {},
+                navigateToFeedUpload = {},
                 onBack = {}
             )
         }
