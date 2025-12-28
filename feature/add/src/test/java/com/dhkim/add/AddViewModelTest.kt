@@ -98,7 +98,7 @@ class AddViewModelTest {
             // Act: Switch back to single selection mode.
             viewModel.onAction(AddAction.ChangeSelectImageMode)
 
-            assertEquals((awaitItem() as SelectImageState.Single).imageUri, fakeGalleryImages[4].uri)
+            assertEquals((awaitItem() as SelectImageState.Single).currentImage?.imageUri, fakeGalleryImages[4].uri)
         }
     }
 

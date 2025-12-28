@@ -68,10 +68,10 @@ fun NavGraphBuilder.feedUpload(
 ) {
     composable(FEED_UPLOAD_ROUTE) { entry ->
         val viewModel = entry.sharedViewModel<AddViewModel>(navController)
-        val currentSelectedImages by viewModel.currentSelectedImages.collectAsStateWithLifecycle()
+        val selectImageState by viewModel.selectImageState.collectAsStateWithLifecycle()
 
         FeedUploadScreen(
-            currentSelectedImages = currentSelectedImages,
+            selectImageState = selectImageState,
             onBack = navController::navigateUp
         )
     }

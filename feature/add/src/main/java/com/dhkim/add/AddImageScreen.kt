@@ -169,7 +169,7 @@ fun AddImageScreen(
                     ) { index ->
                         val galleryImage = galleryImages[index] ?: return@items
                         val isSelected = when (selectImageState) {
-                            is SelectImageState.Single -> selectImageState.imageUri == galleryImage.uri
+                            is SelectImageState.Single -> selectImageState.currentImage?.imageUri == galleryImage.uri
                             is SelectImageState.Multiple -> selectImageState.selectedImages
                                 .map { it.imageUri }
                                 .contains(galleryImage.uri)
@@ -214,10 +214,7 @@ internal fun PreviewSelectedImage(
     selectImageState: SelectImageState,
     onAction: (AddAction) -> Unit
 ) {
-    val selectedImageUri: String? = when (selectImageState) {
-        is SelectImageState.Single -> selectImageState.imageUri
-        is SelectImageState.Multiple -> selectImageState.currentImage?.imageUri
-    }
+    val selectedImageUri = selectImageState.currentImage?.imageUri
     var intrinsicSize by remember { mutableStateOf(Size.Zero) }
     val aspectRatio = if (intrinsicSize == Size.Zero) 1f else intrinsicSize.width / intrinsicSize.height
     val scope = rememberCoroutineScope()
@@ -225,7 +222,7 @@ internal fun PreviewSelectedImage(
     val offset = remember { Animatable(Offset.Zero, Offset.VectorConverter) }
     var viewportSize by remember { mutableStateOf(IntSize.Zero) }
 
-    Box(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(1f)
@@ -327,14 +324,9 @@ internal fun PreviewSelectedImage(
                         .override(viewportSize.width, viewportSize.height)
                 },
                 success = { _, painter ->
-                    val initScale = when (selectImageState) {
-                        is SelectImageState.Single -> 1f
-                        is SelectImageState.Multiple -> selectImageState.currentImage?.scale ?: 1f
-                    }
-                    val initOffset = when (selectImageState) {
-                        is SelectImageState.Single -> Offset.Zero
-                        is SelectImageState.Multiple -> selectImageState.currentImage?.offset ?: Offset.Zero
-                    }
+                    val (initScale, initOffset) = selectImageState.currentImage?.let {
+                        it.scale to it.offset
+                    } ?: (1f to Offset.Zero)
 
                     scope.launch {
                         scale.snapTo(initScale)
@@ -425,7 +417,7 @@ internal fun NotSelectedImage(
 }
 
 @Composable
-internal fun SelectedImage(
+private fun SelectedImage(
     imageUri: String,
     onAction: (AddAction) -> Unit
 ) {
@@ -599,7 +591,9 @@ class AddScreenPreviewParameterProvider : PreviewParameterProvider<SelectImageSt
                         SelectedImage(number = 1, imageUri = it)
                     }
             ),
-            SelectImageState.Single("imageUri0"),
+            SelectImageState.Single(
+                currentImage = SelectedImage(number = 1, imageUri = "imageUri0")
+            ),
         )
 }
 

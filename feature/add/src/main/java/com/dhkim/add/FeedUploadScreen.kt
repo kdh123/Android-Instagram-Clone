@@ -27,19 +27,22 @@ import androidx.compose.ui.util.lerp
 import com.dhkim.designsystem.InstagramTheme
 import com.skydoves.landscapist.ImageOptions
 import com.skydoves.landscapist.glide.GlideImage
-import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.toImmutableList
 import kotlin.math.absoluteValue
 
 @Composable
 fun FeedUploadScreen(
-    currentSelectedImages: ImmutableList<SelectedImage>,
+    selectImageState: SelectImageState,
     onBack: () -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
     ) {
+        val currentSelectedImages = when (selectImageState) {
+            is SelectImageState.Single -> listOf(selectImageState.currentImage)
+            is SelectImageState.Multiple -> selectImageState.selectedImages
+        }
+
         val pagerState = rememberPagerState(pageCount = { currentSelectedImages.size })
 
         HorizontalPager(
@@ -66,8 +69,10 @@ fun FeedUploadScreen(
                             transformOrigin = TransformOrigin.Center
                         }
                 ) {
+
+
                     GlideImage(
-                        imageModel = { currentSelectedImages[page].imageUri },
+                        imageModel = { currentSelectedImages[page]?.imageUri ?: "" },
                         previewPlaceholder = painterResource(R.drawable.ic_dummy_background),
                         imageOptions = ImageOptions(contentScale = ContentScale.Crop),
                         modifier = Modifier.fillMaxSize()
@@ -81,7 +86,7 @@ fun FeedUploadScreen(
 @FeedUploadScreenPreviews
 @Composable
 private fun FeedUploadScreenPreview(
-    @PreviewParameter(FeedUploadScreenPreviewParameterProvider::class) currentSelectedImages: ImmutableList<SelectedImage>
+    @PreviewParameter(FeedUploadScreenPreviewParameterProvider::class) selectImageState: SelectImageState
 ) {
     InstagramTheme {
         Surface(
@@ -89,29 +94,27 @@ private fun FeedUploadScreenPreview(
             color = MaterialTheme.colorScheme.background
         ) {
             FeedUploadScreen(
-                currentSelectedImages = currentSelectedImages,
+                selectImageState = selectImageState,
                 onBack = {}
             )
         }
     }
 }
 
-class FeedUploadScreenPreviewParameterProvider : PreviewParameterProvider<ImmutableList<SelectedImage>> {
+class FeedUploadScreenPreviewParameterProvider : PreviewParameterProvider<SelectImageState> {
 
-    private val mockSelectedImages = mutableListOf<SelectedImage>().apply {
-        repeat(10) {
-            add(
-                SelectedImage(
-                    number = 1,
-                    imageUri = "imageUri$it"
-                )
-            )
-        }
-    }.toImmutableList()
-
-    override val values: Sequence<ImmutableList<SelectedImage>>
+    override val values: Sequence<SelectImageState>
         get() = sequenceOf(
-            mockSelectedImages
+            SelectImageState.Multiple(
+                currentImage = SelectedImage(number = 1, imageUri = "imageUri0"),
+                selectedImages = listOf("imageUri0", "imageUri2", "imageUri3")
+                    .map {
+                        SelectedImage(number = 1, imageUri = it)
+                    }
+            ),
+            SelectImageState.Single(
+                currentImage = SelectedImage(number = 1, imageUri = "imageUri0")
+            ),
         )
 }
 

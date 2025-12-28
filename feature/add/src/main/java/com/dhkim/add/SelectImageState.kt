@@ -2,16 +2,18 @@ package com.dhkim.add
 
 import androidx.compose.ui.geometry.Offset
 
-sealed interface SelectImageState {
+sealed class SelectImageState(
+    open val currentImage: SelectedImage?
+) {
 
     data class Single(
-        val imageUri: String? = null
-    ) : SelectImageState
+        override val currentImage: SelectedImage?
+    ) : SelectImageState(currentImage)
 
     data class Multiple(
-        val currentImage: SelectedImage? = null,
+        override val currentImage: SelectedImage?,
         val selectedImages: List<SelectedImage> = listOf()
-    ) : SelectImageState
+    ) : SelectImageState(currentImage)
 }
 
 data class SelectedImage(
