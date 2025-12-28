@@ -10,7 +10,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import androidx.paging.compose.collectAsLazyPagingItems
-import com.dhkim.add.AddImageScreen
+import com.dhkim.add.AddFeedImageScreen
 import com.dhkim.add.AddSideEffect
 import com.dhkim.add.AddState
 import com.dhkim.add.AddViewModel
@@ -52,7 +52,7 @@ fun NavGraphBuilder.addImage(
                 }
         }
 
-        AddImageScreen(
+        AddFeedImageScreen(
             addState = addState,
             galleryImages = galleryImages,
             selectImageState = selectImageMode,
@@ -68,10 +68,11 @@ fun NavGraphBuilder.feedUpload(
 ) {
     composable(FEED_UPLOAD_ROUTE) { entry ->
         val viewModel = entry.sharedViewModel<AddViewModel>(navController)
-        val selectImageState by viewModel.selectImageState.collectAsStateWithLifecycle()
+        val feedUploadState by viewModel.feedUploadState.collectAsStateWithLifecycle()
 
         FeedUploadScreen(
-            selectImageState = selectImageState,
+            feedUploadState = feedUploadState,
+            onAction = viewModel::onAction,
             onBack = navController::navigateUp
         )
     }

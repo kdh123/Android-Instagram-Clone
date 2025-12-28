@@ -15,7 +15,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -27,23 +29,21 @@ import androidx.compose.ui.util.lerp
 import com.dhkim.designsystem.InstagramTheme
 import com.skydoves.landscapist.ImageOptions
 import com.skydoves.landscapist.glide.GlideImage
+import kotlinx.collections.immutable.persistentListOf
 import kotlin.math.absoluteValue
 
 @Composable
 fun FeedUploadScreen(
-    selectImageState: SelectImageState,
+    feedUploadState: FeedUploadState,
+    onAction: (AddAction) -> Unit,
     onBack: () -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
     ) {
-        val currentSelectedImages = when (selectImageState) {
-            is SelectImageState.Single -> listOf(selectImageState.currentImage)
-            is SelectImageState.Multiple -> selectImageState.selectedImages
-        }
-
-        val pagerState = rememberPagerState(pageCount = { currentSelectedImages.size })
+        val selectedImageBitmaps = feedUploadState.selectedImageBitmaps
+        val pagerState = rememberPagerState(pageCount = { selectedImageBitmaps.size })
 
         HorizontalPager(
             state = pagerState,
@@ -69,10 +69,8 @@ fun FeedUploadScreen(
                             transformOrigin = TransformOrigin.Center
                         }
                 ) {
-
-
                     GlideImage(
-                        imageModel = { currentSelectedImages[page]?.imageUri ?: "" },
+                        imageModel = { selectedImageBitmaps[page].second.asAndroidBitmap() },
                         previewPlaceholder = painterResource(R.drawable.ic_dummy_background),
                         imageOptions = ImageOptions(contentScale = ContentScale.Crop),
                         modifier = Modifier.fillMaxSize()
@@ -86,7 +84,7 @@ fun FeedUploadScreen(
 @FeedUploadScreenPreviews
 @Composable
 private fun FeedUploadScreenPreview(
-    @PreviewParameter(FeedUploadScreenPreviewParameterProvider::class) selectImageState: SelectImageState
+    @PreviewParameter(FeedUploadScreenPreviewParameterProvider::class) feedUploadState: FeedUploadState
 ) {
     InstagramTheme {
         Surface(
@@ -94,27 +92,25 @@ private fun FeedUploadScreenPreview(
             color = MaterialTheme.colorScheme.background
         ) {
             FeedUploadScreen(
-                selectImageState = selectImageState,
+                feedUploadState = feedUploadState,
+                onAction = {},
                 onBack = {}
             )
         }
     }
 }
 
-class FeedUploadScreenPreviewParameterProvider : PreviewParameterProvider<SelectImageState> {
+class FeedUploadScreenPreviewParameterProvider : PreviewParameterProvider<FeedUploadState> {
 
-    override val values: Sequence<SelectImageState>
+    override val values: Sequence<FeedUploadState>
         get() = sequenceOf(
-            SelectImageState.Multiple(
-                currentImage = SelectedImage(number = 1, imageUri = "imageUri0"),
-                selectedImages = listOf("imageUri0", "imageUri2", "imageUri3")
-                    .map {
-                        SelectedImage(number = 1, imageUri = it)
-                    }
-            ),
-            SelectImageState.Single(
-                currentImage = SelectedImage(number = 1, imageUri = "imageUri0")
-            ),
+            FeedUploadState(
+                selectedImageBitmaps = persistentListOf(
+                    1 to ImageBitmap(100, 100),
+                    2 to ImageBitmap(100, 100),
+                    3 to ImageBitmap(100, 100),
+                )
+            )
         )
 }
 

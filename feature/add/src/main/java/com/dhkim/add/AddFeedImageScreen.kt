@@ -49,10 +49,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -86,7 +89,7 @@ import kotlin.math.max
 @Suppress("COMPOSE_APPLIER_CALL_MISMATCH")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddImageScreen(
+fun AddFeedImageScreen(
     addState: AddState,
     galleryImages: LazyPagingItems<GalleryImage>,
     selectImageState: SelectImageState,
@@ -214,6 +217,7 @@ internal fun PreviewSelectedImage(
     selectImageState: SelectImageState,
     onAction: (AddAction) -> Unit
 ) {
+    val graphicsLayer = rememberGraphicsLayer()
     val selectedImageUri = selectImageState.currentImage?.imageUri
     var intrinsicSize by remember { mutableStateOf(Size.Zero) }
     val aspectRatio = if (intrinsicSize == Size.Zero) 1f else intrinsicSize.width / intrinsicSize.height
@@ -227,7 +231,13 @@ internal fun PreviewSelectedImage(
             .fillMaxWidth()
             .aspectRatio(1f)
             .background(Color.Black)
-            .onSizeChanged { viewportSize = it },
+            .onSizeChanged { viewportSize = it }
+            .drawWithContent {
+                graphicsLayer.record {
+                    this@drawWithContent.drawContent()
+                }
+                drawLayer(graphicsLayer)
+            },
         contentAlignment = Alignment.Center
     ) {
         // Cropping area
@@ -312,6 +322,7 @@ internal fun PreviewSelectedImage(
                                 }
 
                                 onAction(AddAction.DragImage(scale.value, offset.value))
+                                onAction(AddAction.AddSelectedImageBitmaps(imageBitmap = graphicsLayer.toImageBitmap()))
                             }
                         }
                     )
@@ -331,6 +342,7 @@ internal fun PreviewSelectedImage(
                     scope.launch {
                         scale.snapTo(initScale)
                         offset.snapTo(initOffset)
+                        onAction(AddAction.AddSelectedImageBitmaps(imageBitmap = graphicsLayer.toImageBitmap()))
                     }
 
                     intrinsicSize = painter.intrinsicSize
@@ -541,7 +553,7 @@ internal fun SelectMultipleImagesButton(
 
 @AddScreenPreviews
 @Composable
-private fun AddImageScreenPreview(
+private fun AddFeedImageScreenPreview(
     @PreviewParameter(AddScreenPreviewParameterProvider::class) selectImageState: SelectImageState
 ) {
     val mockGalleyImages = flowOf(
@@ -568,7 +580,7 @@ private fun AddImageScreenPreview(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background
         ) {
-            AddImageScreen(
+            AddFeedImageScreen(
                 addState = rememberAddState(),
                 galleryImages = galleryImages,
                 selectImageState = selectImageState,

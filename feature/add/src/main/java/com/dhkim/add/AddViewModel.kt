@@ -1,6 +1,7 @@
 package com.dhkim.add
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.cachedIn
@@ -10,6 +11,7 @@ import com.dhkim.domain.common.useCase.GetRecentGalleryImageUseCase
 import com.dhkim.domain.feed.model.Feed
 import com.dhkim.domain.feed.useCase.UploadFeedUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,6 +36,9 @@ class AddViewModel @Inject constructor(
 
     private val _selectImageState = MutableStateFlow<SelectImageState>(SelectImageState.Single(null))
     val selectImageState = _selectImageState.asStateFlow()
+
+    private val _feedUploadState = MutableStateFlow(FeedUploadState())
+    val feedUploadState = _feedUploadState.asStateFlow()
 
     private val _sideEffect = Channel<AddSideEffect>(Channel.BUFFERED)
     val sideEffect = _sideEffect.receiveAsFlow()
@@ -70,7 +75,48 @@ class AddViewModel @Inject constructor(
                 dragImage(offset = action.offset, scale = action.scale)
             }
 
-            is AddAction.AddImage -> {}
+            is AddAction.AddSelectedImageBitmaps -> {
+                addSelectedImageBitmaps(imageBitmap = action.imageBitmap)
+            }
+        }
+    }
+
+    @Synchronized
+    private fun addSelectedImageBitmaps(imageBitmap: ImageBitmap) {
+        syncCurrentSelectedImages()
+        val currentImageNumber = selectImageState.value.currentImage?.number ?: return
+        val currentSelectedImageBitmaps = feedUploadState.value.selectedImageBitmaps
+        val shouldUpdate = currentSelectedImageBitmaps.any { it.first == currentImageNumber }
+        val updateSelectedImagesBitmaps = if (shouldUpdate) {
+            currentSelectedImageBitmaps.map {
+                if (it.first == currentImageNumber) {
+                    currentImageNumber to imageBitmap
+                } else {
+                    it
+                }
+            }.toImmutableList()
+        } else {
+            (feedUploadState.value.selectedImageBitmaps + (currentImageNumber to imageBitmap))
+                .distinctBy { it.first }
+                .toImmutableList()
+        }
+
+        _feedUploadState.update {
+            it.copy(selectedImageBitmaps = updateSelectedImagesBitmaps)
+        }
+    }
+
+    private fun syncCurrentSelectedImages() {
+        val currentSelectedImageNumbers = when (val selectedImageState = selectImageState.value) {
+            is SelectImageState.Single -> listOf(1)
+            is SelectImageState.Multiple -> selectedImageState.selectedImages.map { it.number }
+        }
+        _feedUploadState.update { state ->
+            state.copy(
+                selectedImageBitmaps = state.selectedImageBitmaps.filter {
+                    currentSelectedImageNumbers.contains(it.first)
+                }.toImmutableList()
+            )
         }
     }
 
