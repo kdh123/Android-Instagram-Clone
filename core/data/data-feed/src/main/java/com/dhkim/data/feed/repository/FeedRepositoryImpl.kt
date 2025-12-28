@@ -22,7 +22,7 @@ class FeedRepositoryImpl @Inject constructor(
         return remoteDataSource.uploadFeed(feed)
     }
 
-    override fun uploadImages(filePath: String, imageUrl: String): Flow<Unit> {
-        return remoteDataSource.uploadImage(filePath, imageUrl)
+    override fun uploadImage(filePath: String, byteArray: ByteArray): Flow<String> {
+        return remoteDataSource.uploadImage(filePath, byteArray)
     }
 }

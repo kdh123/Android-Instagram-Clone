@@ -48,6 +48,8 @@ fun NavGraphBuilder.addImage(
                             addState.galleryScrollState.animateScrollTo(0)
                             addState.galleryListState.animateScrollToItem(scrollIndex)
                         }
+
+                        AddSideEffect.NavigateToHome -> Unit
                     }
                 }
         }
@@ -65,13 +67,31 @@ fun NavGraphBuilder.addImage(
 
 fun NavGraphBuilder.feedUpload(
     navController: NavHostController,
+    navigateToHome: () -> Unit
 ) {
     composable(FEED_UPLOAD_ROUTE) { entry ->
+        val context = LocalContext.current
         val viewModel = entry.sharedViewModel<AddViewModel>(navController)
-        val feedUploadState by viewModel.feedUploadState.collectAsStateWithLifecycle()
+        val feedUploadState by viewModel.feedUploadUiState.collectAsStateWithLifecycle()
+
+        LaunchedEffect(Unit) {
+            viewModel.sideEffect
+                .collectLatest {
+                    when (it) {
+                        is AddSideEffect.ShowToast -> {
+                            Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show()
+                        }
+
+                        is AddSideEffect.ScrollToItem -> Unit
+                        AddSideEffect.NavigateToHome -> {
+                            navigateToHome()
+                        }
+                    }
+                }
+        }
 
         FeedUploadScreen(
-            feedUploadState = feedUploadState,
+            uiState = feedUploadState,
             onAction = viewModel::onAction,
             onBack = navController::navigateUp
         )

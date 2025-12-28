@@ -358,7 +358,7 @@ internal fun PreviewSelectedImage(
 }
 
 @Composable
-internal fun TopBar(
+private fun TopBar(
     navigateToFeedUpload: () -> Unit,
     onBack: () -> Unit
 ) {

@@ -9,7 +9,7 @@ import androidx.compose.ui.graphics.Color
 // =================================================================
 
 // Primary: 핵심 액션 (팔로우 버튼, 링크)
-val PrimaryBlue = Color(0xFF0095F6)
+val PrimaryBlue = Color(0xFF495EFA)
 
 // System: 알림, 좋아요, 오류 (빨간색)
 val SystemRed = Color(0xFFED4956)
