@@ -1,6 +1,7 @@
 package com.dhkim.add
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.cachedIn
@@ -10,12 +11,14 @@ import com.dhkim.domain.common.useCase.GetRecentGalleryImageUseCase
 import com.dhkim.domain.feed.model.Feed
 import com.dhkim.domain.feed.useCase.UploadFeedUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -28,22 +31,28 @@ class AddViewModel @Inject constructor(
 ) : ViewModel(
 ) {
 
-    private val _selectImageState = MutableStateFlow<SelectImageState>(SelectImageState.Single(null))
-    val selectImageState = _selectImageState.asStateFlow()
-
-    private val _sideEffect = Channel<AddSideEffect>(Channel.BUFFERED)
-    val sideEffect = _sideEffect.receiveAsFlow()
-
     val galleryImages = getGalleryImagesUseCase(pageSize = 10)
         .cachedIn(viewModelScope)
 
-    private val imageDragStates = mutableListOf<ImageDragState>()
+    private val _selectImageState = MutableStateFlow<SelectImageState>(SelectImageState.Single(null))
+    val selectImageState = _selectImageState.asStateFlow()
+
+    private val _feedUploadState = MutableStateFlow(FeedUploadState())
+    val feedUploadState = _feedUploadState.asStateFlow()
+
+    private val _sideEffect = Channel<AddSideEffect>(Channel.BUFFERED)
+    val sideEffect = _sideEffect.receiveAsFlow()
 
     init {
         viewModelScope.launch {
             val firstImage = getRecentGalleryImageUseCase().first()
             if (firstImage != null) {
-                _selectImageState.value = SelectImageState.Single(firstImage.uri)
+                _selectImageState.value = SelectImageState.Single(
+                    currentImage = SelectedImage(
+                        number = 1,
+                        imageUri = firstImage.uri
+                    )
+                )
             }
         }
     }
@@ -66,69 +75,147 @@ class AddViewModel @Inject constructor(
                 dragImage(offset = action.offset, scale = action.scale)
             }
 
-            is AddAction.AddImage -> {}
+            is AddAction.AddSelectedImageBitmaps -> {
+                addSelectedImageBitmaps(imageBitmap = action.imageBitmap)
+            }
+        }
+    }
+
+    @Synchronized
+    private fun addSelectedImageBitmaps(imageBitmap: ImageBitmap) {
+        syncCurrentSelectedImages()
+        val currentImageNumber = selectImageState.value.currentImage?.number ?: return
+        val currentSelectedImageBitmaps = feedUploadState.value.selectedImageBitmaps
+        val shouldUpdate = currentSelectedImageBitmaps.any { it.first == currentImageNumber }
+        val updateSelectedImagesBitmaps = if (shouldUpdate) {
+            currentSelectedImageBitmaps.map {
+                if (it.first == currentImageNumber) {
+                    currentImageNumber to imageBitmap
+                } else {
+                    it
+                }
+            }.toImmutableList()
+        } else {
+            (feedUploadState.value.selectedImageBitmaps + (currentImageNumber to imageBitmap))
+                .distinctBy { it.first }
+                .toImmutableList()
+        }
+
+        _feedUploadState.update {
+            it.copy(selectedImageBitmaps = updateSelectedImagesBitmaps)
+        }
+    }
+
+    private fun syncCurrentSelectedImages() {
+        val currentSelectedImageNumbers = when (val selectedImageState = selectImageState.value) {
+            is SelectImageState.Single -> listOf(1)
+            is SelectImageState.Multiple -> selectedImageState.selectedImages.map { it.number }
+        }
+        _feedUploadState.update { state ->
+            state.copy(
+                selectedImageBitmaps = state.selectedImageBitmaps.filter {
+                    currentSelectedImageNumbers.contains(it.first)
+                }.toImmutableList()
+            )
         }
     }
 
     private fun dragImage(offset: Offset, scale: Float) {
-        val currentImageUri = (selectImageState.value as? SelectImageState.Multiple)?.currentImage?.imageUri ?: return
-        val imageDragState = imageDragStates.find { it.imageUri == currentImageUri } ?: return
-        imageDragStates[imageDragStates.indexOf(imageDragState)] = imageDragState.copy(offset = offset, scale = scale)
+        val updateImage = selectImageState.value.currentImage?.copy(
+            offset = offset,
+            scale = scale
+        ) ?: return
+
+        when (val selectImageState = selectImageState.value) {
+            is SelectImageState.Single -> {
+                _selectImageState.update { SelectImageState.Single(updateImage) }
+            }
+
+            is SelectImageState.Multiple -> {
+                val updateSelectedImages = selectImageState.selectedImages.map {
+                    if (it.imageUri == updateImage.imageUri) {
+                        updateImage
+                    } else {
+                        it
+                    }
+                }
+                _selectImageState.update {
+                    SelectImageState.Multiple(
+                        currentImage = updateImage,
+                        selectedImages = updateSelectedImages
+                    )
+                }
+            }
+        }
     }
 
-    private fun selectImage(selectedImageUri: String) {
-        viewModelScope.launch {
-            when (val currentSelectImageMode = selectImageState.value) {
-                is SelectImageState.Single -> {
-                    _selectImageState.value = SelectImageState.Single(selectedImageUri)
-                    _sideEffect.send(AddSideEffect.ScrollToItem(selectedImageUri))
-                }
+    private fun selectImage(selectedImageUri: String) = viewModelScope.launch {
+        when (val currentSelectImageMode = selectImageState.value) {
+            is SelectImageState.Single -> {
+                _selectImageState.value = SelectImageState.Single(
+                    currentImage = SelectedImage(
+                        number = 1,
+                        imageUri = selectedImageUri
+                    )
+                )
+                _sideEffect.send(AddSideEffect.ScrollToItem(selectedImageUri))
+            }
 
-                is SelectImageState.Multiple -> {
-                    val currentSelectedImages = currentSelectImageMode.selectedImages
-                    val isAlreadySelected = currentSelectedImages.any { it.imageUri == selectedImageUri }
-                    val isCurrentFocused = currentSelectImageMode.currentImage?.imageUri == selectedImageUri
-                    val shouldUnselect = currentSelectedImages.size > 1 && isCurrentFocused
+            is SelectImageState.Multiple -> {
+                val currentSelectedImages = currentSelectImageMode.selectedImages
+                val isAlreadySelected = currentSelectedImages.any { it.imageUri == selectedImageUri }
+                val isCurrentFocused = currentSelectImageMode.currentImage?.imageUri == selectedImageUri
+                val shouldUnselect = currentSelectedImages.size > 1 && isCurrentFocused
 
-                    when {
-                        // Already focused image is clicked and multiple items are selected
-                        shouldUnselect -> {
-                            unselectImage(unselectedImageUri = selectedImageUri)
-                        }
+                when {
+                    // Already focused image is clicked and multiple items are selected
+                    shouldUnselect -> {
+                        unselectImage(unselectedImageUri = selectedImageUri)
+                    }
 
-                        // Update the current image focus if it's already in the selection list
-                        isAlreadySelected -> {
-                            val currentImageDragState = imageDragStates.find { it.imageUri == selectedImageUri } ?: return@launch
-                            _selectImageState.value = SelectImageState.Multiple(
-                                currentImage = currentSelectedImages
-                                    .firstOrNull { it.imageUri == selectedImageUri }
-                                    ?.copy(
-                                        offset = currentImageDragState.offset,
-                                        scale = currentImageDragState.scale
-                                    ),
-                                selectedImages = currentSelectedImages
-                            )
-                            _sideEffect.send(AddSideEffect.ScrollToItem(selectedImageUri))
-                        }
+                    // Update the current image focus if it's already in the selection list
+                    isAlreadySelected -> {
+                        focusSelectedImage(selectedImageUri)
+                    }
 
-                        // Select: Add a new image to the list and update focus
-                        else -> {
-                            val newSelectedImage = SelectedImage(
-                                number = currentSelectedImages.size + 1,
-                                imageUri = selectedImageUri
-                            )
-                            val newSelectedImages = currentSelectedImages + newSelectedImage
-                            _selectImageState.value = SelectImageState.Multiple(
-                                currentImage = newSelectedImage,
-                                selectedImages = newSelectedImages
-                            )
-                            imageDragStates.add(ImageDragState(imageUri = selectedImageUri))
-                            _sideEffect.send(AddSideEffect.ScrollToItem(selectedImageUri))
-                        }
+                    // Select: Add a new image to the list and update focus
+                    else -> {
+                        addNewImageToSelection(selectedImageUri)
                     }
                 }
             }
         }
+    }
+
+    private suspend fun addNewImageToSelection(selectedImageUri: String) {
+        val currentSelectedImages = (_selectImageState.value as? SelectImageState.Multiple)?.selectedImages ?: return
+        val newSelectedImage = SelectedImage(
+            number = currentSelectedImages.size + 1,
+            imageUri = selectedImageUri
+        )
+
+        _selectImageState.update {
+            SelectImageState.Multiple(
+                currentImage = newSelectedImage,
+                selectedImages = currentSelectedImages + newSelectedImage
+            )
+        }
+
+        _sideEffect.send(AddSideEffect.ScrollToItem(selectedImageUri))
+    }
+
+    private suspend fun focusSelectedImage(selectedImageUri: String) {
+        val selectedImages = (selectImageState.value as? SelectImageState.Multiple)?.selectedImages ?: return
+        val updatedCurrentImage = selectedImages.firstOrNull { it.imageUri == selectedImageUri }
+
+        _selectImageState.update {
+            SelectImageState.Multiple(
+                currentImage = updatedCurrentImage,
+                selectedImages = selectedImages
+            )
+        }
+
+        _sideEffect.send(AddSideEffect.ScrollToItem(selectedImageUri))
     }
 
     private suspend fun unselectImage(unselectedImageUri: String) {
@@ -136,18 +223,15 @@ class AddViewModel @Inject constructor(
         val updateSelectedImages = currentSelectedImages.selectedImages
             .filter { it.imageUri != unselectedImageUri }
             .mapIndexed { index, selectedImage ->
-                val imageDragState = imageDragStates.find { it.imageUri == selectedImage.imageUri }
-                selectedImage.copy(
-                    number = index + 1,
-                    offset = imageDragState?.offset ?: Offset.Zero,
-                    scale = imageDragState?.scale ?: 1f
-                )
+                selectedImage.copy(number = index + 1)
             }
         val currentImage = updateSelectedImages.lastOrNull()
-        _selectImageState.value = SelectImageState.Multiple(
-            currentImage = currentImage,
-            selectedImages = updateSelectedImages
-        )
+        _selectImageState.update {
+            SelectImageState.Multiple(
+                currentImage = currentImage,
+                selectedImages = updateSelectedImages
+            )
+        }
         _sideEffect.send(AddSideEffect.ScrollToItem(currentImage?.imageUri))
     }
 
@@ -155,16 +239,21 @@ class AddViewModel @Inject constructor(
         viewModelScope.launch {
             when (val currentSelectImageMode = selectImageState.value) {
                 is SelectImageState.Single -> {
-                    val currentImage = SelectedImage(number = 1, imageUri = currentSelectImageMode.imageUri ?: "")
-                    _selectImageState.value = SelectImageState.Multiple(currentImage = currentImage, selectedImages = listOf(currentImage))
-                    imageDragStates.add(ImageDragState(imageUri = currentImage.imageUri))
-                    _sideEffect.send(AddSideEffect.ScrollToItem(currentImage.imageUri))
+                    _selectImageState.update {
+                        SelectImageState.Multiple(
+                            currentImage = currentSelectImageMode.currentImage,
+                            selectedImages = listOf(currentSelectImageMode.currentImage ?: return@launch)
+                        )
+                    }
+                    _sideEffect.send(AddSideEffect.ScrollToItem(currentSelectImageMode.currentImage?.imageUri))
                 }
 
                 is SelectImageState.Multiple -> {
-                    val currentImageUri = currentSelectImageMode.selectedImages.map { it.imageUri }.lastOrNull()
-                    _selectImageState.value = SelectImageState.Single(imageUri = currentImageUri)
-                    _sideEffect.send(AddSideEffect.ScrollToItem(currentImageUri))
+                    val currentImage = currentSelectImageMode.selectedImages.lastOrNull()
+                    _selectImageState.value = SelectImageState.Single(
+                        currentImage = currentImage?.copy(number = 1)
+                    )
+                    _sideEffect.send(AddSideEffect.ScrollToItem(currentImage?.imageUri))
                 }
             }
         }

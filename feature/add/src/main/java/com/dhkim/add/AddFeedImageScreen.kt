@@ -49,10 +49,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -77,7 +80,6 @@ import com.dhkim.designsystem.InstagramTheme
 import com.dhkim.domain.common.model.GalleryImage
 import com.dhkim.ui.detectTransformGesturesWithEnd
 import com.skydoves.landscapist.glide.GlideImage
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
@@ -87,11 +89,12 @@ import kotlin.math.max
 @Suppress("COMPOSE_APPLIER_CALL_MISMATCH")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddScreen(
+fun AddFeedImageScreen(
     addState: AddState,
     galleryImages: LazyPagingItems<GalleryImage>,
     selectImageState: SelectImageState,
     onAction: (AddAction) -> Unit,
+    navigateToFeedUpload: () -> Unit,
     onBack: () -> Unit
 ) {
     val imagePermissionLauncher = rememberLauncherForActivityResult(
@@ -117,7 +120,10 @@ fun AddScreen(
             modifier = Modifier
                 .fillMaxWidth()
         ) {
-            TopBar(onBack = onBack)
+            TopBar(
+                navigateToFeedUpload = navigateToFeedUpload,
+                onBack = onBack
+            )
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -166,7 +172,7 @@ fun AddScreen(
                     ) { index ->
                         val galleryImage = galleryImages[index] ?: return@items
                         val isSelected = when (selectImageState) {
-                            is SelectImageState.Single -> selectImageState.imageUri == galleryImage.uri
+                            is SelectImageState.Single -> selectImageState.currentImage?.imageUri == galleryImage.uri
                             is SelectImageState.Multiple -> selectImageState.selectedImages
                                 .map { it.imageUri }
                                 .contains(galleryImage.uri)
@@ -211,10 +217,8 @@ internal fun PreviewSelectedImage(
     selectImageState: SelectImageState,
     onAction: (AddAction) -> Unit
 ) {
-    val selectedImageUri: String? = when (selectImageState) {
-        is SelectImageState.Single -> selectImageState.imageUri
-        is SelectImageState.Multiple -> selectImageState.currentImage?.imageUri
-    }
+    val graphicsLayer = rememberGraphicsLayer()
+    val selectedImageUri = selectImageState.currentImage?.imageUri
     var intrinsicSize by remember { mutableStateOf(Size.Zero) }
     val aspectRatio = if (intrinsicSize == Size.Zero) 1f else intrinsicSize.width / intrinsicSize.height
     val scope = rememberCoroutineScope()
@@ -222,12 +226,18 @@ internal fun PreviewSelectedImage(
     val offset = remember { Animatable(Offset.Zero, Offset.VectorConverter) }
     var viewportSize by remember { mutableStateOf(IntSize.Zero) }
 
-    Box(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(1f)
             .background(Color.Black)
-            .onSizeChanged { viewportSize = it },
+            .onSizeChanged { viewportSize = it }
+            .drawWithContent {
+                graphicsLayer.record {
+                    this@drawWithContent.drawContent()
+                }
+                drawLayer(graphicsLayer)
+            },
         contentAlignment = Alignment.Center
     ) {
         // Cropping area
@@ -312,6 +322,7 @@ internal fun PreviewSelectedImage(
                                 }
 
                                 onAction(AddAction.DragImage(scale.value, offset.value))
+                                onAction(AddAction.AddSelectedImageBitmaps(imageBitmap = graphicsLayer.toImageBitmap()))
                             }
                         }
                     )
@@ -324,18 +335,14 @@ internal fun PreviewSelectedImage(
                         .override(viewportSize.width, viewportSize.height)
                 },
                 success = { _, painter ->
-                    val initScale = when (selectImageState) {
-                        is SelectImageState.Single -> 1f
-                        is SelectImageState.Multiple -> selectImageState.currentImage?.scale ?: 1f
-                    }
-                    val initOffset = when (selectImageState) {
-                        is SelectImageState.Single -> Offset.Zero
-                        is SelectImageState.Multiple -> selectImageState.currentImage?.offset ?: Offset.Zero
-                    }
+                    val (initScale, initOffset) = selectImageState.currentImage?.let {
+                        it.scale to it.offset
+                    } ?: (1f to Offset.Zero)
 
                     scope.launch {
                         scale.snapTo(initScale)
                         offset.snapTo(initOffset)
+                        onAction(AddAction.AddSelectedImageBitmaps(imageBitmap = graphicsLayer.toImageBitmap()))
                     }
 
                     intrinsicSize = painter.intrinsicSize
@@ -361,6 +368,7 @@ internal fun PreviewSelectedImage(
 
 @Composable
 internal fun TopBar(
+    navigateToFeedUpload: () -> Unit,
     onBack: () -> Unit
 ) {
     Row(
@@ -389,6 +397,8 @@ internal fun TopBar(
             text = stringResource(R.string.next),
             style = InstagramTheme.typography.labelMediumBold,
             color = InstagramTheme.colors.primary,
+            modifier = Modifier
+                .clickable(onClick = navigateToFeedUpload)
         )
     }
 }
@@ -419,7 +429,7 @@ internal fun NotSelectedImage(
 }
 
 @Composable
-internal fun SelectedImage(
+private fun SelectedImage(
     imageUri: String,
     onAction: (AddAction) -> Unit
 ) {
@@ -543,7 +553,7 @@ internal fun SelectMultipleImagesButton(
 
 @AddScreenPreviews
 @Composable
-private fun AddScreenPreview(
+private fun AddFeedImageScreenPreview(
     @PreviewParameter(AddScreenPreviewParameterProvider::class) selectImageState: SelectImageState
 ) {
     val mockGalleyImages = flowOf(
@@ -570,11 +580,12 @@ private fun AddScreenPreview(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background
         ) {
-            AddScreen(
+            AddFeedImageScreen(
                 addState = rememberAddState(),
                 galleryImages = galleryImages,
                 selectImageState = selectImageState,
                 onAction = {},
+                navigateToFeedUpload = {},
                 onBack = {}
             )
         }
@@ -592,7 +603,9 @@ class AddScreenPreviewParameterProvider : PreviewParameterProvider<SelectImageSt
                         SelectedImage(number = 1, imageUri = it)
                     }
             ),
-            SelectImageState.Single("imageUri0"),
+            SelectImageState.Single(
+                currentImage = SelectedImage(number = 1, imageUri = "imageUri0")
+            ),
         )
 }
 

@@ -22,7 +22,7 @@ sealed interface AddAction {
         val offset: Offset
     ) : AddAction
 
-    data class AddImage(
+    data class AddSelectedImageBitmaps(
         val imageBitmap: ImageBitmap
     ) : AddAction
 }

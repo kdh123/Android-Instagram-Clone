@@ -4,29 +4,32 @@ import android.widget.Toast
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import androidx.paging.compose.collectAsLazyPagingItems
-import com.dhkim.add.AddScreen
+import com.dhkim.add.AddFeedImageScreen
 import com.dhkim.add.AddSideEffect
+import com.dhkim.add.AddState
 import com.dhkim.add.AddViewModel
-import com.dhkim.add.rememberAddState
-import kotlinx.coroutines.FlowPreview
+import com.dhkim.add.FeedUploadScreen
+import com.dhkim.ui.sharedViewModel
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.debounce
 
 const val ADD_ROUTE = "add_route"
+const val ADD_IMAGE_ROUTE = "add_image_route"
+const val FEED_UPLOAD_ROUTE = "feed_upload_route"
 
-@OptIn(FlowPreview::class)
-fun NavGraphBuilder.add(
-    onBack: () -> Unit
+fun NavGraphBuilder.addImage(
+    navController: NavHostController,
+    addState: AddState,
+    onBack: () -> Unit,
 ) {
-    composable(ADD_ROUTE) {
-        val addState = rememberAddState()
-        val viewModel = hiltViewModel<AddViewModel>()
+    composable(ADD_IMAGE_ROUTE) { entry ->
         val context = LocalContext.current
+        val viewModel = entry.sharedViewModel<AddViewModel>(navController)
         val galleryImages = viewModel.galleryImages.collectAsLazyPagingItems()
         val selectImageMode by viewModel.selectImageState.collectAsStateWithLifecycle()
 
@@ -49,12 +52,32 @@ fun NavGraphBuilder.add(
                 }
         }
 
-        AddScreen(
+        AddFeedImageScreen(
             addState = addState,
             galleryImages = galleryImages,
             selectImageState = selectImageMode,
             onAction = viewModel::onAction,
+            navigateToFeedUpload = navController::navigateToFeedUpload,
             onBack = onBack
         )
     }
+}
+
+fun NavGraphBuilder.feedUpload(
+    navController: NavHostController,
+) {
+    composable(FEED_UPLOAD_ROUTE) { entry ->
+        val viewModel = entry.sharedViewModel<AddViewModel>(navController)
+        val feedUploadState by viewModel.feedUploadState.collectAsStateWithLifecycle()
+
+        FeedUploadScreen(
+            feedUploadState = feedUploadState,
+            onAction = viewModel::onAction,
+            onBack = navController::navigateUp
+        )
+    }
+}
+
+fun NavController.navigateToFeedUpload() {
+    navigate(FEED_UPLOAD_ROUTE)
 }
