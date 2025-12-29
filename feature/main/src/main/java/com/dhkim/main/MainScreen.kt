@@ -109,6 +109,7 @@ fun MainScreen(
 
                 feedUpload(
                     navController = appState.navController,
+                    navigateToHome = appState::navigateToHomeFromAdd
                 )
             }
 

@@ -1,8 +1,8 @@
 package com.dhkim.add
 
+import android.content.Context
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.ImageBitmap
-import com.dhkim.domain.feed.model.Feed
 
 sealed interface AddAction {
 
@@ -10,12 +10,9 @@ sealed interface AddAction {
         val imageUri: String
     ) : AddAction
 
-    data object ChangeSelectImageMode: AddAction
+    data object ChangeSelectImageMode : AddAction
 
-    data class UploadFeed(
-        val feed: Feed,
-        val imageUrls: List<String>
-    ) : AddAction
+    data object UploadFeedContent : AddAction
 
     data class DragImage(
         val scale: Float,
@@ -24,5 +21,13 @@ sealed interface AddAction {
 
     data class AddSelectedImageBitmaps(
         val imageBitmap: ImageBitmap
+    ) : AddAction
+
+    data class UploadFeedImages(
+        val context: Context
+    ) : AddAction
+
+    data class TypeCaption(
+        val text: String
     ) : AddAction
 }

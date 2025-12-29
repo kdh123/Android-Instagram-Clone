@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -62,6 +63,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -121,6 +123,7 @@ fun AddFeedImageScreen(
                 .fillMaxWidth()
         ) {
             TopBar(
+                onAction = onAction,
                 navigateToFeedUpload = navigateToFeedUpload,
                 onBack = onBack
             )
@@ -243,8 +246,15 @@ internal fun PreviewSelectedImage(
         // Cropping area
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(aspectRatio)
+                .run {
+                    if (aspectRatio < 1f) {
+                        fillMaxWidth()
+                            .aspectRatio(aspectRatio)
+                    } else {
+                        requiredWidth(maxWidth * aspectRatio)
+                            .height(maxWidth)
+                    }
+                }
                 .background(InstagramTheme.colors.background)
                 .pointerInput(Unit) {
                     detectTransformGesturesWithEnd(
@@ -256,16 +266,8 @@ internal fun PreviewSelectedImage(
 
                                 // Handle Pan + Resistance
                                 // Calculate how much larger the image is compared to the viewport based on current scale
-                                val imageWidth = if (intrinsicSize.width / intrinsicSize.height <= 1f) {
-                                    intrinsicSize.width * scale.value
-                                } else {
-                                    viewportSize.width * scale.value
-                                }
-                                val imageHeight = if (intrinsicSize.height / intrinsicSize.height <= 1f) {
-                                    intrinsicSize.height * scale.value
-                                } else {
-                                    viewportSize.height * scale.value
-                                }
+                                val imageWidth = intrinsicSize.width * scale.value
+                                val imageHeight = intrinsicSize.height * scale.value
 
                                 // Maximum allowable offset (boundaries)
                                 val maxOffsetX = (imageWidth - viewportSize.width) / 2f
@@ -295,17 +297,8 @@ internal fun PreviewSelectedImage(
                                 }
 
                                 // Recalculate boundaries based on target scale
-                                val imageWidth = if (intrinsicSize.width / intrinsicSize.height <= 1f) {
-                                    intrinsicSize.width * targetScale
-                                } else {
-                                    viewportSize.width * targetScale
-                                }
-                                val imageHeight = if (intrinsicSize.width / intrinsicSize.height <= 1f) {
-                                    intrinsicSize.height * targetScale
-                                } else {
-                                    viewportSize.height * targetScale
-                                }
-
+                                val imageWidth = intrinsicSize.width * targetScale
+                                val imageHeight = intrinsicSize.height * targetScale
                                 val maxOffsetX = (imageWidth - viewportSize.width) / 2f
                                 val maxOffsetY = (imageHeight - viewportSize.height) / 2f
                                 val currentOffset = offset.value
@@ -349,7 +342,7 @@ internal fun PreviewSelectedImage(
                     Image(
                         painter = painter,
                         contentDescription = null,
-                        contentScale = ContentScale.FillWidth
+                        contentScale = ContentScale.FillHeight
                     )
                 },
                 modifier = Modifier
@@ -367,10 +360,12 @@ internal fun PreviewSelectedImage(
 }
 
 @Composable
-internal fun TopBar(
+private fun TopBar(
+    onAction: (AddAction) -> Unit,
     navigateToFeedUpload: () -> Unit,
     onBack: () -> Unit
 ) {
+    val context = LocalContext.current
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -398,7 +393,9 @@ internal fun TopBar(
             style = InstagramTheme.typography.labelMediumBold,
             color = InstagramTheme.colors.primary,
             modifier = Modifier
-                .clickable(onClick = navigateToFeedUpload)
+                .clickable {
+                    onAction(AddAction.UploadFeedImages(context))
+                }
         )
     }
 }

@@ -43,6 +43,7 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.paging.common)
     implementation(libs.material)
+    implementation(libs.bundles.androidx.workManager)
     implementation(libs.hilt)
     ksp(libs.hilt.compiler)
 

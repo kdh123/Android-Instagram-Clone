@@ -1,17 +1,26 @@
 package com.dhkim.add
 
+import android.content.Context
+import android.graphics.Bitmap
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.cachedIn
+import androidx.work.Constraints
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.workDataOf
+import com.dhkim.add.work.UploadFeedContentWorker
+import com.dhkim.add.work.UploadFeedImagesWorker
 import com.dhkim.common.handle
 import com.dhkim.domain.common.useCase.GetGalleryImagesUseCase
 import com.dhkim.domain.common.useCase.GetRecentGalleryImageUseCase
-import com.dhkim.domain.feed.model.Feed
-import com.dhkim.domain.feed.useCase.UploadFeedUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,16 +29,19 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileOutputStream
+import java.util.UUID
 import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class AddViewModel @Inject constructor(
-    private val uploadFeedUseCase: UploadFeedUseCase,
     private val getGalleryImagesUseCase: GetGalleryImagesUseCase,
-    private val getRecentGalleryImageUseCase: GetRecentGalleryImageUseCase
-) : ViewModel(
-) {
+    private val getRecentGalleryImageUseCase: GetRecentGalleryImageUseCase,
+    private val workManager: WorkManager
+) : ViewModel() {
 
     val galleryImages = getGalleryImagesUseCase(pageSize = 10)
         .cachedIn(viewModelScope)
@@ -37,11 +49,13 @@ class AddViewModel @Inject constructor(
     private val _selectImageState = MutableStateFlow<SelectImageState>(SelectImageState.Single(null))
     val selectImageState = _selectImageState.asStateFlow()
 
-    private val _feedUploadState = MutableStateFlow(FeedUploadState())
-    val feedUploadState = _feedUploadState.asStateFlow()
+    private val _feedUploadUiState = MutableStateFlow(FeedUploadUiState())
+    val feedUploadUiState = _feedUploadUiState.asStateFlow()
 
     private val _sideEffect = Channel<AddSideEffect>(Channel.BUFFERED)
     val sideEffect = _sideEffect.receiveAsFlow()
+
+    private val feedId: String = "feedId_${System.currentTimeMillis()}"
 
     init {
         viewModelScope.launch {
@@ -63,8 +77,8 @@ class AddViewModel @Inject constructor(
                 changeSelectImageMode()
             }
 
-            is AddAction.UploadFeed -> {
-                uploadFeed(action.feed, action.imageUrls)
+            is AddAction.UploadFeedContent -> {
+                uploadFeedContent()
             }
 
             is AddAction.SelectImage -> {
@@ -78,6 +92,23 @@ class AddViewModel @Inject constructor(
             is AddAction.AddSelectedImageBitmaps -> {
                 addSelectedImageBitmaps(imageBitmap = action.imageBitmap)
             }
+
+            is AddAction.TypeCaption -> {
+                typeCaption(text = action.text)
+            }
+
+            is AddAction.UploadFeedImages -> {
+                viewModelScope.launch {
+                    uploadFeedImages(context = action.context)
+                    _sideEffect.send(AddSideEffect.NavigateToFeedUpload)
+                }
+            }
+        }
+    }
+
+    private fun typeCaption(text: String) {
+        _feedUploadUiState.update {
+            it.copy(caption = text)
         }
     }
 
@@ -85,7 +116,7 @@ class AddViewModel @Inject constructor(
     private fun addSelectedImageBitmaps(imageBitmap: ImageBitmap) {
         syncCurrentSelectedImages()
         val currentImageNumber = selectImageState.value.currentImage?.number ?: return
-        val currentSelectedImageBitmaps = feedUploadState.value.selectedImageBitmaps
+        val currentSelectedImageBitmaps = feedUploadUiState.value.selectedImageBitmaps
         val shouldUpdate = currentSelectedImageBitmaps.any { it.first == currentImageNumber }
         val updateSelectedImagesBitmaps = if (shouldUpdate) {
             currentSelectedImageBitmaps.map {
@@ -94,14 +125,17 @@ class AddViewModel @Inject constructor(
                 } else {
                     it
                 }
+            }.sortedBy {
+                it.first
             }.toImmutableList()
         } else {
-            (feedUploadState.value.selectedImageBitmaps + (currentImageNumber to imageBitmap))
+            (feedUploadUiState.value.selectedImageBitmaps + (currentImageNumber to imageBitmap))
                 .distinctBy { it.first }
+                .sortedBy { it.first }
                 .toImmutableList()
         }
 
-        _feedUploadState.update {
+        _feedUploadUiState.update {
             it.copy(selectedImageBitmaps = updateSelectedImagesBitmaps)
         }
     }
@@ -111,7 +145,7 @@ class AddViewModel @Inject constructor(
             is SelectImageState.Single -> listOf(1)
             is SelectImageState.Multiple -> selectedImageState.selectedImages.map { it.number }
         }
-        _feedUploadState.update { state ->
+        _feedUploadUiState.update { state ->
             state.copy(
                 selectedImageBitmaps = state.selectedImageBitmaps.filter {
                     currentSelectedImageNumbers.contains(it.first)
@@ -259,17 +293,71 @@ class AddViewModel @Inject constructor(
         }
     }
 
-    private fun uploadFeed(feed: Feed, imageUrls: List<String>) {
+    private fun uploadFeedContent() {
         viewModelScope.handle(
             block = {
-                uploadFeedUseCase(feed = feed, imageUrls = imageUrls).first()
-                _sideEffect.send(AddSideEffect.ShowToast("Feed Uploaded"))
+                if (feedUploadUiState.value.isLoading) return@handle
+                val caption = feedUploadUiState.value.caption
+                val inputData = workDataOf(
+                    "KEY_FEED_ID" to feedId,
+                    "KEY_FEED_CAPTION" to caption,
+                )
+                val constraints = Constraints.Builder()
+                    .setRequiredNetworkType(NetworkType.CONNECTED)
+                    .build()
+                val uploadWorkRequest = OneTimeWorkRequestBuilder<UploadFeedContentWorker>()
+                    .setInputData(inputData)
+                    .setConstraints(constraints)
+                    .build()
+
+                workManager.enqueue(uploadWorkRequest)
+                _sideEffect.send(AddSideEffect.NavigateToHome)
             },
             onError = {
                 viewModelScope.launch {
                     _sideEffect.send(AddSideEffect.ShowToast(it.message ?: "Unknown Error"))
+                    _feedUploadUiState.update { state -> state.copy(isLoading = false) }
                 }
             }
         )
+    }
+
+
+    private suspend fun saveImageBitmapToCache(context: Context): List<String?> {
+        return withContext(Dispatchers.IO) {
+            val imageBitmaps = feedUploadUiState.value.selectedImageBitmaps
+            imageBitmaps.map { it.second }
+                .map { imageBitmap ->
+                    val androidBitmap = imageBitmap.asAndroidBitmap()
+                    val fileName = "feed_upload_${UUID.randomUUID()}.jpg"
+                    val cacheFile = File(context.cacheDir, fileName)
+                    try {
+                        FileOutputStream(cacheFile).use { out ->
+                            androidBitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+                            out.flush()
+                        }
+                        cacheFile.absolutePath
+                    } catch (_: Exception) {
+                        null
+                    }
+                }
+        }
+    }
+
+    private suspend fun uploadFeedImages(context: Context) = withContext(Dispatchers.IO) {
+        val imageUris = saveImageBitmapToCache(context).toTypedArray()
+        val inputData = workDataOf(
+            "KEY_FEED_ID" to feedId,
+            "KEY_IMAGE_URIS" to imageUris,
+        )
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+        val uploadWorkRequest = OneTimeWorkRequestBuilder<UploadFeedImagesWorker>()
+            .setInputData(inputData)
+            .setConstraints(constraints)
+            .build()
+
+        workManager.enqueue(uploadWorkRequest)
     }
 }

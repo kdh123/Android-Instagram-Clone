@@ -4,4 +4,6 @@
     <string name="new_feed">New Feed</string>
     <string name="next">Next</string>
     <string name="cancel">cancel</string>
+    <string name="share">share</string>
+    <string name="add_caption">Write a caption......</string>
 </resources>
