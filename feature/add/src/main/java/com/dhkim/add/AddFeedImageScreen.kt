@@ -63,6 +63,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -122,6 +123,7 @@ fun AddFeedImageScreen(
                 .fillMaxWidth()
         ) {
             TopBar(
+                onAction = onAction,
                 navigateToFeedUpload = navigateToFeedUpload,
                 onBack = onBack
             )
@@ -359,9 +361,11 @@ internal fun PreviewSelectedImage(
 
 @Composable
 private fun TopBar(
+    onAction: (AddAction) -> Unit,
     navigateToFeedUpload: () -> Unit,
     onBack: () -> Unit
 ) {
+    val context = LocalContext.current
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -389,7 +393,9 @@ private fun TopBar(
             style = InstagramTheme.typography.labelMediumBold,
             color = InstagramTheme.colors.primary,
             modifier = Modifier
-                .clickable(onClick = navigateToFeedUpload)
+                .clickable {
+                    onAction(AddAction.UploadFeedImages(context))
+                }
         )
     }
 }

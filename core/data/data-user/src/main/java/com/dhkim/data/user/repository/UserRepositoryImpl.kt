@@ -5,6 +5,7 @@ import com.dhkim.domain.user.repository.UserRepository
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
 class UserRepositoryImpl @Inject constructor(
@@ -13,16 +14,24 @@ class UserRepositoryImpl @Inject constructor(
 
     override fun getUser(): Flow<User?> {
         return flow {
-            firebaseAuth.currentUser?.run {
-                emit(
-                    User(
-                        id = uid,
-                        name = displayName ?: "",
-                        email = email ?: "",
-                        profileUrl = "$photoUrl"
-                    )
+            val firebaseUser = firebaseAuth.currentUser ?: kotlin.run {
+                emit(null)
+                return@flow
+            }
+
+            val user = try {
+                firebaseUser.getIdToken(true).await()
+                User(
+                    id = firebaseUser.uid,
+                    name = firebaseUser.displayName ?: "",
+                    email = firebaseUser.email ?: "",
+                    profileUrl = "${firebaseUser.photoUrl}"
                 )
-            } ?: emit(null)
+            } catch (_: Exception) {
+                null
+            }
+
+            emit(user)
         }
     }
 }

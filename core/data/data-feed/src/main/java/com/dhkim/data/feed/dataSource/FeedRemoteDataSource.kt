@@ -1,5 +1,6 @@
 package com.dhkim.data.feed.dataSource
 
+import androidx.core.net.toUri
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
@@ -8,11 +9,10 @@ import com.dhkim.data.feed.model.toDto
 import com.dhkim.domain.feed.model.Feed
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.storage.FirebaseStorage
-import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.tasks.await
+import java.io.File
 import javax.inject.Inject
 
 class FeedRemoteDataSource @Inject constructor(
@@ -33,21 +33,17 @@ class FeedRemoteDataSource @Inject constructor(
     }
 
     fun uploadFeed(feed: Feed): Flow<Unit> {
-        return callbackFlow {
-            feedRef.child(feed.feedId).setValue(feed.toDto())
-                .addOnSuccessListener {
-                    trySend(Unit)
-                }.addOnFailureListener {
-                    close(it)
-                }
-            awaitClose()
+        return flow {
+            val feedRef = feedRef.child(feed.feedId)
+            feedRef.setValue(feed.toDto()).await()
+            emit(Unit)
         }
     }
 
-    fun uploadImage(filePath: String, byteArray: ByteArray): Flow<String> {
+    fun uploadImage(storagePath: String, file: File): Flow<String> {
         return flow {
-            val imageRef = storageRef.child(filePath)
-            imageRef.putBytes(byteArray).await()
+            val imageRef = storageRef.child(storagePath)
+            imageRef.putFile(file.toUri()).await()
             val downloadUrl = "${imageRef.downloadUrl.await()}"
             emit(downloadUrl)
         }

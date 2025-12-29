@@ -6,6 +6,7 @@ import com.dhkim.domain.user.useCase.GetUserUseCase
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import java.io.File
 import javax.inject.Inject
 
 typealias ImageDownloadUrl = String
@@ -15,11 +16,11 @@ class UploadImageUseCase @Inject constructor(
     private val getUserUseCase: GetUserUseCase
 ) {
 
-    operator fun invoke(byteArray: ByteArray): Flow<ImageDownloadUrl> {
+    operator fun invoke(file: File): Flow<ImageDownloadUrl> {
         return flow {
             val user = getUserUseCase().first() ?: throw NouUserFoundException()
-            val filePath = "feeds/${user.id}/photo_${System.currentTimeMillis()}.jpg"
-            val imageDownloadUrl = feedRepository.uploadImage(filePath, byteArray).first()
+            val storagePath = "feeds/${user.id}/photo_${System.currentTimeMillis()}.jpg"
+            val imageDownloadUrl = feedRepository.uploadImage(storagePath, file).first()
             emit(imageDownloadUrl)
         }
     }

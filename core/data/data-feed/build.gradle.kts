@@ -35,6 +35,7 @@ android {
 
 dependencies {
     implementation(project(":core:data:data-common"))
+    implementation(project(":core:database"))
     implementation(project(":core:domain:domain-feed"))
 
     implementation(libs.androidx.core.ktx)

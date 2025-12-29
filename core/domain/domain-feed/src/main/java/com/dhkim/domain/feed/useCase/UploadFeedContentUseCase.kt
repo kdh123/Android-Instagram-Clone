@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
 
-class UploadFeedUseCase @Inject constructor(
+class UploadFeedContentUseCase @Inject constructor(
     private val feedRepository: FeedRepository,
     private val getUserUseCase: GetUserUseCase
 ) {

@@ -89,7 +89,7 @@ fun FeedUploadButton(
     Box(
         modifier = Modifier
             .padding(10.dp)
-            .clickable { onAction(AddAction.UploadFeed) }
+            .clickable { onAction(AddAction.UploadFeedContent) }
     ) {
         Text(
             text = stringResource(R.string.share),

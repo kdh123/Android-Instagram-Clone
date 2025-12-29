@@ -1,12 +1,13 @@
 package com.dhkim.add
 
 import androidx.paging.PagingData
+import androidx.work.WorkManager
 import app.cash.turbine.test
 import com.dhkim.domain.common.model.GalleryImage
 import com.dhkim.domain.common.repository.GalleryRepository
 import com.dhkim.domain.common.useCase.GetGalleryImagesUseCase
 import com.dhkim.domain.common.useCase.GetRecentGalleryImageUseCase
-import com.dhkim.domain.feed.useCase.UploadFeedUseCase
+import com.dhkim.domain.feed.useCase.UploadFeedContentUseCase
 import io.mockk.coEvery
 import io.mockk.mockk
 import junit.framework.TestCase.assertEquals
@@ -25,8 +26,8 @@ import org.junit.Test
 class AddViewModelTest {
 
     private val testDispatcher = UnconfinedTestDispatcher()
+    private val workManager: WorkManager = mockk(relaxed = true)
     private val galleryRepository = mockk<GalleryRepository>()
-    private val uploadFeedUseCase = mockk<UploadFeedUseCase>()
     private val getGalleryImagesUseCase = GetGalleryImagesUseCase(galleryRepository)
     private val getRecentGalleryImageUseCase = GetRecentGalleryImageUseCase(galleryRepository)
 
@@ -52,9 +53,9 @@ class AddViewModelTest {
         coEvery { galleryRepository.getGalleryImages(any()) } returns flowOf(PagingData.from(fakeGalleryImages))
 
         viewModel = AddViewModel(
-            uploadFeedUseCase,
             getGalleryImagesUseCase,
-            getRecentGalleryImageUseCase
+            getRecentGalleryImageUseCase,
+            workManager
         )
 
         viewModel.selectImageState.test {
@@ -76,9 +77,9 @@ class AddViewModelTest {
         coEvery { galleryRepository.getGalleryImages(any()) } returns flowOf(PagingData.from(fakeGalleryImages))
 
         viewModel = AddViewModel(
-            uploadFeedUseCase,
             getGalleryImagesUseCase,
-            getRecentGalleryImageUseCase
+            getRecentGalleryImageUseCase,
+            workManager
         )
 
         viewModel.selectImageState.test {
@@ -108,9 +109,9 @@ class AddViewModelTest {
         coEvery { galleryRepository.getGalleryImages(any()) } returns flowOf(PagingData.from(fakeGalleryImages))
 
         viewModel = AddViewModel(
-            uploadFeedUseCase,
             getGalleryImagesUseCase,
-            getRecentGalleryImageUseCase
+            getRecentGalleryImageUseCase,
+            workManager
         )
 
         viewModel.selectImageState.test {

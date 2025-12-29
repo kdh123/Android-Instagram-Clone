@@ -50,6 +50,9 @@ fun NavGraphBuilder.addImage(
                         }
 
                         AddSideEffect.NavigateToHome -> Unit
+                        AddSideEffect.NavigateToFeedUpload -> {
+                            navController.navigateToFeedUpload()
+                        }
                     }
                 }
         }
@@ -86,6 +89,8 @@ fun NavGraphBuilder.feedUpload(
                         AddSideEffect.NavigateToHome -> {
                             navigateToHome()
                         }
+
+                        AddSideEffect.NavigateToFeedUpload -> Unit
                     }
                 }
         }

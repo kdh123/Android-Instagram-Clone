@@ -36,8 +36,8 @@ googleService = "4.4.4"
 dataStore = "1.0.0"
 fcm = "23.2.1"
 composeAnimation = "1.6.0"
-workManager = "2.7.1"
-hiltWorkManager = "1.0.0"
+workManager = "2.9.1"
+hiltWorkManager = "1.2.0"
 hiltCompiler = "1.0.0"
 jetbrainsKotlinJvm = "1.9.0"
 gson = "2.8.6"
@@ -125,6 +125,7 @@ androidx-material3 = { module = "androidx.compose.material3:material3", version.
 hilt = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
 hilt-core = { module = "com.google.dagger:hilt-core", version.ref = "hilt" }
 hilt-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hilt" }
+android-hilt-compiler = { module = "androidx.hilt:hilt-compiler", version.ref = "hiltWorkManager" }
 hilt-test = { module = "com.google.dagger:hilt-android-testing", version.ref = "hilt" }
 androidx-lifecycle-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "composeFlowState" }
 compose-hilt-navigation = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "composeHilt" }
