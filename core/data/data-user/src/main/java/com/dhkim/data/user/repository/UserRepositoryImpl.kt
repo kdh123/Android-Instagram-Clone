@@ -4,6 +4,7 @@ import com.dhkim.domain.user.model.User
 import com.dhkim.domain.user.repository.UserRepository
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
@@ -32,6 +33,8 @@ class UserRepositoryImpl @Inject constructor(
             }
 
             emit(user)
+        }.catch {
+            emit(null)
         }
     }
 }

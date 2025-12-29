@@ -49,4 +49,8 @@ class FeedRepositoryImpl @Inject constructor(
     override suspend fun deleteFeedUploadStatus(feedId: String) {
         localDataSource.deleteFeedUploadStatus(feedId)
     }
+
+    override suspend fun clearFeedUploadStatuses() {
+        localDataSource.clearFeedUploadStatuses()
+    }
 }

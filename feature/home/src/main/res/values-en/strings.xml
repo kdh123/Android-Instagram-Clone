@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feed_upload_status_loading">Uploading feed...</string>
+    <string name="feed_upload_status_success">Feed uploaded successfully</string>
+    <string name="feed_upload_status_fail">Failed to upload feed</string>
+</resources>

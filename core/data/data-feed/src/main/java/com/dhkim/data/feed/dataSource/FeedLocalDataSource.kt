@@ -24,4 +24,8 @@ class FeedLocalDataSource @Inject constructor(
     suspend fun deleteFeedUploadStatus(feedId: String) {
         feedUploadDao.deleteStatus(feedId)
     }
+
+    suspend fun clearFeedUploadStatuses() {
+        feedUploadDao.clear()
+    }
 }

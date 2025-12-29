@@ -15,4 +15,5 @@ interface FeedRepository {
     fun getFeedUploadStatus(feedId: String): Flow<FeedUploadStatus?>
     suspend fun insertFeedUploadStatus(feedUploadStatus: FeedUploadStatus)
     suspend fun deleteFeedUploadStatus(feedId: String)
+    suspend fun clearFeedUploadStatuses()
 }

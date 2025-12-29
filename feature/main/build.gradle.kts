@@ -41,6 +41,7 @@ dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:ui"))
     implementation(project(":core:domain:domain-user"))
+    implementation(project(":core:domain:domain-feed"))
     implementation(project(":feature:login"))
     implementation(project(":feature:home"))
     implementation(project(":feature:search"))

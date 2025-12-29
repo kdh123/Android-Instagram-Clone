@@ -34,6 +34,7 @@ class UploadFeedContentWorker @AssistedInject constructor(
                     UploadState.SUCCESS -> {
                         try {
                             uploadFeedContentUseCase(feedCaption, feedUploadStatus.imageUrls).first()
+                            updateFeedUploadSuccessStatus(feedId)
                         } catch (_: Exception) {
                             feedRepository.deleteFeedUploadStatus(feedId)
                         }
@@ -42,11 +43,26 @@ class UploadFeedContentWorker @AssistedInject constructor(
                     UploadState.LOADING -> Unit
                     UploadState.IDLE,
                     UploadState.FAIL -> {
-                        feedRepository.deleteFeedUploadStatus(feedId)
+                        updateFeedUploadFailStatus(feedId)
                     }
                 }
             }
 
         return Result.Success()
+    }
+
+    private suspend fun updateFeedUploadSuccessStatus(feedId: String) {
+        val feedUploadLoadingStatus = feedRepository.getFeedUploadStatus(feedId).first()?.copy(
+            contentStatus = UploadState.SUCCESS
+        ) ?: return
+        feedRepository.insertFeedUploadStatus(feedUploadLoadingStatus)
+    }
+
+    private suspend fun updateFeedUploadFailStatus(feedId: String) {
+        val feedUploadLoadingStatus = feedRepository.getFeedUploadStatus(feedId).first()?.copy(
+            imageStatus = UploadState.FAIL,
+            contentStatus = UploadState.FAIL
+        ) ?: return
+        feedRepository.insertFeedUploadStatus(feedUploadLoadingStatus)
     }
 }
