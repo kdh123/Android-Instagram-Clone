@@ -18,6 +18,7 @@ import com.dhkim.add.work.UploadFeedImagesWorker
 import com.dhkim.common.handle
 import com.dhkim.domain.common.useCase.GetGalleryImagesUseCase
 import com.dhkim.domain.common.useCase.GetRecentGalleryImageUseCase
+import com.dhkim.domain.feed.repository.FeedRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.Dispatchers
@@ -40,6 +41,7 @@ import javax.inject.Inject
 class AddViewModel @Inject constructor(
     private val getGalleryImagesUseCase: GetGalleryImagesUseCase,
     private val getRecentGalleryImageUseCase: GetRecentGalleryImageUseCase,
+    private val feedRepository: FeedRepository,
     private val workManager: WorkManager
 ) : ViewModel() {
 
@@ -310,6 +312,7 @@ class AddViewModel @Inject constructor(
                     .setConstraints(constraints)
                     .build()
 
+                updateFeedUploadStatus()
                 workManager.enqueue(uploadWorkRequest)
                 _sideEffect.send(AddSideEffect.NavigateToHome)
             },
@@ -322,6 +325,11 @@ class AddViewModel @Inject constructor(
         )
     }
 
+    private fun updateFeedUploadStatus() = viewModelScope.launch {
+        val currentFeedUploadStatus = feedRepository.getFeedUploadStatus(feedId).first() ?: return@launch
+        val updateFeedUploadStatus = currentFeedUploadStatus.copy(shouldUpload = true)
+        feedRepository.insertFeedUploadStatus(updateFeedUploadStatus)
+    }
 
     private suspend fun saveImageBitmapToCache(context: Context): List<String?> {
         return withContext(Dispatchers.IO) {

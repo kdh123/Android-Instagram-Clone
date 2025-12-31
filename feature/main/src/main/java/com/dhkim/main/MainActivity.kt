@@ -12,12 +12,17 @@ import androidx.compose.runtime.setValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dhkim.designsystem.InstagramTheme
+import com.dhkim.domain.feed.repository.FeedRepository
 import com.dhkim.ui.eventSplash.DefaultConfig
 import com.dhkim.ui.eventSplash.EventSplashApi
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var feedRepository: FeedRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

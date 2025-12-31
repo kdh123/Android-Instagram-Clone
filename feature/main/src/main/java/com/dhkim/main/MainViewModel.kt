@@ -28,9 +28,10 @@ class MainViewModel @Inject constructor(
         )
 
     override fun onCleared() {
-        super.onCleared()
         viewModelScope.launch(NonCancellable) {
             feedRepository.clearFeedUploadStatuses()
         }
+
+        super.onCleared()
     }
 }

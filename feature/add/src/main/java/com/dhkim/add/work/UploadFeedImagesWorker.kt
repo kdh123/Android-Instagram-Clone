@@ -47,7 +47,7 @@ class UploadFeedImagesWorker @AssistedInject constructor(
     private suspend fun uploadImages(feedId: String, filePaths: List<String>) = coroutineScope {
         val uploadImageJobs = mutableListOf<Deferred<ImageDownloadUrl>>()
 
-        filePaths.forEachIndexed { index, filePath ->
+        filePaths.forEach { filePath ->
             val file = File(filePath)
             val job = async {
                 uploadImageUseCase(file).first()
@@ -58,7 +58,7 @@ class UploadFeedImagesWorker @AssistedInject constructor(
         val downloadImageUrls = uploadImageJobs.awaitAll()
         val feedUploadStatus = feedRepository.getFeedUploadStatus(feedId).first()?.copy(
             imageUrls = downloadImageUrls,
-            imageStatus = UploadState.SUCCESS
+            uploadState = UploadState.IMAGE_SUCCESS
         ) ?: return@coroutineScope
         feedRepository.insertFeedUploadStatus(feedUploadStatus)
     }
@@ -68,16 +68,15 @@ class UploadFeedImagesWorker @AssistedInject constructor(
             feedId = feedId,
             thumbnail = getThumbnailByteArray(firstImagePath),
             imageUrls = listOf(),
-            imageStatus = UploadState.LOADING,
-            contentStatus = UploadState.LOADING,
+            uploadState = UploadState.LOADING,
+            shouldUpload = false
         )
         feedRepository.insertFeedUploadStatus(feedUploadLoadingStatus)
     }
 
     private suspend fun updateFeedUploadFailStatus(feedId: String) {
         val feedUploadLoadingStatus = feedRepository.getFeedUploadStatus(feedId).first()?.copy(
-            imageStatus = UploadState.FAIL,
-            contentStatus = UploadState.FAIL
+            uploadState = UploadState.FAIL,
         ) ?: return
         feedRepository.insertFeedUploadStatus(feedUploadLoadingStatus)
     }

@@ -74,10 +74,14 @@ fun HomeScreen(
 fun FeedUploadStatusContent(feedUploadStatus: FeedUploadStatus) {
     val thumbnail = feedUploadStatus.thumbnail
     val bitmap = BitmapFactory.decodeByteArray(thumbnail, 0, thumbnail.size)
-    val uploadStatusText = when {
-        feedUploadStatus.imageStatus == UploadState.LOADING || feedUploadStatus.contentStatus == UploadState.LOADING -> stringResource(R.string.feed_upload_status_loading)
-        feedUploadStatus.contentStatus == UploadState.SUCCESS -> stringResource(R.string.feed_upload_status_success)
-        else -> stringResource(R.string.feed_upload_status_fail)
+    val uploadStatusText = when (feedUploadStatus.uploadState) {
+        UploadState.LOADING,
+        UploadState.IMAGE_SUCCESS -> stringResource(R.string.feed_upload_status_loading)
+
+        UploadState.IDLE,
+        UploadState.FAIL -> stringResource(R.string.feed_upload_status_fail)
+
+        UploadState.COMPLETE -> stringResource(R.string.feed_upload_status_success)
     }
 
     Row(
@@ -144,8 +148,8 @@ private fun HomeScreenPreview() {
                     feedId = "feedId_$it",
                     thumbnail = ByteArray(size = 10),
                     imageUrls = listOf("https://picsum.photos/400/400"),
-                    imageStatus = UploadState.SUCCESS,
-                    contentStatus = UploadState.SUCCESS
+                    uploadState = UploadState.COMPLETE,
+                    shouldUpload = true
                 )
             )
         }

@@ -9,18 +9,14 @@ fun FeedUploadStatusEntity.toFeedUploadStatus(): FeedUploadStatus {
         feedId = feedId,
         thumbnail = thumbnail,
         imageUrls = imageUrls,
-        imageStatus = when (imageStatus) {
+        uploadState = when (uploadStatus) {
             0 -> UploadState.LOADING
-            1 -> UploadState.SUCCESS
+            1 -> UploadState.IMAGE_SUCCESS
             2 -> UploadState.FAIL
+            3 -> UploadState.COMPLETE
             else -> UploadState.IDLE
         },
-        contentStatus = when (contentStatus) {
-            0 -> UploadState.LOADING
-            1 -> UploadState.SUCCESS
-            2 -> UploadState.FAIL
-            else -> UploadState.IDLE
-        },
+        shouldUpload = shouldUpload
     )
 }
 
@@ -29,7 +25,7 @@ fun FeedUploadStatus.toEntity(): FeedUploadStatusEntity {
         feedId = feedId,
         thumbnail = thumbnail,
         imageUrls = imageUrls,
-        imageStatus = imageStatus.code,
-        contentStatus = contentStatus.code,
+        uploadStatus = uploadState.code,
+        shouldUpload = shouldUpload
     )
 }

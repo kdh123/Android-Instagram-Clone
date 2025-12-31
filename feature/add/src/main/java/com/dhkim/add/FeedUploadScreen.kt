@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -100,7 +101,7 @@ fun FeedUploadButton(
                 .clip(RoundedCornerShape(8.dp))
                 .fillMaxWidth()
                 .background(color = InstagramTheme.colors.primary)
-                .padding(8.dp)
+                .padding(12.dp)
         )
     }
 }
@@ -117,6 +118,7 @@ fun FeedCaption(
         BasicTextField(
             value = caption,
             onValueChange = { onAction(AddAction.TypeCaption(it)) },
+            cursorBrush = SolidColor(InstagramTheme.colors.onBackground),
             textStyle = TextStyle(
                 fontSize = 18.sp,
                 color = InstagramTheme.colors.onBackground,
@@ -130,7 +132,12 @@ fun FeedCaption(
                             style = TextStyle(fontSize = 18.sp, color = Color.Gray)
                         )
                     }
-                    innerTextField()
+                    Box(
+                        modifier = Modifier
+                            .padding(end = 3.dp)
+                    ) {
+                        innerTextField()
+                    }
                 }
             },
             modifier = Modifier
