@@ -12,9 +12,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,6 +27,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.paging.LoadState
 import androidx.paging.PagingData
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
@@ -42,31 +47,54 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.flowOf
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
+    feedState: LazyListState,
     feedUploadStatuses: ImmutableList<FeedUploadStatus>,
     feeds: LazyPagingItems<FeedItem>
 ) {
-    LazyColumn(
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 10.dp)
+    val isRefreshing = feeds.loadState.refresh is LoadState.Loading
+
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = { feeds.refresh() },
+        modifier = Modifier.fillMaxSize()
     ) {
-        items(
-            count = feeds.itemCount,
-            key = feeds.itemKey(),
-            contentType = feeds.itemContentType()
-        ) { index ->
-            if (index >= 0 && index < feedUploadStatuses.size) {
-                FeedUploadStatusContent(feedUploadStatus = feedUploadStatuses[index])
-            } else {
-                feeds[index - feedUploadStatuses.size]?.let { feedItem ->
-                    FeedContent(
-                        feedItem = feedItem,
-                        onProfileClick = { },
-                        onMoreClick = { }
-                    )
+        LazyColumn(
+            state = feedState,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 10.dp)
+        ) {
+            items(
+                count = feeds.itemCount + feedUploadStatuses.size,
+                key = { index ->
+                    if (index < feedUploadStatuses.size) {
+                        feedUploadStatuses[index].feedId
+                    } else {
+                        feeds.itemKey { it.feedId }.invoke(index - feedUploadStatuses.size)
+                    }
+                },
+                contentType = { index ->
+                    if (index < feedUploadStatuses.size) {
+                        "upload_status"
+                    } else {
+                        feeds.itemContentType { "feed_item" }.invoke(index - feedUploadStatuses.size)
+                    }
+                }
+            ) { index ->
+                if (index < feedUploadStatuses.size) {
+                    FeedUploadStatusContent(feedUploadStatus = feedUploadStatuses[index])
+                } else {
+                    feeds[index - feedUploadStatuses.size]?.let { feedItem ->
+                        FeedContent(
+                            feedItem = feedItem,
+                            onProfileClick = { },
+                            onMoreClick = { }
+                        )
+                    }
                 }
             }
         }
@@ -182,6 +210,7 @@ private fun HomeScreenPreview() {
             color = MaterialTheme.colorScheme.background
         ) {
             HomeScreen(
+                feedState = rememberLazyListState(),
                 feedUploadStatuses = feedUploadStatuses,
                 feeds = mockFeeds
             )

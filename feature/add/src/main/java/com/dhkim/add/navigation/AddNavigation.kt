@@ -70,7 +70,7 @@ fun NavGraphBuilder.addImage(
 
 fun NavGraphBuilder.feedUpload(
     navController: NavHostController,
-    navigateToHome: () -> Unit
+    navigateToHome: () -> Unit,
 ) {
     composable(FEED_UPLOAD_ROUTE) { entry ->
         val context = LocalContext.current

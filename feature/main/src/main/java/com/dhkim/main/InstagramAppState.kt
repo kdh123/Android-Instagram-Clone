@@ -42,7 +42,7 @@ class InstagramAppState(
         @Composable get() {
             val entry = navController.currentBackStackEntryAsState().value
             val route = entry?.destination?.route ?: return true
-            return route in routesShowingBottomNav
+            return route in routesShowingBottomNav || route.contains(HOME_ROUTE)
         }
 
     val currentDestination: String
@@ -54,7 +54,7 @@ class InstagramAppState(
         }
 
     fun navigateToHomeFromLogin() {
-        navController.navigate(HOME_ROUTE) {
+        navController.navigate("$HOME_ROUTE/${false}") {
             popUpTo(LOGIN_ROUTE) {
                 inclusive = true
             }
@@ -63,7 +63,7 @@ class InstagramAppState(
     }
 
     fun navigateToHomeFromAdd() {
-        navController.navigate(HOME_ROUTE) {
+        navController.navigate("$HOME_ROUTE/${true}") {
             popUpTo(ADD_ROUTE) {
                 inclusive = true
             }
@@ -74,7 +74,7 @@ class InstagramAppState(
     fun navigateToTopLevelDestination(route: String) {
         navController.navigate(route) {
             if (!route.contains(ADD_ROUTE)) {
-                popUpTo(HOME_ROUTE) {
+                popUpTo("$HOME_ROUTE/${false}") {
                     saveState = true
                 }
                 launchSingleTop = true

@@ -7,7 +7,9 @@ import androidx.paging.testing.asSnapshot
 import app.cash.turbine.test
 import com.dhkim.domain.feed.model.Feed
 import com.dhkim.domain.feed.repository.FeedRepository
+import com.dhkim.domain.feed.useCase.GetFeedUploadStatusesUseCase
 import com.dhkim.domain.feed.useCase.GetFeedsUseCase
+import com.dhkim.feed.common.toFeedItem
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
@@ -28,6 +30,7 @@ class HomeViewModelTest {
     private val testDispatcher = UnconfinedTestDispatcher()
     private val feedRepository = mockk<FeedRepository>()
     private val getFeedsUseCase = GetFeedsUseCase(feedRepository)
+    private val getFeedUploadStatusesUseCase = GetFeedUploadStatusesUseCase(feedRepository)
 
     private lateinit var viewModel: HomeViewModel
 
@@ -53,10 +56,11 @@ class HomeViewModelTest {
     @Test
     fun whenFetchFeedsSucceeds_emitsSuccessfulPagingData() = runTest {
         coEvery { feedRepository.getFeeds() } returns flowOf(PagingData.from(fakeFeeds))
+        coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf()
 
-        viewModel = HomeViewModel(getFeedsUseCase)
+        viewModel = HomeViewModel(getFeedsUseCase, getFeedUploadStatusesUseCase, feedRepository)
         viewModel.feeds.test {
-            assertEquals(fakeFeeds, flowOf(awaitItem()).asSnapshot())
+            assertEquals(fakeFeeds.map { it.toFeedItem() }, flowOf(awaitItem()).asSnapshot())
         }
     }
 
@@ -72,10 +76,11 @@ class HomeViewModelTest {
             )
         )
         coEvery { feedRepository.getFeeds() } returns flowOf(errorPagingData)
+        coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf()
 
-        viewModel = HomeViewModel(getFeedsUseCase)
+        viewModel = HomeViewModel(getFeedsUseCase, getFeedUploadStatusesUseCase, feedRepository)
         viewModel.feeds.test {
-            assertEquals(flowOf(errorPagingData).asSnapshot(), flowOf(awaitItem()).asSnapshot())
+            assertEquals(flowOf(errorPagingData).asSnapshot().map { it.toFeedItem() }, flowOf(awaitItem()).asSnapshot())
         }
     }
 

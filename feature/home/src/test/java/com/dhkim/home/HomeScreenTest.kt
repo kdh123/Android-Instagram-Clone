@@ -1,15 +1,19 @@
 package com.dhkim.home
 
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.LoadState
 import androidx.paging.LoadStates
 import androidx.paging.PagingData
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.dhkim.domain.feed.model.Feed
 import com.dhkim.domain.feed.repository.FeedRepository
+import com.dhkim.domain.feed.useCase.GetFeedUploadStatusesUseCase
 import com.dhkim.domain.feed.useCase.GetFeedsUseCase
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -34,6 +38,7 @@ class HomeScreenTest {
     private val testDispatcher = UnconfinedTestDispatcher()
     private val feedRepository = mockk<FeedRepository>()
     private val getFeedsUseCase = GetFeedsUseCase(feedRepository)
+    private val getFeedUploadStatusesUseCase = GetFeedUploadStatusesUseCase(feedRepository)
 
     @get:Rule
     val composeRule = createComposeRule()
@@ -67,16 +72,24 @@ class HomeScreenTest {
     @Test
     fun whenFeedsLoadedSuccessfully_showsFeedList() = runTest {
         coEvery { feedRepository.getFeeds() } returns flowOf(PagingData.from(fakeFeeds))
+        coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf()
 
-        viewModel = HomeViewModel(getFeedsUseCase)
+        viewModel = HomeViewModel(getFeedsUseCase, getFeedUploadStatusesUseCase, feedRepository)
 
         composeRule.setContent {
             val feeds = viewModel.feeds.collectAsLazyPagingItems()
-            HomeScreen(feeds = feeds)
+            val feedUploadStatuses by viewModel.feedUploadStatuses.collectAsStateWithLifecycle()
+            val feedState = rememberLazyListState()
+
+            HomeScreen(
+                feedState = feedState,
+                feedUploadStatuses = feedUploadStatuses,
+                feeds = feeds
+            )
         }
 
         composeRule.waitUntilAtLeastOneExists(
-            hasText("feedId0, userId0, Tester0, profileImage0, [imageUrl1], Test Caption 0, 123456789, 10, 5"),
+            hasText("Tester0"),
             300
         )
     }
@@ -93,12 +106,20 @@ class HomeScreenTest {
             )
         )
         coEvery { feedRepository.getFeeds() } returns flowOf(errorPagingData)
+        coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf()
 
-        viewModel = HomeViewModel(getFeedsUseCase)
+        viewModel = HomeViewModel(getFeedsUseCase, getFeedUploadStatusesUseCase, feedRepository)
 
         composeRule.setContent {
             val feeds = viewModel.feeds.collectAsLazyPagingItems()
-            HomeScreen(feeds = feeds)
+            val feedUploadStatuses by viewModel.feedUploadStatuses.collectAsStateWithLifecycle()
+            val feedState = rememberLazyListState()
+
+            HomeScreen(
+                feedState = feedState,
+                feedUploadStatuses = feedUploadStatuses,
+                feeds = feeds
+            )
         }
 
         composeRule.waitUntilDoesNotExist(

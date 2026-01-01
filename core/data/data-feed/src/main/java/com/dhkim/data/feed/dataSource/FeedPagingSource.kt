@@ -27,7 +27,7 @@ class FeedPagingSource(
             val nextKey = if (feeds.size < pageSize) null else feeds.last().feedId
 
             LoadResult.Page(
-                data = feeds,
+                data = feeds.reversed(),
                 prevKey = null,
                 nextKey = nextKey
             )
