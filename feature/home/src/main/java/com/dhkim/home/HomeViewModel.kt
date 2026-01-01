@@ -3,8 +3,10 @@ package com.dhkim.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.cachedIn
+import androidx.paging.map
 import com.dhkim.domain.feed.useCase.GetFeedUploadStatusesUseCase
 import com.dhkim.domain.feed.useCase.GetFeedsUseCase
+import com.dhkim.feed.common.toFeedItem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
@@ -28,6 +30,9 @@ class HomeViewModel @Inject constructor(
         )
 
     val feeds = getFeedsUseCase()
-        .cachedIn(viewModelScope)
-
+        .map { pagingData ->
+            pagingData.map {
+                it.toFeedItem()
+            }
+        }.cachedIn(viewModelScope)
 }

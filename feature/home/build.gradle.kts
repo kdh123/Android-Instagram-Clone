@@ -43,8 +43,10 @@ android {
 }
 
 dependencies {
+    implementation(project(":core:ui"))
     implementation(project(":core:designsystem"))
     implementation(project(":core:domain:domain-feed"))
+    implementation(project(":feature:feed-common"))
 
     implementation(libs.bundles.androidx.compose.main)
     implementation(libs.bundles.androidx.compose.side)

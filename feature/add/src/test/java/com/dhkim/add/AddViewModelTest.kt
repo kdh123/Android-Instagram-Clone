@@ -7,6 +7,7 @@ import com.dhkim.domain.common.model.GalleryImage
 import com.dhkim.domain.common.repository.GalleryRepository
 import com.dhkim.domain.common.useCase.GetGalleryImagesUseCase
 import com.dhkim.domain.common.useCase.GetRecentGalleryImageUseCase
+import com.dhkim.domain.feed.repository.FeedRepository
 import com.dhkim.domain.feed.useCase.UploadFeedContentUseCase
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -28,6 +29,7 @@ class AddViewModelTest {
     private val testDispatcher = UnconfinedTestDispatcher()
     private val workManager: WorkManager = mockk(relaxed = true)
     private val galleryRepository = mockk<GalleryRepository>()
+    private val feedRepository = mockk<FeedRepository>()
     private val getGalleryImagesUseCase = GetGalleryImagesUseCase(galleryRepository)
     private val getRecentGalleryImageUseCase = GetRecentGalleryImageUseCase(galleryRepository)
 
@@ -55,6 +57,7 @@ class AddViewModelTest {
         viewModel = AddViewModel(
             getGalleryImagesUseCase,
             getRecentGalleryImageUseCase,
+            feedRepository,
             workManager
         )
 
@@ -79,6 +82,7 @@ class AddViewModelTest {
         viewModel = AddViewModel(
             getGalleryImagesUseCase,
             getRecentGalleryImageUseCase,
+            feedRepository,
             workManager
         )
 
@@ -111,6 +115,7 @@ class AddViewModelTest {
         viewModel = AddViewModel(
             getGalleryImagesUseCase,
             getRecentGalleryImageUseCase,
+            feedRepository,
             workManager
         )
 

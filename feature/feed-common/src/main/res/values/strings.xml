@@ -1,0 +1,11 @@
+<resources>
+    <string name="feed_suggested_label">회원님을 위한 추천</string>
+    <string name="sponsored">광고</string>
+    <string name="follow">팔로우</string>
+    <string name="feed_more">...더보기</string>
+
+    <string name="time_just_now">방금 전</string>
+    <string name="time_minutes_ago">%d분 전</string>
+    <string name="time_hours_ago">%d시간 전</string>
+    <string name="time_days_ago">%d일 전</string>
+</resources>

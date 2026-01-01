@@ -24,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.navigation
 import com.dhkim.add.AddState
@@ -80,6 +81,16 @@ fun MainScreen(
             }
         }
     ) {
+        val bottomPadding =  WindowInsets.navigationBars
+            .asPaddingValues()
+            .calculateBottomPadding().run {
+                if (appState.shouldShowBottomNav) {
+                    plus(80.dp)
+                } else {
+                    this
+                }
+            }
+
         NavHost(
             modifier = Modifier
                 .fillMaxSize()
@@ -87,9 +98,7 @@ fun MainScreen(
                     top = WindowInsets.statusBars
                         .asPaddingValues()
                         .calculateTopPadding(),
-                    bottom = WindowInsets.navigationBars
-                        .asPaddingValues()
-                        .calculateBottomPadding()
+                    bottom = bottomPadding
                 ),
             navController = appState.navController,
             startDestination = LOGIN_ROUTE

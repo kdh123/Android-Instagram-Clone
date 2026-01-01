@@ -3,6 +3,7 @@ package com.dhkim.home
 import android.content.res.Configuration
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,7 +19,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -32,6 +32,10 @@ import com.dhkim.designsystem.InstagramTheme
 import com.dhkim.domain.feed.model.Feed
 import com.dhkim.domain.feed.model.FeedUploadStatus
 import com.dhkim.domain.feed.model.UploadState
+import com.dhkim.feed.common.FeedContent
+import com.dhkim.feed.common.FeedItem
+import com.dhkim.feed.common.toFeedItem
+import com.dhkim.ui.shimmerEffect
 import com.skydoves.landscapist.ImageOptions
 import com.skydoves.landscapist.glide.GlideImage
 import kotlinx.collections.immutable.ImmutableList
@@ -41,10 +45,10 @@ import kotlinx.coroutines.flow.flowOf
 @Composable
 fun HomeScreen(
     feedUploadStatuses: ImmutableList<FeedUploadStatus>,
-    feeds: LazyPagingItems<Feed>
+    feeds: LazyPagingItems<FeedItem>
 ) {
     LazyColumn(
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 10.dp)
@@ -57,12 +61,11 @@ fun HomeScreen(
             if (index >= 0 && index < feedUploadStatuses.size) {
                 FeedUploadStatusContent(feedUploadStatus = feedUploadStatuses[index])
             } else {
-                feeds[index - feedUploadStatuses.size]?.run {
-                    Text(
-                        text = "$feedId, $userId, $userName, $userProfileImage, $imageUrls, $caption, $timestamp, $likeCount, $commentCount",
-                        style = InstagramTheme.typography.bodyLargeBold,
-                        modifier = Modifier
-                            .testTag("feed_$index")
+                feeds[index - feedUploadStatuses.size]?.let { feedItem ->
+                    FeedContent(
+                        feedItem = feedItem,
+                        onProfileClick = { },
+                        onMoreClick = { }
                     )
                 }
             }
@@ -94,6 +97,13 @@ fun FeedUploadStatusContent(feedUploadStatus: FeedUploadStatus) {
     ) {
         GlideImage(
             imageModel = { bitmap },
+            loading = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .shimmerEffect()
+                )
+            },
             imageOptions = ImageOptions(contentScale = ContentScale.Crop),
             previewPlaceholder = painterResource(R.drawable.ic_dummy_background),
             modifier = Modifier
@@ -135,8 +145,19 @@ private fun HomeScreenPreview() {
                     timestamp = System.currentTimeMillis(),
                     likeCount = 20,
                     commentCount = 10
+                ),
+                Feed(
+                    feedId = "3",
+                    userId = "user2",
+                    userName = "Tester 2",
+                    userProfileImage = "",
+                    imageUrls = listOf("https://picsum.photos/400/400"),
+                    caption = "Test Caption 2",
+                    timestamp = System.currentTimeMillis(),
+                    likeCount = 20,
+                    commentCount = 10
                 )
-            )
+            ).map { it.toFeedItem() }
         )
     )
 
