@@ -20,6 +20,8 @@ import com.dhkim.profile.navigation.PROFILE_ROUTE
 import com.dhkim.reels.navigation.REELS_ROUTE
 import com.dhkim.search.navigation.SEARCH_ROUTE
 
+const val EXTRA_SHOULD_SCROLL_TO_TOP = "extra_should_scroll_to_top"
+
 @Stable
 class InstagramAppState(
     val navController: NavHostController
@@ -54,7 +56,7 @@ class InstagramAppState(
         }
 
     fun navigateToHomeFromLogin() {
-        navController.navigate("$HOME_ROUTE/${false}") {
+        navController.navigate(HOME_ROUTE) {
             popUpTo(LOGIN_ROUTE) {
                 inclusive = true
             }
@@ -63,7 +65,10 @@ class InstagramAppState(
     }
 
     fun navigateToHomeFromAdd() {
-        navController.navigate("$HOME_ROUTE/${true}") {
+        navController.getBackStackEntry(HOME_ROUTE)
+            .savedStateHandle[EXTRA_SHOULD_SCROLL_TO_TOP] = true
+
+        navController.navigate(HOME_ROUTE) {
             popUpTo(ADD_ROUTE) {
                 inclusive = true
             }
@@ -72,9 +77,12 @@ class InstagramAppState(
     }
 
     fun navigateToTopLevelDestination(route: String) {
+        navController.getBackStackEntry(HOME_ROUTE)
+            .savedStateHandle[EXTRA_SHOULD_SCROLL_TO_TOP] = false
+
         navController.navigate(route) {
             if (!route.contains(ADD_ROUTE)) {
-                popUpTo("$HOME_ROUTE/${false}") {
+                popUpTo(HOME_ROUTE) {
                     saveState = true
                 }
                 launchSingleTop = true

@@ -11,11 +11,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
 import com.dhkim.designsystem.InstagramTheme
 import com.dhkim.domain.feed.repository.FeedRepository
 import com.dhkim.ui.eventSplash.DefaultConfig
 import com.dhkim.ui.eventSplash.EventSplashApi
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -26,6 +28,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        lifecycleScope.launch {
+            feedRepository.clearFeedUploadStatuses()
+        }
 
         val splashConfig = DefaultConfig(
             appIcon = getDrawable(R.drawable.ic_app_launcher_white) ?: packageManager.getApplicationIcon(applicationInfo),
