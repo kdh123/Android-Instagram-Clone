@@ -57,10 +57,10 @@ dependencies {
     implementation(libs.google.firebase.auth)
     implementation(libs.bundles.crendentials)
     implementation(libs.google.identity.googleid)
-
+    implementation(libs.bundles.androidx.workManager)
     implementation(libs.hilt)
     ksp(libs.hilt.compiler)
-
+    ksp(libs.android.hilt.compiler)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
