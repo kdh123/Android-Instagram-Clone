@@ -33,6 +33,8 @@ android {
 }
 
 dependencies {
+    implementation(project(":core:designsystem"))
+
     implementation(libs.bundles.androidx.compose.main)
     implementation(libs.bundles.androidx.compose.side)
     implementation(platform(libs.androidx.compose.bom))

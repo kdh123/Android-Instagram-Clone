@@ -41,6 +41,7 @@ dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:ui"))
     implementation(project(":core:domain:domain-user"))
+    implementation(project(":core:domain:domain-feed"))
     implementation(project(":feature:login"))
     implementation(project(":feature:home"))
     implementation(project(":feature:search"))
@@ -56,10 +57,10 @@ dependencies {
     implementation(libs.google.firebase.auth)
     implementation(libs.bundles.crendentials)
     implementation(libs.google.identity.googleid)
-
+    implementation(libs.bundles.androidx.workManager)
     implementation(libs.hilt)
     ksp(libs.hilt.compiler)
-
+    ksp(libs.android.hilt.compiler)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

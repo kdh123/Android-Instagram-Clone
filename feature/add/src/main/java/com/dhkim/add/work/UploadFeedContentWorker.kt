@@ -27,26 +27,43 @@ class UploadFeedContentWorker @AssistedInject constructor(
         feedRepository.getFeedUploadStatus(feedId)
             .transformWhile { status ->
                 emit(status)
-                status == null || status.imageStatus == UploadState.LOADING
+                status == null || status.uploadState == UploadState.LOADING
             }.collect { feedUploadStatus ->
-                val imageUploadState = feedUploadStatus?.imageStatus ?: return@collect
+                val imageUploadState = feedUploadStatus?.uploadState ?: return@collect
                 when (imageUploadState) {
-                    UploadState.SUCCESS -> {
-                        try {
-                            uploadFeedContentUseCase(feedCaption, feedUploadStatus.imageUrls).first()
-                        } catch (_: Exception) {
-                            feedRepository.deleteFeedUploadStatus(feedId)
-                        }
-                    }
+                    UploadState.LOADING,
+                    UploadState.COMPLETE -> Unit
 
-                    UploadState.LOADING -> Unit
                     UploadState.IDLE,
                     UploadState.FAIL -> {
-                        feedRepository.deleteFeedUploadStatus(feedId)
+                        updateFeedUploadFailStatus(feedId)
+                    }
+
+                    UploadState.IMAGE_SUCCESS -> {
+                        try {
+                            uploadFeedContentUseCase(feedCaption, feedUploadStatus.imageUrls).first()
+                            updateFeedUploadSuccessStatus(feedId)
+                        } catch (_: Exception) {
+                            updateFeedUploadFailStatus(feedId)
+                        }
                     }
                 }
             }
 
         return Result.Success()
+    }
+
+    private suspend fun updateFeedUploadSuccessStatus(feedId: String) {
+        val feedUploadLoadingStatus = feedRepository.getFeedUploadStatus(feedId).first()?.copy(
+            uploadState = UploadState.COMPLETE
+        ) ?: return
+        feedRepository.insertFeedUploadStatus(feedUploadLoadingStatus)
+    }
+
+    private suspend fun updateFeedUploadFailStatus(feedId: String) {
+        val feedUploadLoadingStatus = feedRepository.getFeedUploadStatus(feedId).first()?.copy(
+            uploadState = UploadState.FAIL
+        ) ?: return
+        feedRepository.insertFeedUploadStatus(feedUploadLoadingStatus)
     }
 }

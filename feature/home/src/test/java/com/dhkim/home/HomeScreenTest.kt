@@ -1,16 +1,23 @@
 package com.dhkim.home
 
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.LoadState
 import androidx.paging.LoadStates
 import androidx.paging.PagingData
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.dhkim.domain.feed.model.Feed
 import com.dhkim.domain.feed.repository.FeedRepository
+import com.dhkim.domain.feed.useCase.GetFeedUploadStatusesUseCase
 import com.dhkim.domain.feed.useCase.GetFeedsUseCase
+import com.dhkim.domain.user.model.User
+import com.dhkim.domain.user.repository.UserRepository
+import com.dhkim.domain.user.useCase.GetUserUseCase
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
@@ -33,7 +40,10 @@ class HomeScreenTest {
 
     private val testDispatcher = UnconfinedTestDispatcher()
     private val feedRepository = mockk<FeedRepository>()
+    private val userRepository = mockk<UserRepository>()
     private val getFeedsUseCase = GetFeedsUseCase(feedRepository)
+    private val getUserUseCase = GetUserUseCase(userRepository)
+    private val getFeedUploadStatusesUseCase = GetFeedUploadStatusesUseCase(feedRepository)
 
     @get:Rule
     val composeRule = createComposeRule()
@@ -54,6 +64,13 @@ class HomeScreenTest {
         )
     }
 
+    private val testUser = User(
+        id = "testId",
+        name = "testName",
+        email = "testEmail",
+        profileUrl = "testProfileUrl"
+    )
+
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
@@ -67,16 +84,26 @@ class HomeScreenTest {
     @Test
     fun whenFeedsLoadedSuccessfully_showsFeedList() = runTest {
         coEvery { feedRepository.getFeeds() } returns flowOf(PagingData.from(fakeFeeds))
+        coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf()
+        coEvery { userRepository.getUser() } returns flowOf(testUser)
 
-        viewModel = HomeViewModel(getFeedsUseCase)
+        viewModel = HomeViewModel(getFeedsUseCase, getFeedUploadStatusesUseCase, getUserUseCase, feedRepository)
 
         composeRule.setContent {
             val feeds = viewModel.feeds.collectAsLazyPagingItems()
-            HomeScreen(feeds = feeds)
+            val feedUploadStatuses by viewModel.feedUploadStatuses.collectAsStateWithLifecycle()
+            val feedState = rememberLazyListState()
+
+            HomeScreen(
+                feedState = feedState,
+                feedUploadStatuses = feedUploadStatuses,
+                feeds = feeds,
+                onFeedLayoutChange = {}
+            )
         }
 
         composeRule.waitUntilAtLeastOneExists(
-            hasText("feedId0, userId0, Tester0, profileImage0, [imageUrl1], Test Caption 0, 123456789, 10, 5"),
+            hasText("Tester0"),
             300
         )
     }
@@ -93,12 +120,22 @@ class HomeScreenTest {
             )
         )
         coEvery { feedRepository.getFeeds() } returns flowOf(errorPagingData)
+        coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf()
+        coEvery { userRepository.getUser() } returns flowOf(testUser)
 
-        viewModel = HomeViewModel(getFeedsUseCase)
+        viewModel = HomeViewModel(getFeedsUseCase, getFeedUploadStatusesUseCase, getUserUseCase, feedRepository)
 
         composeRule.setContent {
             val feeds = viewModel.feeds.collectAsLazyPagingItems()
-            HomeScreen(feeds = feeds)
+            val feedUploadStatuses by viewModel.feedUploadStatuses.collectAsStateWithLifecycle()
+            val feedState = rememberLazyListState()
+
+            HomeScreen(
+                feedState = feedState,
+                feedUploadStatuses = feedUploadStatuses,
+                feeds = feeds,
+                onFeedLayoutChange = {}
+            )
         }
 
         composeRule.waitUntilDoesNotExist(

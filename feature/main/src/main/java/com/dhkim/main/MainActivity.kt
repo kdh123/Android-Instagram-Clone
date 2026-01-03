@@ -10,14 +10,36 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.work.Constraints
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.workDataOf
 import com.dhkim.designsystem.InstagramTheme
+import com.dhkim.domain.feed.model.UploadState
+import com.dhkim.domain.feed.repository.FeedRepository
+import com.dhkim.home.navigation.HOME_ROUTE
+import com.dhkim.main.work.RemoveUploadCompletedFeedUploadStateWorker
 import com.dhkim.ui.eventSplash.DefaultConfig
 import com.dhkim.ui.eventSplash.EventSplashApi
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var feedRepository: FeedRepository
+
+    @Inject
+    lateinit var workManager: WorkManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,6 +53,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             InstagramTheme {
+                val lifecycleOwner = LocalLifecycleOwner.current
                 var hasNavigatedAfterLogin by rememberSaveable { mutableStateOf(false) }
                 val appState = rememberInstagramAppState()
                 val viewModel = hiltViewModel<MainViewModel>()
@@ -44,8 +67,45 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                LaunchedEffect(Unit) {
+                    lifecycleOwner.lifecycleScope.launch {
+                        repeatOnLifecycle(Lifecycle.State.STARTED) {
+                            combine(
+                                appState.navController.currentBackStackEntryFlow,
+                                feedRepository.getFeedUploadStatuses()
+                            ) { backStackEntry, feedUploadStatuses ->
+                                val isAtHome = backStackEntry.destination.route == HOME_ROUTE
+                                val uploadCompletedFeedIds = feedUploadStatuses
+                                    .filter { it.uploadState == UploadState.COMPLETE || it.uploadState == UploadState.FAIL }
+                                    .map { it.feedId }
+                                isAtHome to uploadCompletedFeedIds
+                            }.collect {
+                                val (isAtHome, uploadCompletedFeedIds) = it
+                                if (isAtHome) {
+                                    uploadCompletedFeedIds.forEach(::removeUploadCompletedFeedUploadState)
+                                }
+                            }
+                        }
+                    }
+                }
+
                 MainScreen(appState)
             }
         }
+    }
+
+    private fun removeUploadCompletedFeedUploadState(feedId: String) {
+        val inputData = workDataOf(
+            "KEY_FEED_ID" to feedId
+        )
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+        val uploadWorkRequest = OneTimeWorkRequestBuilder<RemoveUploadCompletedFeedUploadStateWorker>()
+            .setInputData(inputData)
+            .setConstraints(constraints)
+            .build()
+
+        workManager.enqueue(uploadWorkRequest)
     }
 }

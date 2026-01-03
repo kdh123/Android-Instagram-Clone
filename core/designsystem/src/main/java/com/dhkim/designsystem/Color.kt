@@ -39,6 +39,8 @@ data class InstagramColors(
     val primary: Color,         // 핵심 액션 (파란색)
     val background: Color,      // 화면 배경
     val onBackground: Color,    // 배경 위에 올라오는 기본 텍스트/아이콘 색상
+    val secondary: Color,
+    val onSecondary: Color,
     val surface: Color,         // 카드, 모달 등 표면 색상
     val onSurface: Color,       // surface 위에 올라오는 색상
     val divider: Color,         // 구분선
@@ -52,6 +54,8 @@ val LightInstagramColors = InstagramColors(
     primary = PrimaryBlue,
     background = LightBackground,
     onBackground = LightTextPrimary,
+    secondary = LightDivider,
+    onSecondary = LightTextSecondary,
     surface = LightBackground,
     onSurface = LightTextPrimary,
     divider = LightDivider,
@@ -65,6 +69,8 @@ val DarkInstagramColors = InstagramColors(
     primary = PrimaryBlue,
     background = DarkBackground,
     onBackground = DarkTextPrimary,
+    secondary = DarkDivider,
+    onSecondary = DarkTextSecondary,
     surface = DarkBackground,
     onSurface = DarkTextPrimary,
     divider = DarkDivider,

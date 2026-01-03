@@ -1,6 +1,7 @@
 package com.dhkim.domain.feed.model
 
 data class Feed(
+    val type: String = "",
     val feedId: String = "",
     val userId: String = "",
     val userName: String = "",
@@ -10,5 +11,6 @@ data class Feed(
     val timestamp: Long = System.currentTimeMillis(),
     val likeCount: Int = 0,
     val commentCount: Int = 0,
-    val isLiked: Boolean = false
+    val isLiked: Boolean = false,
+    val adUrl: String = "",
 )

@@ -21,4 +21,7 @@ interface FeedUploadDao {
 
     @Query("DELETE FROM feed_upload_status WHERE feedId = :feedId")
     suspend fun deleteStatus(feedId: String)
+
+    @Query("DELETE FROM feed_upload_status")
+    suspend fun clear()
 }

@@ -4,8 +4,8 @@ data class FeedUploadStatus(
     val feedId: String,
     val thumbnail: ByteArray,
     val imageUrls: List<String>,
-    val imageStatus: UploadState,
-    val contentStatus: UploadState
+    val uploadState: UploadState,
+    val shouldUpload: Boolean
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -13,8 +13,7 @@ data class FeedUploadStatus(
 
         other as FeedUploadStatus
 
-        if (imageStatus != other.imageStatus) return false
-        if (contentStatus != other.contentStatus) return false
+        if (uploadState != other.uploadState) return false
         if (feedId != other.feedId) return false
         if (!thumbnail.contentEquals(other.thumbnail)) return false
 
@@ -22,8 +21,7 @@ data class FeedUploadStatus(
     }
 
     override fun hashCode(): Int {
-        var result = imageStatus.code
-        result = 31 * result + contentStatus.hashCode()
+        var result = uploadState.code
         result = 31 * result + feedId.hashCode()
         result = 31 * result + thumbnail.contentHashCode()
         return result
@@ -33,6 +31,7 @@ data class FeedUploadStatus(
 enum class UploadState(val code: Int) {
     IDLE(-1),
     LOADING(0),
-    SUCCESS(1),
-    FAIL(2)
+    IMAGE_SUCCESS(1),
+    FAIL(2),
+    COMPLETE(3)
 }

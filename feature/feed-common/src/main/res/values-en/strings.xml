@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feed_suggested_label">Suggested for you</string>
+    <string name="sponsored">sponsored</string>
+    <string name="follow">follow</string>
+    <string name="feed_more">...more</string>
+    <string name="feed_image_load_fail">Couldn\'t load image. Tap to try again.</string>
+    <string name="feed_view_details">View Details</string>
+
+    <string name="time_just_now">Just now</string>
+    <string name="time_minutes_ago">%d minutes ago</string>
+    <string name="time_hours_ago">%d hours ago</string>
+    <string name="time_days_ago">%d days ago</string>
+</resources>

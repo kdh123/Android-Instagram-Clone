@@ -9,8 +9,10 @@ import com.dhkim.data.feed.model.toDto
 import com.dhkim.domain.feed.model.Feed
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.storage.FirebaseStorage
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.retryWhen
 import kotlinx.coroutines.tasks.await
 import java.io.File
 import javax.inject.Inject
@@ -37,6 +39,14 @@ class FeedRemoteDataSource @Inject constructor(
             val feedRef = feedRef.child(feed.feedId)
             feedRef.setValue(feed.toDto()).await()
             emit(Unit)
+        }.retryWhen { _, attempt ->
+            if (attempt < 3) {
+                val nextDelay = (attempt + 1) * 1_000L
+                delay(nextDelay)
+                true
+            } else {
+                false
+            }
         }
     }
 
@@ -46,6 +56,14 @@ class FeedRemoteDataSource @Inject constructor(
             imageRef.putFile(file.toUri()).await()
             val downloadUrl = "${imageRef.downloadUrl.await()}"
             emit(downloadUrl)
+        }.retryWhen { _, attempt ->
+            if (attempt < 3) {
+                val nextDelay = (attempt + 1) * 1_000L
+                delay(nextDelay)
+                true
+            } else {
+                false
+            }
         }
     }
 }

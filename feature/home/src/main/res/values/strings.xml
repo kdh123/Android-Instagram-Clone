@@ -1,0 +1,5 @@
+<resources>
+    <string name="feed_upload_status_loading">피드 업로드 중...</string>
+    <string name="feed_upload_status_success">피드 업로드 완료</string>
+    <string name="feed_upload_status_fail">피드 업로드 실패</string>
+</resources>
