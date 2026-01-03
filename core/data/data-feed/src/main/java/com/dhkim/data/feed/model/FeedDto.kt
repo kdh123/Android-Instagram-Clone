@@ -19,6 +19,7 @@ data class FeedDto(
 ) {
     fun toFeed(): Feed {
         return Feed(
+            type = type,
             feedId = feedId,
             userId = userId,
             userName = userName,
