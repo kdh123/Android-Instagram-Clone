@@ -3,6 +3,9 @@ package com.dhkim.home.navigation
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraphBuilder
@@ -20,9 +23,10 @@ fun NavGraphBuilder.home() {
         val feedUploadStatuses by viewModel.feedUploadStatuses.collectAsStateWithLifecycle()
         val feeds = viewModel.feeds.collectAsLazyPagingItems()
         val feedState = rememberLazyListState()
+        var isFeedLayoutChanged by remember { mutableStateOf(false) }
 
-        LaunchedEffect(shouldScrollToTop) {
-            if (shouldScrollToTop) {
+        LaunchedEffect(shouldScrollToTop, isFeedLayoutChanged) {
+            if (shouldScrollToTop && isFeedLayoutChanged) {
                 feedState.animateScrollToItem(0)
             }
         }
@@ -30,7 +34,8 @@ fun NavGraphBuilder.home() {
         HomeScreen(
             feedState = feedState,
             feedUploadStatuses = feedUploadStatuses,
-            feeds = feeds
+            feeds = feeds,
+            onFeedLayoutChange = { isFeedLayoutChanged = it }
         )
     }
 }

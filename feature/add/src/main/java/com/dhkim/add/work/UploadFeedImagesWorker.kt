@@ -9,18 +9,20 @@ import androidx.work.WorkerParameters
 import com.dhkim.domain.feed.model.FeedUploadStatus
 import com.dhkim.domain.feed.model.UploadState
 import com.dhkim.domain.feed.repository.FeedRepository
-import com.dhkim.domain.feed.useCase.ImageDownloadUrl
 import com.dhkim.domain.feed.useCase.UploadImageUseCase
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapMerge
+import kotlinx.coroutines.flow.toList
 import java.io.ByteArrayOutputStream
 import java.io.File
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltWorker
 class UploadFeedImagesWorker @AssistedInject constructor(
     @Assisted context: Context,
@@ -29,7 +31,7 @@ class UploadFeedImagesWorker @AssistedInject constructor(
     private val feedRepository: FeedRepository
 ) : CoroutineWorker(context, workerParams) {
 
-    override suspend fun doWork(): Result  {
+    override suspend fun doWork(): Result {
         val feedId = inputData.getString("KEY_FEED_ID") ?: return Result.failure()
         val filePathArray = inputData.getStringArray("KEY_IMAGE_URIS")
         return try {
@@ -45,17 +47,13 @@ class UploadFeedImagesWorker @AssistedInject constructor(
     }
 
     private suspend fun uploadImages(feedId: String, filePaths: List<String>) = coroutineScope {
-        val uploadImageJobs = mutableListOf<Deferred<ImageDownloadUrl>>()
-
-        filePaths.forEach { filePath ->
-            val file = File(filePath)
-            val job = async {
-                uploadImageUseCase(file).first()
-            }
-            uploadImageJobs.add(job)
-        }
-
-        val downloadImageUrls = uploadImageJobs.awaitAll()
+        val downloadImageUrls = filePaths.asFlow()
+            .flatMapMerge(concurrency = 3) { filePath ->
+                val file = File(filePath)
+                uploadImageUseCase(file)
+                    .catch { emit("") }
+            }.toList()
+            .filter { it.isNotEmpty() }
         val feedUploadStatus = feedRepository.getFeedUploadStatus(feedId).first()?.copy(
             imageUrls = downloadImageUrls,
             uploadState = UploadState.IMAGE_SUCCESS

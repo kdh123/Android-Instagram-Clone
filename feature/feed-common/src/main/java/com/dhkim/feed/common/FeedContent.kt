@@ -256,6 +256,9 @@ fun FeedImagePager(
                             .shimmerEffect()
                     )
                 },
+                failure = {
+                    FeedImageLoadFailContent()
+                },
                 previewPlaceholder = painterResource(R.drawable.ic_dummy_background),
                 modifier = Modifier
                     .fillMaxWidth()

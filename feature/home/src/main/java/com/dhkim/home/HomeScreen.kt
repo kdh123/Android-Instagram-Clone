@@ -23,9 +23,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
 import androidx.paging.PagingData
@@ -52,7 +54,8 @@ import kotlinx.coroutines.flow.flowOf
 fun HomeScreen(
     feedState: LazyListState,
     feedUploadStatuses: ImmutableList<FeedUploadStatus>,
-    feeds: LazyPagingItems<FeedItem>
+    feeds: LazyPagingItems<FeedItem>,
+    onFeedLayoutChange: (Boolean) -> Unit,
 ) {
     val isRefreshing = feeds.loadState.refresh is LoadState.Loading
 
@@ -67,6 +70,9 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 10.dp)
+                .onGloballyPositioned {
+                    onFeedLayoutChange(it.size != IntSize.Zero)
+                }
         ) {
             items(
                 count = feeds.itemCount + feedUploadStatuses.size,
@@ -212,7 +218,8 @@ private fun HomeScreenPreview() {
             HomeScreen(
                 feedState = rememberLazyListState(),
                 feedUploadStatuses = feedUploadStatuses,
-                feeds = mockFeeds
+                feeds = mockFeeds,
+                onFeedLayoutChange = {}
             )
         }
     }

@@ -76,7 +76,7 @@ class MainActivity : ComponentActivity() {
                             ) { backStackEntry, feedUploadStatuses ->
                                 val isAtHome = backStackEntry.destination.route == HOME_ROUTE
                                 val uploadCompletedFeedIds = feedUploadStatuses
-                                    .filter { it.uploadState == UploadState.COMPLETE }
+                                    .filter { it.uploadState == UploadState.COMPLETE || it.uploadState == UploadState.FAIL }
                                     .map { it.feedId }
                                 isAtHome to uploadCompletedFeedIds
                             }.collect {
