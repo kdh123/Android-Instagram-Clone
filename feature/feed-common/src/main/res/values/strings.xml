@@ -4,6 +4,7 @@
     <string name="follow">팔로우</string>
     <string name="feed_more">...더보기</string>
     <string name="feed_image_load_fail">이미지를 로드할 수 없음. 다시 시도하려면 누르세요.</string>
+    <string name="feed_view_details">상세 정보 보기</string>
 
     <string name="time_just_now">방금 전</string>
     <string name="time_minutes_ago">%d분 전</string>

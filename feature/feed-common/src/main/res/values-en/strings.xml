@@ -5,6 +5,7 @@
     <string name="follow">follow</string>
     <string name="feed_more">...more</string>
     <string name="feed_image_load_fail">Couldn\'t load image. Tap to try again.</string>
+    <string name="feed_view_details">View Details</string>
 
     <string name="time_just_now">Just now</string>
     <string name="time_minutes_ago">%d minutes ago</string>

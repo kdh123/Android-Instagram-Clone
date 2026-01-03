@@ -69,12 +69,82 @@ fun FeedContent(
     onProfileClick: () -> Unit,
     onMoreClick: () -> Unit
 ) {
-    val imageUrls = when (feedItem) {
-        is FeedItem.Mine -> feedItem.imageUrls
-        is FeedItem.Following -> feedItem.imageUrls
-        is FeedItem.Suggested -> feedItem.imageUrls
-        is FeedItem.Sponsored -> persistentListOf(feedItem.imageUrl)
+    when (feedItem) {
+        is FeedItem.Mine,
+        is FeedItem.Following,
+        is FeedItem.Suggested -> {
+            CommonFeedContent(
+                feedItem = feedItem,
+                onProfileClick = onProfileClick,
+                onMoreClick = onMoreClick
+            )
+        }
+
+        is FeedItem.Sponsored -> {
+            SponsoredFeedContent(
+                feedItem = feedItem,
+                onProfileClick = onProfileClick,
+                onMoreClick = onMoreClick
+            )
+        }
     }
+}
+
+@Composable
+fun CommonFeedContent(
+    feedItem: FeedItem,
+    onProfileClick: () -> Unit,
+    onMoreClick: () -> Unit
+) {
+    FeedContents(
+        feedItem = feedItem,
+        onProfileClick = onProfileClick,
+        onMoreClick = onMoreClick,
+    ) {
+        FeedImagePager()
+        FeedItemActions(
+            onLikeClick = { },
+            onCommentClick = { },
+            onShareClick = { }
+        )
+        FeedCaption(
+            onUserClick = { },
+        )
+        FeedTimestamp()
+    }
+}
+
+@Composable
+fun SponsoredFeedContent(
+    feedItem: FeedItem,
+    onProfileClick: () -> Unit,
+    onMoreClick: () -> Unit
+) {
+    FeedContents(
+        feedItem = feedItem,
+        onProfileClick = onProfileClick,
+        onMoreClick = onMoreClick,
+    ) {
+        SponsoredFeedImage()
+        FeedItemActions(
+            onLikeClick = { },
+            onCommentClick = { },
+            onShareClick = { }
+        )
+        FeedCaption(
+            onUserClick = { },
+        )
+    }
+}
+
+@Composable
+fun FeedContents(
+    feedItem: FeedItem,
+    onProfileClick: () -> Unit,
+    onMoreClick: () -> Unit,
+    content: @Composable FeedContentScope.() -> Unit
+) {
+    val scope = remember(feedItem) { DefaultFeedContentScope(feedItem) }
 
     Column(
         modifier = Modifier
@@ -86,36 +156,17 @@ fun FeedContent(
             onMoreClick = onMoreClick
         )
 
-        FeedImagePager(
-            imageUrls = imageUrls
-        )
-
-        FeedItemActions(
-            isLiked = feedItem.isLiked,
-            commentCount = feedItem.commentCount,
-            onLikeClick = { },
-            onCommentClick = { },
-            onShareClick = { }
-        )
-
-        FeedCaption(
-            username = feedItem.userName,
-            caption = feedItem.caption,
-            onUserClick = { },
-            modifier = Modifier
-        )
-
-        FeedTimestamp(feedItem)
+        scope.content()
     }
 }
 
 @Composable
-fun FeedTimestamp(feedItem: FeedItem) {
+fun FeedContentScope.FeedTimestamp() {
     val context = LocalContext.current
-    val timestamp = when (feedItem) {
-        is FeedItem.Mine -> feedItem.timestamp
-        is FeedItem.Following -> feedItem.timestamp
-        is FeedItem.Suggested -> feedItem.timestamp
+    val timestamp = when (val feed = feedItem) {
+        is FeedItem.Mine -> feed.timestamp
+        is FeedItem.Following -> feed.timestamp
+        is FeedItem.Suggested -> feed.timestamp
         is FeedItem.Sponsored -> return
     }
     val timestampText = when (timestamp) {
@@ -136,19 +187,18 @@ fun FeedTimestamp(feedItem: FeedItem) {
 }
 
 @Composable
-fun FeedCaption(
-    username: String,
-    caption: String,
-    onUserClick: (String) -> Unit,
-    modifier: Modifier = Modifier
+fun FeedContentScope.FeedCaption(
+    onUserClick: (String) -> Unit
 ) {
+    val userName = feedItem.userName
+    val caption = feedItem.caption
     var isExpanded by remember { mutableStateOf(false) }
     var lastCharIndex by remember { mutableStateOf(0) }
     val moreText = stringResource(R.string.feed_more)
     val fullText = buildAnnotatedString {
         withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)) {
-            pushStringAnnotation(tag = "USER", annotation = username)
-            append(username)
+            pushStringAnnotation(tag = "USER", annotation = userName)
+            append(userName)
             pop()
         }
         append(" ")
@@ -156,7 +206,7 @@ fun FeedCaption(
     }
 
     Box(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxWidth()
             .animateContentSize()
     ) {
@@ -188,7 +238,7 @@ fun FeedCaption(
             onClick = { offset ->
                 finalText.getStringAnnotations(start = offset, end = offset).firstOrNull()?.let { annotation ->
                     when (annotation.tag) {
-                        "USER" -> onUserClick(username)
+                        "USER" -> onUserClick(userName)
                         "MORE" -> isExpanded = true
                     }
                 }
@@ -209,16 +259,16 @@ fun FeedCaption(
 }
 
 @Composable
-fun FeedItemActions(
-    isLiked: Boolean,
-    commentCount: Int,
+fun FeedContentScope.FeedItemActions(
     onLikeClick: () -> Unit,
     onCommentClick: () -> Unit,
     onShareClick: () -> Unit,
-    modifier: Modifier = Modifier
 ) {
+    val isLiked = feedItem.isLiked
+    val commentCount = feedItem.commentCount
+
     Row(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxWidth()
             .height(48.dp)
             .padding(horizontal = 12.dp, vertical = 8.dp),
@@ -268,17 +318,59 @@ fun FeedItemActions(
     }
 }
 
+@Composable
+fun FeedContentScope.SponsoredFeedImage() {
+    if (feedItem !is FeedItem.Sponsored) return
+
+    val imageUrl = (feedItem as FeedItem.Sponsored).imageUrl
+
+    Column {
+        GlideImage(
+            imageModel = { imageUrl },
+            imageOptions = ImageOptions(contentScale = ContentScale.Crop),
+            loading = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .shimmerEffect()
+                )
+            },
+            failure = {
+                FeedImageLoadFailContent()
+            },
+            previewPlaceholder = painterResource(R.drawable.ic_dummy_background),
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f)
+        )
+        Text(
+            text = stringResource(R.string.feed_view_details),
+            style = InstagramTheme.typography.bodyMedium,
+            color = Color.White,
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(color = Color.DarkGray)
+                .padding(10.dp)
+        )
+    }
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun FeedImagePager(
-    imageUrls: List<String>,
-) {
+fun FeedContentScope.FeedImagePager() {
+    val imageUrls = when (val feed = feedItem) {
+        is FeedItem.Mine -> feed.imageUrls
+        is FeedItem.Following -> feed.imageUrls
+        is FeedItem.Suggested -> feed.imageUrls
+        is FeedItem.Sponsored -> return
+    }
+
     val pagerState = rememberPagerState { imageUrls.size }
 
     Box {
         HorizontalPager(
             state = pagerState,
-            key = { imageUrls[it] }, // 각 아이템의 고유 키
+            key = { imageUrls[it] },
             modifier = Modifier.fillMaxWidth()
         ) { pageIndex ->
             GlideImage(
