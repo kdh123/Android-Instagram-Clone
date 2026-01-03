@@ -9,11 +9,15 @@ import com.dhkim.domain.feed.model.Feed
 import com.dhkim.domain.feed.repository.FeedRepository
 import com.dhkim.domain.feed.useCase.GetFeedUploadStatusesUseCase
 import com.dhkim.domain.feed.useCase.GetFeedsUseCase
+import com.dhkim.domain.user.model.User
+import com.dhkim.domain.user.repository.UserRepository
+import com.dhkim.domain.user.useCase.GetUserUseCase
 import com.dhkim.feed.common.toFeedItem
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -29,7 +33,9 @@ class HomeViewModelTest {
 
     private val testDispatcher = UnconfinedTestDispatcher()
     private val feedRepository = mockk<FeedRepository>()
+    private val userRepository = mockk<UserRepository>()
     private val getFeedsUseCase = GetFeedsUseCase(feedRepository)
+    private val getUserUseCase = GetUserUseCase(userRepository)
     private val getFeedUploadStatusesUseCase = GetFeedUploadStatusesUseCase(feedRepository)
 
     private lateinit var viewModel: HomeViewModel
@@ -48,6 +54,13 @@ class HomeViewModelTest {
         )
     }
 
+    private val testUser = User(
+        id = "testId",
+        name = "testName",
+        email = "testEmail",
+        profileUrl = "testProfileUrl"
+    )
+
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
@@ -57,10 +70,12 @@ class HomeViewModelTest {
     fun whenFetchFeedsSucceeds_emitsSuccessfulPagingData() = runTest {
         coEvery { feedRepository.getFeeds() } returns flowOf(PagingData.from(fakeFeeds))
         coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf()
+        coEvery { userRepository.getUser() } returns flowOf(testUser)
 
-        viewModel = HomeViewModel(getFeedsUseCase, getFeedUploadStatusesUseCase, feedRepository)
+        viewModel = HomeViewModel(getFeedsUseCase, getFeedUploadStatusesUseCase, getUserUseCase, feedRepository)
         viewModel.feeds.test {
-            assertEquals(fakeFeeds.map { it.toFeedItem() }, flowOf(awaitItem()).asSnapshot())
+            val userId = getUserUseCase().first()?.id ?: ""
+            assertEquals(fakeFeeds.map { it.toFeedItem(userId) }, flowOf(awaitItem()).asSnapshot())
         }
     }
 
@@ -77,10 +92,12 @@ class HomeViewModelTest {
         )
         coEvery { feedRepository.getFeeds() } returns flowOf(errorPagingData)
         coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf()
+        coEvery { userRepository.getUser() } returns flowOf(testUser)
 
-        viewModel = HomeViewModel(getFeedsUseCase, getFeedUploadStatusesUseCase, feedRepository)
+        viewModel = HomeViewModel(getFeedsUseCase, getFeedUploadStatusesUseCase, getUserUseCase, feedRepository)
         viewModel.feeds.test {
-            assertEquals(flowOf(errorPagingData).asSnapshot().map { it.toFeedItem() }, flowOf(awaitItem()).asSnapshot())
+            val userId = getUserUseCase().first()?.id ?: ""
+            assertEquals(flowOf(errorPagingData).asSnapshot().map { it.toFeedItem(userId) }, flowOf(awaitItem()).asSnapshot())
         }
     }
 

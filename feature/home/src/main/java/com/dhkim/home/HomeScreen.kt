@@ -191,7 +191,7 @@ private fun HomeScreenPreview() {
                     likeCount = 20,
                     commentCount = 10
                 )
-            ).map { it.toFeedItem() }
+            ).map { it.toFeedItem(myUserId = "user2") }
         )
     )
 

@@ -3,8 +3,19 @@ package com.dhkim.feed.common
 import com.dhkim.domain.feed.model.Feed
 import kotlinx.collections.immutable.toImmutableList
 
-fun Feed.toFeedItem(): FeedItem {
-    val feedType = FeedType.valueOf(type.uppercase())
+fun Feed.toFeedItem(myUserId: String): FeedItem {
+    val feedType = try {
+        if (type.isEmpty()) {
+            when {
+                myUserId == userId -> FeedType.MINE
+                else -> FeedType.SUGGESTED
+            }
+        } else {
+            FeedType.valueOf(type.uppercase())
+        }
+    } catch (_: IllegalArgumentException) {
+        FeedType.SUGGESTED
+    }
 
     when (feedType) {
         FeedType.MINE -> {

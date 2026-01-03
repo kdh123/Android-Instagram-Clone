@@ -7,12 +7,14 @@ import androidx.paging.map
 import com.dhkim.domain.feed.repository.FeedRepository
 import com.dhkim.domain.feed.useCase.GetFeedUploadStatusesUseCase
 import com.dhkim.domain.feed.useCase.GetFeedsUseCase
+import com.dhkim.domain.user.useCase.GetUserUseCase
 import com.dhkim.feed.common.toFeedItem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -22,7 +24,8 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     private val getFeedsUseCase: GetFeedsUseCase,
     private val getFeedUploadStatusesUseCase: GetFeedUploadStatusesUseCase,
-    private val feedRepository: FeedRepository
+    private val getUserUseCase: GetUserUseCase,
+    private val feedRepository: FeedRepository,
 ) : ViewModel() {
 
     val feedUploadStatuses = getFeedUploadStatusesUseCase()
@@ -35,8 +38,9 @@ class HomeViewModel @Inject constructor(
 
     val feeds = getFeedsUseCase()
         .map { pagingData ->
+            val userId = getUserUseCase().first()?.id ?: ""
             pagingData.map {
-                it.toFeedItem()
+                it.toFeedItem(myUserId = userId)
             }
         }.cachedIn(viewModelScope)
 

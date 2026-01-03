@@ -15,6 +15,9 @@ import com.dhkim.domain.feed.model.Feed
 import com.dhkim.domain.feed.repository.FeedRepository
 import com.dhkim.domain.feed.useCase.GetFeedUploadStatusesUseCase
 import com.dhkim.domain.feed.useCase.GetFeedsUseCase
+import com.dhkim.domain.user.model.User
+import com.dhkim.domain.user.repository.UserRepository
+import com.dhkim.domain.user.useCase.GetUserUseCase
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
@@ -37,7 +40,9 @@ class HomeScreenTest {
 
     private val testDispatcher = UnconfinedTestDispatcher()
     private val feedRepository = mockk<FeedRepository>()
+    private val userRepository = mockk<UserRepository>()
     private val getFeedsUseCase = GetFeedsUseCase(feedRepository)
+    private val getUserUseCase = GetUserUseCase(userRepository)
     private val getFeedUploadStatusesUseCase = GetFeedUploadStatusesUseCase(feedRepository)
 
     @get:Rule
@@ -59,6 +64,13 @@ class HomeScreenTest {
         )
     }
 
+    private val testUser = User(
+        id = "testId",
+        name = "testName",
+        email = "testEmail",
+        profileUrl = "testProfileUrl"
+    )
+
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
@@ -73,8 +85,9 @@ class HomeScreenTest {
     fun whenFeedsLoadedSuccessfully_showsFeedList() = runTest {
         coEvery { feedRepository.getFeeds() } returns flowOf(PagingData.from(fakeFeeds))
         coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf()
+        coEvery { userRepository.getUser() } returns flowOf(testUser)
 
-        viewModel = HomeViewModel(getFeedsUseCase, getFeedUploadStatusesUseCase, feedRepository)
+        viewModel = HomeViewModel(getFeedsUseCase, getFeedUploadStatusesUseCase, getUserUseCase, feedRepository)
 
         composeRule.setContent {
             val feeds = viewModel.feeds.collectAsLazyPagingItems()
@@ -84,7 +97,8 @@ class HomeScreenTest {
             HomeScreen(
                 feedState = feedState,
                 feedUploadStatuses = feedUploadStatuses,
-                feeds = feeds
+                feeds = feeds,
+                onFeedLayoutChange = {}
             )
         }
 
@@ -107,8 +121,9 @@ class HomeScreenTest {
         )
         coEvery { feedRepository.getFeeds() } returns flowOf(errorPagingData)
         coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf()
+        coEvery { userRepository.getUser() } returns flowOf(testUser)
 
-        viewModel = HomeViewModel(getFeedsUseCase, getFeedUploadStatusesUseCase, feedRepository)
+        viewModel = HomeViewModel(getFeedsUseCase, getFeedUploadStatusesUseCase, getUserUseCase, feedRepository)
 
         composeRule.setContent {
             val feeds = viewModel.feeds.collectAsLazyPagingItems()
@@ -118,7 +133,8 @@ class HomeScreenTest {
             HomeScreen(
                 feedState = feedState,
                 feedUploadStatuses = feedUploadStatuses,
-                feeds = feeds
+                feeds = feeds,
+                onFeedLayoutChange = {}
             )
         }
 

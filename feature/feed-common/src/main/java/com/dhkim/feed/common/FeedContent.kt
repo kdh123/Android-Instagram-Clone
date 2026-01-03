@@ -1,7 +1,10 @@
 package com.dhkim.feed.common
 
 import android.content.res.Configuration
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -16,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.ClickableText
@@ -28,15 +32,18 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
@@ -54,6 +61,7 @@ import com.dhkim.ui.shimmerEffect
 import com.skydoves.landscapist.ImageOptions
 import com.skydoves.landscapist.glide.GlideImage
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.coroutines.delay
 
 @Composable
 fun FeedContent(
@@ -96,7 +104,35 @@ fun FeedContent(
             onUserClick = { },
             modifier = Modifier
         )
+
+        FeedTimestamp(feedItem)
     }
+}
+
+@Composable
+fun FeedTimestamp(feedItem: FeedItem) {
+    val context = LocalContext.current
+    val timestamp = when (feedItem) {
+        is FeedItem.Mine -> feedItem.timestamp
+        is FeedItem.Following -> feedItem.timestamp
+        is FeedItem.Suggested -> feedItem.timestamp
+        is FeedItem.Sponsored -> return
+    }
+    val timestampText = when (timestamp) {
+        is Timestamp.JustNow -> stringResource(R.string.time_just_now)
+        is Timestamp.MinutesAgo -> context.getString(R.string.time_minutes_ago, timestamp.minutes)
+        is Timestamp.HoursAgo -> context.getString(R.string.time_hours_ago, timestamp.hours)
+        is Timestamp.DaysAgo -> context.getString(R.string.time_days_ago, timestamp.days)
+        is Timestamp.Date -> timestamp.date
+    }
+
+    Text(
+        text = timestampText,
+        style = InstagramTheme.typography.bodyMedium,
+        color = Color.Gray,
+        modifier = Modifier
+            .padding(horizontal = 12.dp, vertical = 4.dp)
+    )
 }
 
 @Composable
@@ -123,7 +159,6 @@ fun FeedCaption(
         modifier = modifier
             .fillMaxWidth()
             .animateContentSize()
-            .padding(bottom = 10.dp)
     ) {
         val finalText = remember(isExpanded, lastCharIndex, fullText) {
             if (isExpanded) {
@@ -273,6 +308,48 @@ fun FeedImagePager(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 16.dp)
+            )
+        }
+
+        PageNumberIndicator(
+            pagerState = pagerState,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+        )
+    }
+}
+
+@Composable
+fun PageNumberIndicator(
+    pagerState: PagerState,
+    modifier: Modifier = Modifier
+) {
+    var shouldShowPageNumberIndicator by remember { mutableStateOf(true) }
+
+    LaunchedEffect(pagerState) {
+        snapshotFlow { pagerState.currentPage }.collect {
+            shouldShowPageNumberIndicator = true
+            delay(3_000)
+            shouldShowPageNumberIndicator = false
+        }
+    }
+
+    AnimatedVisibility(
+        visible = shouldShowPageNumberIndicator,
+        enter = fadeIn(),
+        exit = fadeOut(),
+        modifier = modifier
+            .padding(12.dp)
+    ) {
+        Surface(
+            color = Color.Black.copy(alpha = 0.5f),
+            shape = CircleShape,
+        ) {
+            Text(
+                text = "${pagerState.currentPage + 1} / ${pagerState.pageCount}",
+                color = Color.White,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
             )
         }
     }

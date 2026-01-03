@@ -1,7 +1,7 @@
 package com.dhkim.domain.feed.model
 
 data class Feed(
-    val type: String = "FOLLOWING",
+    val type: String = "",
     val feedId: String = "",
     val userId: String = "",
     val userName: String = "",

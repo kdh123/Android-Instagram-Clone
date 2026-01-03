@@ -5,7 +5,7 @@ import com.google.firebase.database.IgnoreExtraProperties
 
 @IgnoreExtraProperties
 data class FeedDto(
-    val type: String = "FOLLOWING",
+    val type: String = "",
     val feedId: String = "",
     val userId: String = "",
     val userName: String = "",
