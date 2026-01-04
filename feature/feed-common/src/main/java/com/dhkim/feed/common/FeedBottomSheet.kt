@@ -11,6 +11,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -34,7 +35,9 @@ fun MyFeedBottomSheet(
             .background(color = InstagramTheme.colors.background)
     ) {
         Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
+                .fillMaxWidth()
                 .padding(10.dp)
                 .noRippleClick {
                     onLikeEnabledChange(!isLikeEnabled)
@@ -56,7 +59,9 @@ fun MyFeedBottomSheet(
             )
         }
         Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
+                .fillMaxWidth()
                 .padding(10.dp)
                 .noRippleClick {
                     onCommentEnabledChange(!isCommentEnabled)
@@ -78,7 +83,9 @@ fun MyFeedBottomSheet(
             )
         }
         Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
+                .fillMaxWidth()
                 .padding(10.dp)
                 .noRippleClick(onEditClick)
         ) {
@@ -95,7 +102,9 @@ fun MyFeedBottomSheet(
             )
         }
         Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
+                .fillMaxWidth()
                 .padding(10.dp)
                 .noRippleClick(onDeleteClick)
         ) {
@@ -148,7 +157,9 @@ fun FollowingFeedBottomSheet(
             .background(color = InstagramTheme.colors.background)
     ) {
         Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
+                .fillMaxWidth()
                 .padding(10.dp)
                 .noRippleClick {
                     onFollowChanged(!isFollowing)
@@ -170,7 +181,9 @@ fun FollowingFeedBottomSheet(
             )
         }
         Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
+                .fillMaxWidth()
                 .padding(10.dp)
                 .noRippleClick(onNotInterestedClick)
         ) {
@@ -187,7 +200,9 @@ fun FollowingFeedBottomSheet(
             )
         }
         Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
+                .fillMaxWidth()
                 .padding(10.dp)
                 .noRippleClick(onAccountInfoClick)
         ) {
@@ -236,9 +251,11 @@ fun SuggestedFeedBottomSheet(
             .background(color = InstagramTheme.colors.background)
     ) {
         Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
+                .fillMaxWidth()
                 .padding(10.dp)
-                .noRippleClick(onClick = onAccountInfoClick)
+                .noRippleClick(onClick = onNotInterestedClick)
         ) {
             Icon(
                 painter = painterResource(R.drawable.ic_hide),
@@ -253,9 +270,11 @@ fun SuggestedFeedBottomSheet(
             )
         }
         Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
+                .fillMaxWidth()
                 .padding(10.dp)
-                .noRippleClick(onClick = onNotInterestedClick)
+                .noRippleClick(onClick = onAccountInfoClick)
         ) {
             Icon(
                 painter = painterResource(R.drawable.ic_account_info),
@@ -299,9 +318,11 @@ fun SponsoredFeedBottomSheet(
             .background(color = InstagramTheme.colors.background)
     ) {
         Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
+                .fillMaxWidth()
                 .padding(10.dp)
-                .noRippleClick(onClick = onAccountInfoClick)
+                .noRippleClick(onClick = onNotInterestedClick)
         ) {
             Icon(
                 painter = painterResource(R.drawable.ic_hide),
@@ -316,9 +337,11 @@ fun SponsoredFeedBottomSheet(
             )
         }
         Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
+                .fillMaxWidth()
                 .padding(10.dp)
-                .noRippleClick(onClick = onNotInterestedClick)
+                .noRippleClick(onClick = onAccountInfoClick)
         ) {
             Icon(
                 painter = painterResource(R.drawable.ic_account_info),

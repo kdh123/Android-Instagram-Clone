@@ -67,7 +67,7 @@ import kotlinx.coroutines.delay
 fun FeedContent(
     feedItem: FeedItem,
     onProfileClick: () -> Unit,
-    onMoreClick: (FeedType) -> Unit
+    onMoreClick: (FeedItem) -> Unit
 ) {
     when (feedItem) {
         is FeedItem.Mine,
@@ -94,7 +94,7 @@ fun FeedContent(
 fun CommonFeedContent(
     feedItem: FeedItem,
     onProfileClick: () -> Unit,
-    onMoreClick: (FeedType) -> Unit
+    onMoreClick: (FeedItem) -> Unit
 ) {
     FeedContents(
         feedItem = feedItem,
@@ -118,7 +118,7 @@ fun CommonFeedContent(
 fun SponsoredFeedContent(
     feedItem: FeedItem,
     onProfileClick: () -> Unit,
-    onMoreClick: (FeedType) -> Unit
+    onMoreClick: (FeedItem) -> Unit
 ) {
     FeedContents(
         feedItem = feedItem,
@@ -141,7 +141,7 @@ fun SponsoredFeedContent(
 fun FeedContents(
     feedItem: FeedItem,
     onProfileClick: () -> Unit,
-    onMoreClick: (FeedType) -> Unit,
+    onMoreClick: (FeedItem) -> Unit,
     content: @Composable FeedContentScope.() -> Unit
 ) {
     val scope = remember(feedItem) { DefaultFeedContentScope(feedItem) }
@@ -477,7 +477,7 @@ fun PageIndicator(
 fun FeedHeader(
     feedItem: FeedItem,
     onProfileClick: () -> Unit,
-    onMoreClick: (FeedType) -> Unit
+    onMoreClick: (FeedItem) -> Unit
 ) {
     when (feedItem) {
         is FeedItem.Mine -> {

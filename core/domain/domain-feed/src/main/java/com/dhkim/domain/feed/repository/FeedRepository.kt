@@ -3,6 +3,7 @@ package com.dhkim.domain.feed.repository
 import androidx.paging.PagingData
 import com.dhkim.domain.feed.model.Feed
 import com.dhkim.domain.feed.model.FeedUploadStatus
+import com.dhkim.domain.feed.model.HiddenFeed
 import kotlinx.coroutines.flow.Flow
 import java.io.File
 
@@ -16,4 +17,9 @@ interface FeedRepository {
     suspend fun insertFeedUploadStatus(feedUploadStatus: FeedUploadStatus)
     suspend fun deleteFeedUploadStatus(feedId: String)
     suspend fun clearFeedUploadStatuses()
+    fun getHiddenFeeds(): Flow<Set<HiddenFeed>>
+    fun isHidden(feedId: String): Flow<Boolean>
+    suspend fun hideFeed(userId:String, hiddenFeed: HiddenFeed)
+    suspend fun unhideFeed(userId:String, feedId: String)
+    suspend fun clearHiddenFeeds()
 }

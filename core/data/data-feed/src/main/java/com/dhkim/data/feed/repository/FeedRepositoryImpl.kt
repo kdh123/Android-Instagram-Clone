@@ -6,10 +6,13 @@ import com.dhkim.data.feed.dataSource.FeedLocalDataSource
 import com.dhkim.data.feed.dataSource.FeedRemoteDataSource
 import com.dhkim.data.feed.extension.toEntity
 import com.dhkim.data.feed.extension.toFeedUploadStatus
+import com.dhkim.data.feed.extension.toHiddenFeed
 import com.dhkim.domain.feed.model.Feed
 import com.dhkim.domain.feed.model.FeedUploadStatus
+import com.dhkim.domain.feed.model.HiddenFeed
 import com.dhkim.domain.feed.repository.FeedRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.io.File
 import javax.inject.Inject
@@ -20,8 +23,9 @@ class FeedRepositoryImpl @Inject constructor(
 ) : FeedRepository {
 
     override fun getFeeds(): Flow<PagingData<Feed>> {
-        return remoteDataSource.getFeeds(pageSize = 10)
-            .map { it.map { it.toFeed() } }
+        return remoteDataSource.getFeeds(pageSize = 10).map { feeds ->
+            feeds.map { it.toFeed() }
+        }
     }
 
     override fun uploadFeed(feed: Feed): Flow<Unit> {
@@ -52,5 +56,29 @@ class FeedRepositoryImpl @Inject constructor(
 
     override suspend fun clearFeedUploadStatuses() {
         localDataSource.clearFeedUploadStatuses()
+    }
+
+    override fun getHiddenFeeds(): Flow<Set<HiddenFeed>> {
+        return localDataSource.getHiddenFeeds().map { hiddenFeeds ->
+            hiddenFeeds.map { it.toHiddenFeed() }.toSet()
+        }
+    }
+
+    override fun isHidden(feedId: String): Flow<Boolean> {
+        return localDataSource.isHidden(feedId)
+    }
+
+    override suspend fun hideFeed(userId: String, hiddenFeed: HiddenFeed) {
+        localDataSource.insertHiddenFeed(hiddenFeed.toEntity())
+        remoteDataSource.hideFeed(userId, hiddenFeed.feedId).first()
+    }
+
+    override suspend fun unhideFeed(userId: String, feedId: String) {
+        localDataSource.unhideFeed(feedId)
+        remoteDataSource.unhideFeed(userId, feedId).first()
+    }
+
+    override suspend fun clearHiddenFeeds() {
+        localDataSource.clearHiddenFeeds()
     }
 }

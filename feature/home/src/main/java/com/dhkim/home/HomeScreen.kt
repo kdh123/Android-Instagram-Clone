@@ -75,6 +75,7 @@ fun HomeScreen(
     feedState: LazyListState,
     feedUploadStatuses: ImmutableList<FeedUploadStatus>,
     feeds: LazyPagingItems<FeedItem>,
+    onAction: (HomeAction) -> Unit,
     onFeedLayoutChange: (Boolean) -> Unit,
 ) {
     val isRefreshing = feeds.loadState.refresh is LoadState.Loading
@@ -86,13 +87,30 @@ fun HomeScreen(
     )
     val bottomSheetState = bottomSheetScaffoldState.bottomSheetState
     val scope = rememberCoroutineScope()
-    var selectedFeedType: FeedType? by remember { mutableStateOf(null) }
+    var selectedFeed: FeedItem? by remember { mutableStateOf(null) }
+    val selectedFeedType = when (selectedFeed) {
+        is FeedItem.Mine -> FeedType.MINE
+        is FeedItem.Following -> FeedType.FOLLOWING
+        is FeedItem.Suggested -> FeedType.SUGGESTED
+        is FeedItem.Sponsored -> FeedType.SPONSORED
+        else -> null
+    }
+    val onNotInterestedClick: () -> Unit = remember(selectedFeed) {
+        {
+            selectedFeed?.feedId?.let {
+                onAction(HomeAction.HideFeed(feedId = it))
+            }
+            scope.launch {
+                bottomSheetState.hide()
+            }
+        }
+    }
 
     LaunchedEffect(bottomSheetScaffoldState) {
         snapshotFlow { bottomSheetScaffoldState.bottomSheetState.currentValue }
             .collect { currentValue ->
                 if (currentValue == SheetValue.Hidden || currentValue == SheetValue.PartiallyExpanded) {
-                    selectedFeedType = null
+                    selectedFeed = null
                 }
             }
     }
@@ -101,7 +119,7 @@ fun HomeScreen(
         sheetPeekHeight = 0.dp,
         sheetContainerColor = InstagramTheme.colors.background,
         scaffoldState = bottomSheetScaffoldState,
-        sheetDragHandle = { if (selectedFeedType == null) null else BottomSheetDefaults.DragHandle() },
+        sheetDragHandle = { if (selectedFeed == null) null else BottomSheetDefaults.DragHandle() },
         sheetSwipeEnabled = bottomSheetScaffoldState.bottomSheetState.currentValue != SheetValue.Hidden, // 숨겨졌을 땐 스와이프도 끄기
         sheetContent = {
             when (selectedFeedType) {
@@ -120,21 +138,21 @@ fun HomeScreen(
                     FollowingFeedBottomSheet(
                         isFollowing = true,
                         onFollowChanged = {},
-                        onNotInterestedClick = {},
+                        onNotInterestedClick = onNotInterestedClick,
                         onAccountInfoClick = {}
                     )
                 }
 
                 FeedType.SUGGESTED -> {
                     SuggestedFeedBottomSheet(
-                        onNotInterestedClick = {},
+                        onNotInterestedClick = onNotInterestedClick,
                         onAccountInfoClick = {}
                     )
                 }
 
                 FeedType.SPONSORED -> {
                     SponsoredFeedBottomSheet(
-                        onNotInterestedClick = {},
+                        onNotInterestedClick = onNotInterestedClick,
                         onAccountInfoClick = {}
                     )
                 }
@@ -194,7 +212,7 @@ fun HomeScreen(
                                     feedItem = feedItem,
                                     onProfileClick = { },
                                     onMoreClick = { feedType ->
-                                        selectedFeedType = feedType
+                                        selectedFeed = feedType
                                         scope.launch {
                                             bottomSheetState.expand()
                                         }
@@ -321,6 +339,7 @@ private fun HomeScreenPreview() {
                 feedState = rememberLazyListState(),
                 feedUploadStatuses = feedUploadStatuses,
                 feeds = mockFeeds,
+                onAction = {},
                 onFeedLayoutChange = {}
             )
         }
