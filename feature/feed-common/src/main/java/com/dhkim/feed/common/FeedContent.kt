@@ -67,7 +67,7 @@ import kotlinx.coroutines.delay
 fun FeedContent(
     feedItem: FeedItem,
     onProfileClick: () -> Unit,
-    onMoreClick: () -> Unit
+    onMoreClick: (FeedType) -> Unit
 ) {
     when (feedItem) {
         is FeedItem.Mine,
@@ -94,7 +94,7 @@ fun FeedContent(
 fun CommonFeedContent(
     feedItem: FeedItem,
     onProfileClick: () -> Unit,
-    onMoreClick: () -> Unit
+    onMoreClick: (FeedType) -> Unit
 ) {
     FeedContents(
         feedItem = feedItem,
@@ -118,7 +118,7 @@ fun CommonFeedContent(
 fun SponsoredFeedContent(
     feedItem: FeedItem,
     onProfileClick: () -> Unit,
-    onMoreClick: () -> Unit
+    onMoreClick: (FeedType) -> Unit
 ) {
     FeedContents(
         feedItem = feedItem,
@@ -141,7 +141,7 @@ fun SponsoredFeedContent(
 fun FeedContents(
     feedItem: FeedItem,
     onProfileClick: () -> Unit,
-    onMoreClick: () -> Unit,
+    onMoreClick: (FeedType) -> Unit,
     content: @Composable FeedContentScope.() -> Unit
 ) {
     val scope = remember(feedItem) { DefaultFeedContentScope(feedItem) }
@@ -287,7 +287,7 @@ fun FeedContentScope.FeedItemActions(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                painter = painterResource(R.drawable.ic_chat),
+                painter = painterResource(R.drawable.ic_comment),
                 contentDescription = "Comment",
                 modifier = Modifier
                     .padding(end = 4.dp)
@@ -474,10 +474,10 @@ fun PageIndicator(
 }
 
 @Composable
-private fun FeedHeader(
+fun FeedHeader(
     feedItem: FeedItem,
     onProfileClick: () -> Unit,
-    onMoreClick: () -> Unit
+    onMoreClick: (FeedType) -> Unit
 ) {
     when (feedItem) {
         is FeedItem.Mine -> {

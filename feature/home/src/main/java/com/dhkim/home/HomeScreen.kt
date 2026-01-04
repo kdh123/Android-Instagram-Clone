@@ -2,6 +2,7 @@ package com.dhkim.home
 
 import android.content.res.Configuration
 import android.graphics.BitmapFactory
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -14,14 +15,27 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.rememberBottomSheetScaffoldState
+import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.res.painterResource
@@ -41,6 +55,11 @@ import com.dhkim.domain.feed.model.FeedUploadStatus
 import com.dhkim.domain.feed.model.UploadState
 import com.dhkim.feed.common.FeedContent
 import com.dhkim.feed.common.FeedItem
+import com.dhkim.feed.common.FeedType
+import com.dhkim.feed.common.FollowingFeedBottomSheet
+import com.dhkim.feed.common.MyFeedBottomSheet
+import com.dhkim.feed.common.SponsoredFeedBottomSheet
+import com.dhkim.feed.common.SuggestedFeedBottomSheet
 import com.dhkim.feed.common.toFeedItem
 import com.dhkim.ui.shimmerEffect
 import com.skydoves.landscapist.ImageOptions
@@ -48,6 +67,7 @@ import com.skydoves.landscapist.glide.GlideImage
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,48 +78,130 @@ fun HomeScreen(
     onFeedLayoutChange: (Boolean) -> Unit,
 ) {
     val isRefreshing = feeds.loadState.refresh is LoadState.Loading
+    val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(
+        bottomSheetState = rememberStandardBottomSheetState(
+            initialValue = SheetValue.Hidden,
+            skipHiddenState = false
+        )
+    )
+    val bottomSheetState = bottomSheetScaffoldState.bottomSheetState
+    val scope = rememberCoroutineScope()
+    var selectedFeedType: FeedType? by remember { mutableStateOf(null) }
 
-    PullToRefreshBox(
-        isRefreshing = isRefreshing,
-        onRefresh = { feeds.refresh() },
-        modifier = Modifier.fillMaxSize()
+    LaunchedEffect(bottomSheetScaffoldState) {
+        snapshotFlow { bottomSheetScaffoldState.bottomSheetState.currentValue }
+            .collect { currentValue ->
+                if (currentValue == SheetValue.Hidden || currentValue == SheetValue.PartiallyExpanded) {
+                    selectedFeedType = null
+                }
+            }
+    }
+
+    BottomSheetScaffold(
+        sheetPeekHeight = 0.dp,
+        sheetContainerColor = InstagramTheme.colors.background,
+        scaffoldState = bottomSheetScaffoldState,
+        sheetDragHandle = { if (selectedFeedType == null) null else BottomSheetDefaults.DragHandle() },
+        sheetSwipeEnabled = bottomSheetScaffoldState.bottomSheetState.currentValue != SheetValue.Hidden, // 숨겨졌을 땐 스와이프도 끄기
+        sheetContent = {
+            when (selectedFeedType) {
+                FeedType.MINE -> {
+                    MyFeedBottomSheet(
+                        isLikeEnabled = true,
+                        isCommentEnabled = true,
+                        onLikeEnabledChange = {},
+                        onCommentEnabledChange = {},
+                        onEditClick = {},
+                        onDeleteClick = {}
+                    )
+                }
+
+                FeedType.FOLLOWING -> {
+                    FollowingFeedBottomSheet(
+                        isFollowing = true,
+                        onFollowChanged = {},
+                        onNotInterestedClick = {},
+                        onAccountInfoClick = {}
+                    )
+                }
+
+                FeedType.SUGGESTED -> {
+                    SuggestedFeedBottomSheet(
+                        onNotInterestedClick = {},
+                        onAccountInfoClick = {}
+                    )
+                }
+
+                FeedType.SPONSORED -> {
+                    SponsoredFeedBottomSheet(
+                        onNotInterestedClick = {},
+                        onAccountInfoClick = {}
+                    )
+                }
+
+                null -> Unit
+            }
+        }
     ) {
-        LazyColumn(
-            state = feedState,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 10.dp)
-                .onGloballyPositioned {
-                    onFeedLayoutChange(it.size != IntSize.Zero)
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    detectTapGestures {
+                        scope.launch {
+                            bottomSheetScaffoldState.bottomSheetState.hide()
+                        }
+                    }
                 }
         ) {
-            items(
-                count = feeds.itemCount + feedUploadStatuses.size,
-                key = { index ->
-                    if (index < feedUploadStatuses.size) {
-                        feedUploadStatuses[index].feedId
-                    } else {
-                        feeds.itemKey { it.feedId }.invoke(index - feedUploadStatuses.size)
-                    }
-                },
-                contentType = { index ->
-                    if (index < feedUploadStatuses.size) {
-                        "upload_status"
-                    } else {
-                        feeds.itemContentType { "feed_item" }.invoke(index - feedUploadStatuses.size)
-                    }
-                }
-            ) { index ->
-                if (index < feedUploadStatuses.size) {
-                    FeedUploadStatusContent(feedUploadStatus = feedUploadStatuses[index])
-                } else {
-                    feeds[index - feedUploadStatuses.size]?.let { feedItem ->
-                        FeedContent(
-                            feedItem = feedItem,
-                            onProfileClick = { },
-                            onMoreClick = { }
-                        )
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = { feeds.refresh() },
+                modifier = Modifier.fillMaxSize()
+            ) {
+                LazyColumn(
+                    state = feedState,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp)
+                        .onGloballyPositioned {
+                            onFeedLayoutChange(it.size != IntSize.Zero)
+                        }
+                ) {
+                    items(
+                        count = feeds.itemCount + feedUploadStatuses.size,
+                        key = { index ->
+                            if (index < feedUploadStatuses.size) {
+                                feedUploadStatuses[index].feedId
+                            } else {
+                                feeds.itemKey { it.feedId }.invoke(index - feedUploadStatuses.size)
+                            }
+                        },
+                        contentType = { index ->
+                            if (index < feedUploadStatuses.size) {
+                                "upload_status"
+                            } else {
+                                feeds.itemContentType { "feed_item" }.invoke(index - feedUploadStatuses.size)
+                            }
+                        }
+                    ) { index ->
+                        if (index < feedUploadStatuses.size) {
+                            FeedUploadStatusContent(feedUploadStatus = feedUploadStatuses[index])
+                        } else {
+                            feeds[index - feedUploadStatuses.size]?.let { feedItem ->
+                                FeedContent(
+                                    feedItem = feedItem,
+                                    onProfileClick = { },
+                                    onMoreClick = { feedType ->
+                                        selectedFeedType = feedType
+                                        scope.launch {
+                                            bottomSheetState.expand()
+                                        }
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             }

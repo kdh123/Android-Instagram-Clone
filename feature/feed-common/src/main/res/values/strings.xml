@@ -2,9 +2,19 @@
     <string name="feed_suggested_label">회원님을 위한 추천</string>
     <string name="sponsored">광고</string>
     <string name="follow">팔로우</string>
+    <string name="cancel_follow">팔로우 취소</string>
     <string name="feed_more">...더보기</string>
     <string name="feed_image_load_fail">이미지를 로드할 수 없음. 다시 시도하려면 누르세요.</string>
     <string name="feed_view_details">상세 정보 보기</string>
+    <string name="hide_feed">숨기기</string>
+    <string name="account_info">이 계정 정보</string>
+    <string name="not_interested">관심 없음</string>
+    <string name="hide_like_count">좋아요 수 숨기기</string>
+    <string name="cancel_hide_like_count">좋아요 수 숨기기 취소</string>
+    <string name="disable_comment">댓글 기능 해제</string>
+    <string name="cancel_disable_comment">댓글 기능 해제 취소</string>
+    <string name="edit">수정</string>
+    <string name="delete_media">미디어 삭제</string>
 
     <string name="time_just_now">방금 전</string>
     <string name="time_minutes_ago">%d분 전</string>

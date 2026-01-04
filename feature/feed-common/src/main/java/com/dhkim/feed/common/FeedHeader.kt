@@ -35,10 +35,10 @@ import com.skydoves.landscapist.glide.GlideImage
 import kotlinx.collections.immutable.persistentListOf
 
 @Composable
-fun FeedHeader(
+private fun FeedHeader(
     feed: FeedItem,
     onProfileClick: () -> Unit,
-    onMoreClick: () -> Unit,
+    onMoreClick: (FeedType) -> Unit,
     content: @Composable FeedHeaderScope.() -> Unit,
 ) {
     val scope = remember(feed) { DefaultFeedHeaderScope(feed) }
@@ -78,7 +78,16 @@ fun FeedHeader(
                 modifier = Modifier
                     .padding(horizontal = 10.dp)
                     .size(24.dp)
-                    .noRippleClick(onClick = onMoreClick)
+                    .noRippleClick {
+                        val feedType = when (feed) {
+                            is FeedItem.Mine -> FeedType.MINE
+                            is FeedItem.Following -> FeedType.FOLLOWING
+                            is FeedItem.Suggested -> FeedType.SUGGESTED
+                            is FeedItem.Sponsored -> FeedType.SPONSORED
+                        }
+
+                        onMoreClick(feedType)
+                    }
             )
         }
     }
@@ -88,7 +97,7 @@ fun FeedHeader(
 fun MyFeedHeader(
     feedItem: FeedItem.Mine,
     onProfileClick: () -> Unit,
-    onMoreClick: () -> Unit
+    onMoreClick: (FeedType) -> Unit
 ) {
     FeedHeader(
         feed = feedItem,
@@ -135,7 +144,7 @@ private fun MyHeaderPreview() {
 fun FollowingFeedHeader(
     feedItem: FeedItem.Following,
     onProfileClick: () -> Unit,
-    onMoreClick: () -> Unit
+    onMoreClick: (FeedType) -> Unit
 ) {
     FeedHeader(
         feed = feedItem,
@@ -181,7 +190,7 @@ private fun FollowingHeaderPreview() {
 fun SuggestedFeedHeader(
     feedItem: FeedItem.Suggested,
     onProfileClick: () -> Unit,
-    onMoreClick: () -> Unit
+    onMoreClick: (FeedType) -> Unit
 ) {
     FeedHeader(
         feed = feedItem,
@@ -252,7 +261,7 @@ private fun SuggestedHeaderPreview() {
 fun SponsoredFeedHeader(
     feedItem: FeedItem.Sponsored,
     onProfileClick: () -> Unit,
-    onMoreClick: () -> Unit
+    onMoreClick: (FeedType) -> Unit
 ) {
     FeedHeader(
         feed = feedItem,

@@ -22,7 +22,13 @@ class FeedPagingSource(
             }
 
             val snapshot = currentQuery.get().await()
-            val feeds = snapshot.children.mapNotNull { it.getValue(FeedDto::class.java) }
+            val feeds = snapshot.children
+                .mapNotNull { it.getValue(FeedDto::class.java) }
+                .map {
+                    it.copy(
+                        imageUrls = it.imageUrls.distinct()
+                    )
+                }
 
             val nextKey = if (feeds.size < pageSize) null else feeds.last().feedId
 
