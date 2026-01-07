@@ -55,7 +55,7 @@ import com.dhkim.domain.feed.model.FeedUploadStatus
 import com.dhkim.domain.feed.model.UploadState
 import com.dhkim.feed.common.FeedContent
 import com.dhkim.feed.common.FeedItem
-import com.dhkim.feed.common.FeedType
+import com.dhkim.feed.common.FeedItemType
 import com.dhkim.feed.common.FollowingFeedBottomSheet
 import com.dhkim.feed.common.MyFeedBottomSheet
 import com.dhkim.feed.common.SponsoredFeedBottomSheet
@@ -88,13 +88,6 @@ fun HomeScreen(
     val bottomSheetState = bottomSheetScaffoldState.bottomSheetState
     val scope = rememberCoroutineScope()
     var selectedFeed: FeedItem? by remember { mutableStateOf(null) }
-    val selectedFeedType = when (selectedFeed) {
-        is FeedItem.Mine -> FeedType.MINE
-        is FeedItem.Following -> FeedType.FOLLOWING
-        is FeedItem.Suggested -> FeedType.SUGGESTED
-        is FeedItem.Sponsored -> FeedType.SPONSORED
-        else -> null
-    }
     val onNotInterestedClick: () -> Unit = remember(selectedFeed) {
         {
             selectedFeed?.feedId?.let {
@@ -122,8 +115,8 @@ fun HomeScreen(
         sheetDragHandle = { if (selectedFeed == null) null else BottomSheetDefaults.DragHandle() },
         sheetSwipeEnabled = bottomSheetScaffoldState.bottomSheetState.currentValue != SheetValue.Hidden, // 숨겨졌을 땐 스와이프도 끄기
         sheetContent = {
-            when (selectedFeedType) {
-                FeedType.MINE -> {
+            when (selectedFeed?.type) {
+                is FeedItemType.Mine -> {
                     MyFeedBottomSheet(
                         isLikeEnabled = true,
                         isCommentEnabled = true,
@@ -134,7 +127,7 @@ fun HomeScreen(
                     )
                 }
 
-                FeedType.FOLLOWING -> {
+                is FeedItemType.Following -> {
                     FollowingFeedBottomSheet(
                         isFollowing = true,
                         onFollowChanged = {},
@@ -143,14 +136,14 @@ fun HomeScreen(
                     )
                 }
 
-                FeedType.SUGGESTED -> {
+                is FeedItemType.Suggested -> {
                     SuggestedFeedBottomSheet(
                         onNotInterestedClick = onNotInterestedClick,
                         onAccountInfoClick = {}
                     )
                 }
 
-                FeedType.SPONSORED -> {
+                is FeedItemType.Sponsored -> {
                     SponsoredFeedBottomSheet(
                         onNotInterestedClick = onNotInterestedClick,
                         onAccountInfoClick = {}

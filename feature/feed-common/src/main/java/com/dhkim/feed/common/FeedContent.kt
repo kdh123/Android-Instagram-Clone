@@ -69,10 +69,10 @@ fun FeedContent(
     onProfileClick: () -> Unit,
     onMoreClick: (FeedItem) -> Unit
 ) {
-    when (feedItem) {
-        is FeedItem.Mine,
-        is FeedItem.Following,
-        is FeedItem.Suggested -> {
+    when (feedItem.type) {
+        is FeedItemType.Mine,
+        is FeedItemType.Following,
+        is FeedItemType.Suggested -> {
             CommonFeedContent(
                 feedItem = feedItem,
                 onProfileClick = onProfileClick,
@@ -80,7 +80,7 @@ fun FeedContent(
             )
         }
 
-        is FeedItem.Sponsored -> {
+        is FeedItemType.Sponsored -> {
             SponsoredFeedContent(
                 feedItem = feedItem,
                 onProfileClick = onProfileClick,
@@ -163,11 +163,11 @@ fun FeedContents(
 @Composable
 fun FeedContentScope.FeedTimestamp() {
     val context = LocalContext.current
-    val timestamp = when (val feed = feedItem) {
-        is FeedItem.Mine -> feed.timestamp
-        is FeedItem.Following -> feed.timestamp
-        is FeedItem.Suggested -> feed.timestamp
-        is FeedItem.Sponsored -> return
+    val timestamp = when (val feedType = feedItem.type) {
+        is FeedItemType.Mine -> feedType.timestamp
+        is FeedItemType.Following -> feedType.timestamp
+        is FeedItemType.Suggested -> feedType.timestamp
+        is FeedItemType.Sponsored -> return
     }
     val timestampText = when (timestamp) {
         is Timestamp.JustNow -> stringResource(R.string.time_just_now)
@@ -320,9 +320,9 @@ fun FeedContentScope.FeedItemActions(
 
 @Composable
 fun FeedContentScope.SponsoredFeedImage() {
-    if (feedItem !is FeedItem.Sponsored) return
+    if (feedItem.type !is FeedItemType.Sponsored) return
 
-    val imageUrl = (feedItem as FeedItem.Sponsored).imageUrl
+    val imageUrl = (feedItem.type as FeedItemType.Sponsored).imageUrl
 
     Column {
         GlideImage(
@@ -358,11 +358,11 @@ fun FeedContentScope.SponsoredFeedImage() {
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun FeedContentScope.FeedImagePager() {
-    val imageUrls = when (val feed = feedItem) {
-        is FeedItem.Mine -> feed.imageUrls
-        is FeedItem.Following -> feed.imageUrls
-        is FeedItem.Suggested -> feed.imageUrls
-        is FeedItem.Sponsored -> return
+    val imageUrls = when (val feedType = feedItem.type) {
+        is FeedItemType.Mine -> feedType.imageUrls
+        is FeedItemType.Following -> feedType.imageUrls
+        is FeedItemType.Suggested -> feedType.imageUrls
+        is FeedItemType.Sponsored -> return
     }
 
     val pagerState = rememberPagerState { imageUrls.size }
@@ -479,8 +479,8 @@ fun FeedHeader(
     onProfileClick: () -> Unit,
     onMoreClick: (FeedItem) -> Unit
 ) {
-    when (feedItem) {
-        is FeedItem.Mine -> {
+    when (feedItem.type) {
+        is FeedItemType.Mine -> {
             MyFeedHeader(
                 feedItem = feedItem,
                 onProfileClick = onProfileClick,
@@ -488,7 +488,7 @@ fun FeedHeader(
             )
         }
 
-        is FeedItem.Following -> {
+        is FeedItemType.Following -> {
             FollowingFeedHeader(
                 feedItem = feedItem,
                 onProfileClick = onProfileClick,
@@ -496,7 +496,7 @@ fun FeedHeader(
             )
         }
 
-        is FeedItem.Suggested -> {
+        is FeedItemType.Suggested -> {
             SuggestedFeedHeader(
                 feedItem = feedItem,
                 onProfileClick = onProfileClick,
@@ -504,7 +504,7 @@ fun FeedHeader(
             )
         }
 
-        is FeedItem.Sponsored -> {
+        is FeedItemType.Sponsored -> {
             SponsoredFeedHeader(
                 feedItem = feedItem,
                 onProfileClick = onProfileClick,
@@ -537,7 +537,7 @@ class FeedContentPreviewParameterProvider : PreviewParameterProvider<FeedItem> {
 
     override val values: Sequence<FeedItem>
         get() = sequenceOf(
-            FeedItem.Mine(
+            FeedItem(
                 feedId = "1",
                 userId = "user1",
                 userName = "Tester",
@@ -546,10 +546,12 @@ class FeedContentPreviewParameterProvider : PreviewParameterProvider<FeedItem> {
                 likeCount = 10,
                 commentCount = 5,
                 isLiked = true,
-                imageUrls = persistentListOf("https://picsum.photos/400/400", "https://picsum.photos/400/400"),
-                timestamp = Timestamp.HoursAgo(12)
+                type = FeedItemType.Mine(
+                    imageUrls = persistentListOf("https://picsum.photos/400/400"),
+                    timestamp = Timestamp.HoursAgo(12)
+                )
             ),
-            FeedItem.Sponsored(
+            FeedItem(
                 feedId = "1",
                 userId = "user1",
                 userName = "Android",
@@ -558,8 +560,10 @@ class FeedContentPreviewParameterProvider : PreviewParameterProvider<FeedItem> {
                 likeCount = 10,
                 commentCount = 5,
                 isLiked = false,
-                imageUrl = "https://picsum.photos/400/400",
-                adUrl = "https://www.naver.com"
+                type = FeedItemType.Sponsored(
+                    imageUrl = "https://picsum.photos/400/400",
+                    adUrl = "https://www.naver.com"
+                )
             )
         )
 }

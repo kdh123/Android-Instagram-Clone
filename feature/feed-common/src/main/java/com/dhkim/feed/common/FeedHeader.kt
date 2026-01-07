@@ -86,7 +86,7 @@ private fun FeedHeader(
 
 @Composable
 fun MyFeedHeader(
-    feedItem: FeedItem.Mine,
+    feedItem: FeedItem,
     onProfileClick: () -> Unit,
     onMoreClick: (FeedItem) -> Unit
 ) {
@@ -112,17 +112,19 @@ private fun MyHeaderPreview() {
             color = MaterialTheme.colorScheme.background
         ) {
             MyFeedHeader(
-                feedItem = FeedItem.Mine(
+                feedItem = FeedItem(
                     feedId = "1",
                     userId = "user1",
                     userName = "Tester",
                     userProfileImage = "",
-                    imageUrls = persistentListOf("https://picsum.photos/400/400"),
                     caption = "Test Caption 1",
-                    timestamp = System.currentTimeMillis().toRelativeTime(),
                     likeCount = 10,
                     commentCount = 5,
-                    isLiked = false
+                    isLiked = false,
+                    type = FeedItemType.Mine(
+                        imageUrls = persistentListOf("https://picsum.photos/400/400"),
+                        timestamp = System.currentTimeMillis().toRelativeTime()
+                    )
                 ),
                 onProfileClick = {},
                 onMoreClick = {}
@@ -133,7 +135,7 @@ private fun MyHeaderPreview() {
 
 @Composable
 fun FollowingFeedHeader(
-    feedItem: FeedItem.Following,
+    feedItem: FeedItem,
     onProfileClick: () -> Unit,
     onMoreClick: (FeedItem) -> Unit
 ) {
@@ -158,17 +160,19 @@ private fun FollowingHeaderPreview() {
             color = MaterialTheme.colorScheme.background
         ) {
             FollowingFeedHeader(
-                feedItem = FeedItem.Following(
+                feedItem = FeedItem(
                     feedId = "1",
                     userId = "user1",
                     userName = "Following",
                     userProfileImage = "",
-                    imageUrls = persistentListOf("https://picsum.photos/400/400"),
                     caption = "Test Caption 1",
-                    timestamp = System.currentTimeMillis().toRelativeTime(),
                     likeCount = 10,
                     commentCount = 5,
-                    isLiked = false
+                    isLiked = false,
+                    type = FeedItemType.Following(
+                        imageUrls = persistentListOf("https://picsum.photos/400/400"),
+                        timestamp = System.currentTimeMillis().toRelativeTime()
+                    )
                 ),
                 onProfileClick = {},
                 onMoreClick = {}
@@ -179,7 +183,7 @@ private fun FollowingHeaderPreview() {
 
 @Composable
 fun SuggestedFeedHeader(
-    feedItem: FeedItem.Suggested,
+    feedItem: FeedItem,
     onProfileClick: () -> Unit,
     onMoreClick: (FeedItem) -> Unit
 ) {
@@ -229,17 +233,19 @@ private fun SuggestedHeaderPreview() {
             color = MaterialTheme.colorScheme.background
         ) {
             SuggestedFeedHeader(
-                feedItem = FeedItem.Suggested(
+                feedItem = FeedItem(
                     feedId = "1",
                     userId = "user1",
                     userName = "Suggested",
                     userProfileImage = "",
-                    imageUrls = persistentListOf("https://picsum.photos/400/400"),
                     caption = "Test Caption 1",
-                    timestamp = System.currentTimeMillis().toRelativeTime(),
                     likeCount = 10,
                     commentCount = 5,
-                    isLiked = false
+                    isLiked = false,
+                    type = FeedItemType.Suggested(
+                        imageUrls = persistentListOf("https://picsum.photos/400/400"),
+                        timestamp = System.currentTimeMillis().toRelativeTime()
+                    )
                 ),
                 onProfileClick = {},
                 onMoreClick = {}
@@ -250,7 +256,7 @@ private fun SuggestedHeaderPreview() {
 
 @Composable
 fun SponsoredFeedHeader(
-    feedItem: FeedItem.Sponsored,
+    feedItem: FeedItem,
     onProfileClick: () -> Unit,
     onMoreClick: (FeedItem) -> Unit
 ) {
@@ -290,7 +296,7 @@ private fun SponsoredHeaderPreview() {
             color = MaterialTheme.colorScheme.background
         ) {
             SponsoredFeedHeader(
-                feedItem = FeedItem.Sponsored(
+                feedItem = FeedItem(
                     feedId = "1",
                     userId = "user1",
                     userName = "Sponsored",
@@ -299,8 +305,10 @@ private fun SponsoredHeaderPreview() {
                     likeCount = 10,
                     commentCount = 5,
                     isLiked = false,
-                    imageUrl = "https://picsum.photos/400/400",
-                    adUrl = "https://www.naver.com"
+                    type = FeedItemType.Sponsored(
+                        imageUrl = "https://picsum.photos/400/400",
+                        adUrl = "https://www.naver.com"
+                    )
                 ),
                 onProfileClick = {},
                 onMoreClick = {}

@@ -34,6 +34,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":core:common"))
     implementation(project(":core:data:data-common"))
     implementation(project(":core:database"))
     implementation(project(":core:domain:domain-feed"))
@@ -46,6 +47,7 @@ dependencies {
     implementation(libs.google.firebase.storage)
     implementation(libs.bundles.androidx.workManager)
     implementation(libs.androidx.paging.common)
+    implementation(libs.bundles.androidx.room)
     implementation(libs.hilt)
     ksp(libs.hilt.compiler)
 
