@@ -27,11 +27,8 @@ import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -75,6 +72,7 @@ fun HomeScreen(
     feedState: LazyListState,
     feedUploadStatuses: ImmutableList<FeedUploadStatus>,
     feeds: LazyPagingItems<FeedItem>,
+    menuVisibleFeed: FeedItem?,
     onAction: (HomeAction) -> Unit,
     onFeedLayoutChange: (Boolean) -> Unit,
 ) {
@@ -87,10 +85,9 @@ fun HomeScreen(
     )
     val bottomSheetState = bottomSheetScaffoldState.bottomSheetState
     val scope = rememberCoroutineScope()
-    var selectedFeed: FeedItem? by remember { mutableStateOf(null) }
-    val onNotInterestedClick: () -> Unit = remember(selectedFeed) {
+    val onNotInterestedClick: () -> Unit = remember(menuVisibleFeed) {
         {
-            selectedFeed?.feedId?.let {
+            menuVisibleFeed?.feedId?.let {
                 onAction(HomeAction.HideFeed(feedId = it))
             }
             scope.launch {
@@ -103,7 +100,7 @@ fun HomeScreen(
         snapshotFlow { bottomSheetScaffoldState.bottomSheetState.currentValue }
             .collect { currentValue ->
                 if (currentValue == SheetValue.Hidden || currentValue == SheetValue.PartiallyExpanded) {
-                    selectedFeed = null
+                    onAction(HomeAction.DismissFeedMenu)
                 }
             }
     }
@@ -112,16 +109,18 @@ fun HomeScreen(
         sheetPeekHeight = 0.dp,
         sheetContainerColor = InstagramTheme.colors.background,
         scaffoldState = bottomSheetScaffoldState,
-        sheetDragHandle = { if (selectedFeed == null) null else BottomSheetDefaults.DragHandle() },
-        sheetSwipeEnabled = bottomSheetScaffoldState.bottomSheetState.currentValue != SheetValue.Hidden, // 숨겨졌을 땐 스와이프도 끄기
+        sheetDragHandle = { if (menuVisibleFeed == null) null else BottomSheetDefaults.DragHandle() },
+        sheetSwipeEnabled = bottomSheetScaffoldState.bottomSheetState.currentValue != SheetValue.Hidden,
         sheetContent = {
-            when (selectedFeed?.type) {
+            if (menuVisibleFeed == null) return@BottomSheetScaffold
+
+            when (menuVisibleFeed.type) {
                 is FeedItemType.Mine -> {
                     MyFeedBottomSheet(
-                        isLikeEnabled = true,
-                        isCommentEnabled = true,
-                        onLikeEnabledChange = {},
-                        onCommentEnabledChange = {},
+                        isLikeCountVisible = menuVisibleFeed.isLikeCountVisible,
+                        isCommentEnabled = menuVisibleFeed.isCommentEnabled,
+                        onLikeVisibleChange = { onAction(HomeAction.UpdateLikeCountVisibility(isVisible = it)) },
+                        onCommentEnabledChange = { onAction(HomeAction.UpdateEnableComment(isEnabled = it)) },
                         onEditClick = {},
                         onDeleteClick = {}
                     )
@@ -149,8 +148,6 @@ fun HomeScreen(
                         onAccountInfoClick = {}
                     )
                 }
-
-                null -> Unit
             }
         }
     ) {
@@ -204,8 +201,8 @@ fun HomeScreen(
                                 FeedContent(
                                     feedItem = feedItem,
                                     onProfileClick = { },
-                                    onMoreClick = { feedType ->
-                                        selectedFeed = feedType
+                                    onMoreClick = { feed ->
+                                        onAction(HomeAction.ShowFeedMenu(feed))
                                         scope.launch {
                                             bottomSheetState.expand()
                                         }
@@ -332,6 +329,7 @@ private fun HomeScreenPreview() {
                 feedState = rememberLazyListState(),
                 feedUploadStatuses = feedUploadStatuses,
                 feeds = mockFeeds,
+                menuVisibleFeed = null,
                 onAction = {},
                 onFeedLayoutChange = {}
             )

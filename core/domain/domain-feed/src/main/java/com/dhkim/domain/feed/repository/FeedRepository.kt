@@ -9,7 +9,7 @@ import java.io.File
 
 interface FeedRepository {
 
-    fun getFeeds(): Flow<PagingData<Feed>>
+    fun getHomeFeeds(): Flow<PagingData<Feed>>
     fun uploadFeed(feed: Feed): Flow<Unit>
     fun uploadImage(storagePath: String, file: File): Flow<String>
     fun getFeedUploadStatuses(): Flow<List<FeedUploadStatus>>
@@ -22,4 +22,6 @@ interface FeedRepository {
     suspend fun hideFeed(userId:String, hiddenFeed: HiddenFeed)
     suspend fun unhideFeed(userId:String, feedId: String)
     suspend fun clearHiddenFeeds()
+    suspend fun updateLikeCountVisibility(feedId: String, isVisible: Boolean)
+    suspend fun updateCommentVisibility(feedId: String, enableComment: Boolean)
 }

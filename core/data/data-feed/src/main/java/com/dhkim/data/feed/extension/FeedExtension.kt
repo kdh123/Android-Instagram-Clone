@@ -1,7 +1,11 @@
 package com.dhkim.data.feed.extension
 
+import com.dhkim.data.feed.model.FeedDto
 import com.dhkim.database.entity.FeedUploadStatusEntity
 import com.dhkim.database.entity.HiddenFeedEntity
+import com.dhkim.database.entity.HomeFeedEntity
+import com.dhkim.database.entity.SearchFeedEntity
+import com.dhkim.domain.feed.model.Feed
 import com.dhkim.domain.feed.model.FeedUploadStatus
 import com.dhkim.domain.feed.model.HiddenFeed
 import com.dhkim.domain.feed.model.UploadState
@@ -43,5 +47,77 @@ fun HiddenFeed.toEntity(): HiddenFeedEntity {
     return HiddenFeedEntity(
         feedId = feedId,
         hiddenAt = hiddenAt
+    )
+}
+
+fun FeedDto.toHomeEntity(): HomeFeedEntity {
+    return HomeFeedEntity(
+        feedId = feedId,
+        type = type,
+        userId = userId,
+        userName = userName,
+        userProfileImage = userProfileImage,
+        imageUrls = imageUrls,
+        caption = caption,
+        timestamp = timestamp,
+        likeCount = likeCount,
+        commentCount = commentCount,
+        adUrl = adUrl,
+        shouldShowLikeCount = shouldShowLikeCount,
+        enableComment = enableComment
+    )
+}
+
+fun HomeFeedEntity.toFeed(): Feed {
+    return Feed(
+        feedId = feedId,
+        type = type,
+        userId = userId,
+        userName = userName,
+        userProfileImage = userProfileImage,
+        imageUrls = imageUrls,
+        caption = caption,
+        timestamp = timestamp,
+        likeCount = likeCount,
+        commentCount = commentCount,
+        adUrl = adUrl,
+        isLikeCountVisible = shouldShowLikeCount,
+        isCommentEnabled = enableComment
+    )
+}
+
+fun FeedDto.toSearchEntity(): SearchFeedEntity {
+    return SearchFeedEntity(
+        feedId = feedId,
+        type = type,
+        userId = userId,
+        userName = userName,
+        userProfileImage = userProfileImage,
+        imageUrls = imageUrls,
+        caption = caption,
+        timestamp = timestamp,
+        likeCount = likeCount,
+        commentCount = commentCount,
+        adUrl = adUrl,
+        shouldShowLikeCount = shouldShowLikeCount,
+        enableComment = enableComment
+    )
+}
+
+fun SearchFeedEntity.toFeed(): Feed {
+    return Feed(
+        feedId = feedId,
+        type = type,
+        userId = userId,
+        userName = userName,
+        userProfileImage = userProfileImage,
+        imageUrls = imageUrls,
+        caption = caption,
+        timestamp = timestamp,
+        likeCount = likeCount,
+        commentCount = commentCount,
+        adUrl = adUrl,
+        isLikeCountVisible = shouldShowLikeCount,
+        isCommentEnabled = enableComment
     )
 }

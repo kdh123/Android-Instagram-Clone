@@ -5,6 +5,7 @@ import androidx.paging.map
 import com.dhkim.data.feed.dataSource.FeedLocalDataSource
 import com.dhkim.data.feed.dataSource.FeedRemoteDataSource
 import com.dhkim.data.feed.extension.toEntity
+import com.dhkim.data.feed.extension.toFeed
 import com.dhkim.data.feed.extension.toFeedUploadStatus
 import com.dhkim.data.feed.extension.toHiddenFeed
 import com.dhkim.domain.feed.model.Feed
@@ -22,8 +23,8 @@ class FeedRepositoryImpl @Inject constructor(
     private val remoteDataSource: FeedRemoteDataSource
 ) : FeedRepository {
 
-    override fun getFeeds(): Flow<PagingData<Feed>> {
-        return remoteDataSource.getFeeds(pageSize = 10).map { feeds ->
+    override fun getHomeFeeds(): Flow<PagingData<Feed>> {
+        return remoteDataSource.getHomeFeed().map { feeds ->
             feeds.map { it.toFeed() }
         }
     }
@@ -80,5 +81,15 @@ class FeedRepositoryImpl @Inject constructor(
 
     override suspend fun clearHiddenFeeds() {
         localDataSource.clearHiddenFeeds()
+    }
+
+    override suspend fun updateLikeCountVisibility(feedId: String, isVisible: Boolean) {
+        remoteDataSource.updateLikeCountVisibility(feedId, shouldShow = isVisible).first()
+        val feed = localDataSource.getHomeFeed(feedId).first()
+        localDataSource.updateHomeFeed(feed.copy(shouldShowLikeCount = isVisible))
+    }
+
+    override suspend fun updateCommentVisibility(feedId: String, enableComment: Boolean) {
+        remoteDataSource.updateCommentVisibility(feedId, enableComment).first()
     }
 }

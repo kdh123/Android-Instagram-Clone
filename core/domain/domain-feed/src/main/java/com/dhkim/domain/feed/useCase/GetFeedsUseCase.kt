@@ -19,7 +19,7 @@ class GetFeedsUseCase @Inject constructor(
         return feedRepository.getHiddenFeeds()
             .flatMapLatest { hiddenFeed ->
                 val hiddenIds = hiddenFeed.map { it.feedId }.toSet()
-                feedRepository.getFeeds().map { pagingData ->
+                feedRepository.getHomeFeeds().map { pagingData ->
                     pagingData
                         .filter { it.feedId !in hiddenIds }
                 }

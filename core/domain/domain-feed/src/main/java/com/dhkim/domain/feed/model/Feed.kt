@@ -13,4 +13,6 @@ data class Feed(
     val commentCount: Int = 0,
     val isLiked: Boolean = false,
     val adUrl: String = "",
+    val isLikeCountVisible: Boolean = true,
+    val isCommentEnabled: Boolean = true,
 )

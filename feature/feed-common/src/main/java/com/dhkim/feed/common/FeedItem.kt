@@ -13,7 +13,9 @@ data class FeedItem(
     val likeCount: Int,
     val commentCount: Int,
     val isLiked: Boolean,
-    val type: FeedItemType
+    val type: FeedItemType,
+    val isLikeCountVisible: Boolean,
+    val isCommentEnabled: Boolean,
 )
 
 sealed interface FeedItemType {

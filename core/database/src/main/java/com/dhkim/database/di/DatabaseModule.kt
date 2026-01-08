@@ -3,6 +3,7 @@ package com.dhkim.database.di
 import android.content.Context
 import androidx.room.Room
 import com.dhkim.database.AppDatabase
+import com.dhkim.database.dao.FeedDao
 import com.dhkim.database.dao.FeedUploadDao
 import com.dhkim.database.dao.HiddenFeedDao
 import dagger.Module
@@ -34,5 +35,10 @@ object DatabaseModule {
     @Provides
     fun provideHiddenFeedDao(database: AppDatabase): HiddenFeedDao {
         return database.hiddenFeedDao()
+    }
+
+    @Provides
+    fun provideFeedDao(database: AppDatabase): FeedDao {
+        return database.feedDao()
     }
 }

@@ -1,16 +1,27 @@
 package com.dhkim.data.feed.dataSource
 
+import com.dhkim.database.dao.FeedDao
 import com.dhkim.database.dao.FeedUploadDao
 import com.dhkim.database.dao.HiddenFeedDao
 import com.dhkim.database.entity.FeedUploadStatusEntity
 import com.dhkim.database.entity.HiddenFeedEntity
+import com.dhkim.database.entity.HomeFeedEntity
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
 class FeedLocalDataSource @Inject constructor(
+    private val feedDao: FeedDao,
     private val feedUploadDao: FeedUploadDao,
     private val hiddenFeedDao: HiddenFeedDao
 ) {
+
+    fun getHomeFeed(feedId: String): Flow<HomeFeedEntity> {
+        return feedDao.getHomeFeed(feedId)
+    }
+
+    suspend fun updateHomeFeed(feed: HomeFeedEntity) {
+        feedDao.updateHomeFeed(feed)
+    }
 
     fun getFeedUploadStatuses(): Flow<List<FeedUploadStatusEntity>> {
         return feedUploadDao.getAllUploadStatuses()

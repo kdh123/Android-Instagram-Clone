@@ -121,6 +121,8 @@ private fun MyHeaderPreview() {
                     likeCount = 10,
                     commentCount = 5,
                     isLiked = false,
+                    isLikeCountVisible = true,
+                    isCommentEnabled = true,
                     type = FeedItemType.Mine(
                         imageUrls = persistentListOf("https://picsum.photos/400/400"),
                         timestamp = System.currentTimeMillis().toRelativeTime()
@@ -169,6 +171,8 @@ private fun FollowingHeaderPreview() {
                     likeCount = 10,
                     commentCount = 5,
                     isLiked = false,
+                    isLikeCountVisible = true,
+                    isCommentEnabled = true,
                     type = FeedItemType.Following(
                         imageUrls = persistentListOf("https://picsum.photos/400/400"),
                         timestamp = System.currentTimeMillis().toRelativeTime()
@@ -242,6 +246,8 @@ private fun SuggestedHeaderPreview() {
                     likeCount = 10,
                     commentCount = 5,
                     isLiked = false,
+                    isLikeCountVisible = true,
+                    isCommentEnabled = true,
                     type = FeedItemType.Suggested(
                         imageUrls = persistentListOf("https://picsum.photos/400/400"),
                         timestamp = System.currentTimeMillis().toRelativeTime()
@@ -305,6 +311,8 @@ private fun SponsoredHeaderPreview() {
                     likeCount = 10,
                     commentCount = 5,
                     isLiked = false,
+                    isLikeCountVisible = true,
+                    isCommentEnabled = true,
                     type = FeedItemType.Sponsored(
                         imageUrl = "https://picsum.photos/400/400",
                         adUrl = "https://www.naver.com"

@@ -12,9 +12,14 @@ import androidx.paging.LoadStates
 import androidx.paging.PagingData
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.dhkim.domain.feed.model.Feed
+import com.dhkim.domain.feed.model.HiddenFeed
 import com.dhkim.domain.feed.repository.FeedRepository
 import com.dhkim.domain.feed.useCase.GetFeedUploadStatusesUseCase
 import com.dhkim.domain.feed.useCase.GetFeedsUseCase
+import com.dhkim.domain.feed.useCase.HideFeedUseCase
+import com.dhkim.domain.feed.useCase.UnhideFeedUseCase
+import com.dhkim.domain.feed.useCase.UpdateEnableFeedCommentUseCase
+import com.dhkim.domain.feed.useCase.UpdateFeedLikeCountVisibilityUseCase
 import com.dhkim.domain.user.model.User
 import com.dhkim.domain.user.repository.UserRepository
 import com.dhkim.domain.user.useCase.GetUserUseCase
@@ -44,6 +49,10 @@ class HomeScreenTest {
     private val getFeedsUseCase = GetFeedsUseCase(feedRepository)
     private val getUserUseCase = GetUserUseCase(userRepository)
     private val getFeedUploadStatusesUseCase = GetFeedUploadStatusesUseCase(feedRepository)
+    private val updateFeedLikeCountVisibilityUseCase = UpdateFeedLikeCountVisibilityUseCase(feedRepository)
+    private val updateEnableFeedCommentUseCase = UpdateEnableFeedCommentUseCase(feedRepository)
+    private val hideFeedUseCase = HideFeedUseCase(feedRepository, getUserUseCase)
+    private val unhideFeedUseCase = UnhideFeedUseCase(feedRepository, getUserUseCase)
 
     @get:Rule
     val composeRule = createComposeRule()
@@ -83,14 +92,27 @@ class HomeScreenTest {
 
     @Test
     fun whenFeedsLoadedSuccessfully_showsFeedList() = runTest {
-        coEvery { feedRepository.getFeeds() } returns flowOf(PagingData.from(fakeFeeds))
+        coEvery { feedRepository.updateCommentVisibility(any(), any()) } returns Unit
+        coEvery { feedRepository.updateLikeCountVisibility(any(), any()) } returns Unit
+        coEvery { feedRepository.getHiddenFeeds() } returns flowOf(setOf(HiddenFeed("feedId1", 1234567890)))
+        coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf()
+        coEvery { feedRepository.getHomeFeeds() } returns flowOf(PagingData.from(fakeFeeds))
         coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf()
         coEvery { userRepository.getUser() } returns flowOf(testUser)
 
-        viewModel = HomeViewModel(getFeedsUseCase, getFeedUploadStatusesUseCase, getUserUseCase, feedRepository)
+        viewModel = HomeViewModel(
+            getFeedsUseCase,
+            getFeedUploadStatusesUseCase,
+            updateFeedLikeCountVisibilityUseCase,
+            updateEnableFeedCommentUseCase,
+            hideFeedUseCase,
+            unhideFeedUseCase,
+            getUserUseCase,
+        )
 
         composeRule.setContent {
             val feeds = viewModel.feeds.collectAsLazyPagingItems()
+            val menuVisibleFeed by viewModel.menuVisibleFeed.collectAsStateWithLifecycle()
             val feedUploadStatuses by viewModel.feedUploadStatuses.collectAsStateWithLifecycle()
             val feedState = rememberLazyListState()
 
@@ -98,6 +120,8 @@ class HomeScreenTest {
                 feedState = feedState,
                 feedUploadStatuses = feedUploadStatuses,
                 feeds = feeds,
+                menuVisibleFeed = menuVisibleFeed,
+                onAction = viewModel::onAction,
                 onFeedLayoutChange = {}
             )
         }
@@ -119,14 +143,27 @@ class HomeScreenTest {
                 append = LoadState.NotLoading(endOfPaginationReached = true)
             )
         )
-        coEvery { feedRepository.getFeeds() } returns flowOf(errorPagingData)
+        coEvery { feedRepository.updateCommentVisibility(any(), any()) } returns Unit
+        coEvery { feedRepository.updateLikeCountVisibility(any(), any()) } returns Unit
+        coEvery { feedRepository.getHiddenFeeds() } returns flowOf(setOf(HiddenFeed("feedId1", 1234567890)))
+        coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf()
+        coEvery { feedRepository.getHomeFeeds() } returns flowOf(PagingData.from(fakeFeeds))
         coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf()
         coEvery { userRepository.getUser() } returns flowOf(testUser)
 
-        viewModel = HomeViewModel(getFeedsUseCase, getFeedUploadStatusesUseCase, getUserUseCase, feedRepository)
+        viewModel = HomeViewModel(
+            getFeedsUseCase,
+            getFeedUploadStatusesUseCase,
+            updateFeedLikeCountVisibilityUseCase,
+            updateEnableFeedCommentUseCase,
+            hideFeedUseCase,
+            unhideFeedUseCase,
+            getUserUseCase,
+        )
 
         composeRule.setContent {
             val feeds = viewModel.feeds.collectAsLazyPagingItems()
+            val menuVisibleFeed by viewModel.menuVisibleFeed.collectAsStateWithLifecycle()
             val feedUploadStatuses by viewModel.feedUploadStatuses.collectAsStateWithLifecycle()
             val feedState = rememberLazyListState()
 
@@ -134,6 +171,8 @@ class HomeScreenTest {
                 feedState = feedState,
                 feedUploadStatuses = feedUploadStatuses,
                 feeds = feeds,
+                menuVisibleFeed = menuVisibleFeed,
+                onAction = viewModel::onAction,
                 onFeedLayoutChange = {}
             )
         }

@@ -22,9 +22,9 @@ import com.dhkim.ui.noRippleClick
 
 @Composable
 fun MyFeedBottomSheet(
-    isLikeEnabled: Boolean,
+    isLikeCountVisible: Boolean,
     isCommentEnabled: Boolean,
-    onLikeEnabledChange: (Boolean) -> Unit,
+    onLikeVisibleChange: (Boolean) -> Unit,
     onCommentEnabledChange: (Boolean) -> Unit,
     onEditClick: () -> Unit,
     onDeleteClick: () -> Unit,
@@ -40,11 +40,11 @@ fun MyFeedBottomSheet(
                 .fillMaxWidth()
                 .padding(10.dp)
                 .noRippleClick {
-                    onLikeEnabledChange(!isLikeEnabled)
+                    onLikeVisibleChange(!isLikeCountVisible)
                 }
         ) {
-            val likeIcon = if (isLikeEnabled) R.drawable.ic_cancel_like else R.drawable.ic_like
-            val likeText = if (isLikeEnabled) R.string.hide_like_count else R.string.cancel_hide_like_count
+            val likeIcon = if (isLikeCountVisible) R.drawable.ic_cancel_like else R.drawable.ic_like
+            val likeText = if (isLikeCountVisible) R.string.hide_like_count else R.string.cancel_hide_like_count
 
             Icon(
                 painter = painterResource(likeIcon),
@@ -133,9 +133,9 @@ private fun MyFeedBottomSheetPreview() {
             color = MaterialTheme.colorScheme.background
         ) {
             MyFeedBottomSheet(
-                isLikeEnabled = true,
+                isLikeCountVisible = true,
                 isCommentEnabled = true,
-                onLikeEnabledChange = {},
+                onLikeVisibleChange = {},
                 onCommentEnabledChange = {},
                 onEditClick = {},
                 onDeleteClick = {}

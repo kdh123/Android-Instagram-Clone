@@ -16,6 +16,8 @@ data class FeedDto(
     val likeCount: Int = 0,
     val commentCount: Int = 0,
     val adUrl: String = "",
+    val shouldShowLikeCount: Boolean = true,
+    val enableComment: Boolean = true,
 ) {
     fun toFeed(): Feed {
         return Feed(
@@ -29,7 +31,9 @@ data class FeedDto(
             timestamp = timestamp,
             likeCount = likeCount,
             commentCount = commentCount,
-            adUrl = adUrl
+            adUrl = adUrl,
+            isLikeCountVisible = shouldShowLikeCount,
+            isCommentEnabled = enableComment
         )
     }
 }
@@ -46,6 +50,8 @@ fun Feed.toDto(): FeedDto {
         timestamp = timestamp,
         likeCount = likeCount,
         commentCount = commentCount,
-        adUrl = adUrl
+        adUrl = adUrl,
+        shouldShowLikeCount = isLikeCountVisible,
+        enableComment = isCommentEnabled
     )
 }

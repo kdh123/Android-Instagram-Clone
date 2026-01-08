@@ -546,6 +546,8 @@ class FeedContentPreviewParameterProvider : PreviewParameterProvider<FeedItem> {
                 likeCount = 10,
                 commentCount = 5,
                 isLiked = true,
+                isLikeCountVisible = true,
+                isCommentEnabled = true,
                 type = FeedItemType.Mine(
                     imageUrls = persistentListOf("https://picsum.photos/400/400"),
                     timestamp = Timestamp.HoursAgo(12)
@@ -560,6 +562,8 @@ class FeedContentPreviewParameterProvider : PreviewParameterProvider<FeedItem> {
                 likeCount = 10,
                 commentCount = 5,
                 isLiked = false,
+                isLikeCountVisible = true,
+                isCommentEnabled = true,
                 type = FeedItemType.Sponsored(
                     imageUrl = "https://picsum.photos/400/400",
                     adUrl = "https://www.naver.com"
