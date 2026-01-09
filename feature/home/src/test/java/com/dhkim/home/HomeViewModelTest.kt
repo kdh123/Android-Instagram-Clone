@@ -10,7 +10,9 @@ import com.dhkim.domain.feed.model.HiddenFeed
 import com.dhkim.domain.feed.repository.FeedRepository
 import com.dhkim.domain.feed.useCase.GetFeedUploadStatusesUseCase
 import com.dhkim.domain.feed.useCase.GetFeedsUseCase
+import com.dhkim.domain.feed.useCase.GetLikeFeedsUseCase
 import com.dhkim.domain.feed.useCase.HideFeedUseCase
+import com.dhkim.domain.feed.useCase.ToggleFeedLikeUseCase
 import com.dhkim.domain.feed.useCase.UnhideFeedUseCase
 import com.dhkim.domain.feed.useCase.UpdateEnableFeedCommentUseCase
 import com.dhkim.domain.feed.useCase.UpdateFeedLikeCountVisibilityUseCase
@@ -46,7 +48,8 @@ class HomeViewModelTest {
     private val updateEnableFeedCommentUseCase = UpdateEnableFeedCommentUseCase(feedRepository)
     private val hideFeedUseCase = HideFeedUseCase(feedRepository, getUserUseCase)
     private val unhideFeedUseCase = UnhideFeedUseCase(feedRepository, getUserUseCase)
-
+    private val toggleFeedLikeUseCase = ToggleFeedLikeUseCase(feedRepository, getUserUseCase)
+    private val getLikeFeedsUseCase = GetLikeFeedsUseCase(feedRepository, getUserUseCase)
 
     private lateinit var viewModel: HomeViewModel
 
@@ -93,6 +96,8 @@ class HomeViewModelTest {
             updateEnableFeedCommentUseCase,
             hideFeedUseCase,
             unhideFeedUseCase,
+            toggleFeedLikeUseCase,
+            getLikeFeedsUseCase,
             getUserUseCase,
         )
         viewModel.feeds.test {
@@ -126,6 +131,8 @@ class HomeViewModelTest {
             updateEnableFeedCommentUseCase,
             hideFeedUseCase,
             unhideFeedUseCase,
+            toggleFeedLikeUseCase,
+            getLikeFeedsUseCase,
             getUserUseCase,
         )
         viewModel.feeds.test {

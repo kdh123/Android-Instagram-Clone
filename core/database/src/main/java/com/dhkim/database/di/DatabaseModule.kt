@@ -6,6 +6,7 @@ import com.dhkim.database.AppDatabase
 import com.dhkim.database.dao.FeedDao
 import com.dhkim.database.dao.FeedUploadDao
 import com.dhkim.database.dao.HiddenFeedDao
+import com.dhkim.database.dao.LikeDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -40,5 +41,10 @@ object DatabaseModule {
     @Provides
     fun provideFeedDao(database: AppDatabase): FeedDao {
         return database.feedDao()
+    }
+
+    @Provides
+    fun provideLikeDao(database: AppDatabase): LikeDao {
+        return database.likeDao()
     }
 }

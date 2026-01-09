@@ -4,10 +4,12 @@ import com.dhkim.data.feed.model.FeedDto
 import com.dhkim.database.entity.FeedUploadStatusEntity
 import com.dhkim.database.entity.HiddenFeedEntity
 import com.dhkim.database.entity.HomeFeedEntity
+import com.dhkim.database.entity.LikeEntity
 import com.dhkim.database.entity.SearchFeedEntity
 import com.dhkim.domain.feed.model.Feed
 import com.dhkim.domain.feed.model.FeedUploadStatus
 import com.dhkim.domain.feed.model.HiddenFeed
+import com.dhkim.domain.feed.model.LikeFeed
 import com.dhkim.domain.feed.model.UploadState
 
 fun FeedUploadStatusEntity.toFeedUploadStatus(): FeedUploadStatus {
@@ -63,8 +65,8 @@ fun FeedDto.toHomeEntity(): HomeFeedEntity {
         likeCount = likeCount,
         commentCount = commentCount,
         adUrl = adUrl,
-        shouldShowLikeCount = shouldShowLikeCount,
-        enableComment = enableComment
+        shouldShowLikeCount = isLikeCountVisible,
+        enableComment = isCommentEnabled
     )
 }
 
@@ -99,8 +101,8 @@ fun FeedDto.toSearchEntity(): SearchFeedEntity {
         likeCount = likeCount,
         commentCount = commentCount,
         adUrl = adUrl,
-        shouldShowLikeCount = shouldShowLikeCount,
-        enableComment = enableComment
+        shouldShowLikeCount = isLikeCountVisible,
+        enableComment = isCommentEnabled
     )
 }
 
@@ -119,5 +121,23 @@ fun SearchFeedEntity.toFeed(): Feed {
         adUrl = adUrl,
         isLikeCountVisible = shouldShowLikeCount,
         isCommentEnabled = enableComment
+    )
+}
+
+fun LikeEntity.toLikeFeed(): LikeFeed {
+    return LikeFeed(
+        feedId = feedId,
+        userId = userId,
+        likedAt = likedAt,
+        isSynced = isSynced
+    )
+}
+
+fun LikeFeed.toEntity(): LikeEntity {
+    return LikeEntity(
+        feedId = feedId,
+        userId = userId,
+        likedAt = likedAt,
+        isSynced = isSynced
     )
 }

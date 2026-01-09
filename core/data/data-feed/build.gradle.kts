@@ -50,6 +50,7 @@ dependencies {
     implementation(libs.bundles.androidx.room)
     implementation(libs.hilt)
     ksp(libs.hilt.compiler)
+    ksp(libs.android.hilt.compiler)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

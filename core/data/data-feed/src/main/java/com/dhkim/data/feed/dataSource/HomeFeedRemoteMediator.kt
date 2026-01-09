@@ -64,7 +64,7 @@ class HomeFeedRemoteMediator(
             val entities = snapshot.children.mapNotNull { child ->
                 child.getValue(FeedDto::class.java)
                     ?.toHomeEntity()
-            }
+            }.map { it.copy(imageUrls = it.imageUrls.distinct()) }
 
             val endOfPaginationReached = entities.size < state.config.pageSize
 

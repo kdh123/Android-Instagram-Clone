@@ -4,6 +4,7 @@ import androidx.paging.PagingData
 import com.dhkim.domain.feed.model.Feed
 import com.dhkim.domain.feed.model.FeedUploadStatus
 import com.dhkim.domain.feed.model.HiddenFeed
+import com.dhkim.domain.feed.model.LikeFeed
 import kotlinx.coroutines.flow.Flow
 import java.io.File
 
@@ -24,4 +25,10 @@ interface FeedRepository {
     suspend fun clearHiddenFeeds()
     suspend fun updateLikeCountVisibility(feedId: String, isVisible: Boolean)
     suspend fun updateCommentVisibility(feedId: String, enableComment: Boolean)
+    suspend fun toggleLike(feedId: String, userId: String)
+    suspend fun remoteToggleLike(feedId: String, userId: String)
+    fun getAllLikedFeeds(userId: String): Flow<Set<LikeFeed>>
+    fun getLikeFeed(feedId: String, userId: String): Flow<LikeFeed?>
+    suspend fun updateLikeFeed(likeFeed: LikeFeed)
+    suspend fun getUnSyncedLikes(): List<LikeFeed>
 }

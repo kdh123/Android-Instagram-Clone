@@ -66,6 +66,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun FeedContent(
     feedItem: FeedItem,
+    onLikeClick: (FeedItem) -> Unit,
     onProfileClick: () -> Unit,
     onMoreClick: (FeedItem) -> Unit
 ) {
@@ -75,6 +76,7 @@ fun FeedContent(
         is FeedItemType.Suggested -> {
             CommonFeedContent(
                 feedItem = feedItem,
+                onLikeClick = onLikeClick,
                 onProfileClick = onProfileClick,
                 onMoreClick = onMoreClick
             )
@@ -83,6 +85,7 @@ fun FeedContent(
         is FeedItemType.Sponsored -> {
             SponsoredFeedContent(
                 feedItem = feedItem,
+                onLikeClick = onLikeClick,
                 onProfileClick = onProfileClick,
                 onMoreClick = onMoreClick
             )
@@ -93,6 +96,7 @@ fun FeedContent(
 @Composable
 fun CommonFeedContent(
     feedItem: FeedItem,
+    onLikeClick: (FeedItem) -> Unit,
     onProfileClick: () -> Unit,
     onMoreClick: (FeedItem) -> Unit
 ) {
@@ -103,7 +107,7 @@ fun CommonFeedContent(
     ) {
         FeedImagePager()
         FeedItemActions(
-            onLikeClick = { },
+            onLikeClick = { onLikeClick(feedItem) },
             onCommentClick = { },
             onShareClick = { }
         )
@@ -117,6 +121,7 @@ fun CommonFeedContent(
 @Composable
 fun SponsoredFeedContent(
     feedItem: FeedItem,
+    onLikeClick: (FeedItem) -> Unit,
     onProfileClick: () -> Unit,
     onMoreClick: (FeedItem) -> Unit
 ) {
@@ -127,7 +132,7 @@ fun SponsoredFeedContent(
     ) {
         SponsoredFeedImage()
         FeedItemActions(
-            onLikeClick = { },
+            onLikeClick = { onLikeClick(feedItem) },
             onCommentClick = { },
             onShareClick = { }
         )
@@ -526,6 +531,7 @@ private fun FeedContentPreview(
         ) {
             FeedContent(
                 feedItem = feedItem,
+                onLikeClick = {},
                 onProfileClick = {},
                 onMoreClick = {}
             )

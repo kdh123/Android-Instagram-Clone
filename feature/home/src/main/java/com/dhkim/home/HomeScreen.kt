@@ -49,6 +49,7 @@ import androidx.paging.compose.itemKey
 import com.dhkim.designsystem.InstagramTheme
 import com.dhkim.domain.feed.model.Feed
 import com.dhkim.domain.feed.model.FeedUploadStatus
+import com.dhkim.domain.feed.model.LikeFeed
 import com.dhkim.domain.feed.model.UploadState
 import com.dhkim.feed.common.FeedContent
 import com.dhkim.feed.common.FeedItem
@@ -72,6 +73,7 @@ fun HomeScreen(
     feedState: LazyListState,
     feedUploadStatuses: ImmutableList<FeedUploadStatus>,
     feeds: LazyPagingItems<FeedItem>,
+    likeFeeds: Set<LikeFeed>,
     menuVisibleFeed: FeedItem?,
     onAction: (HomeAction) -> Unit,
     onFeedLayoutChange: (Boolean) -> Unit,
@@ -197,9 +199,12 @@ fun HomeScreen(
                         if (index < feedUploadStatuses.size) {
                             FeedUploadStatusContent(feedUploadStatus = feedUploadStatuses[index])
                         } else {
-                            feeds[index - feedUploadStatuses.size]?.let { feedItem ->
+                            feeds[index - feedUploadStatuses.size]?.let { item ->
+                                val isLiked = likeFeeds.any { it.feedId == item.feedId }
+                                val feedItem = item.copy(isLiked = isLiked)
                                 FeedContent(
                                     feedItem = feedItem,
+                                    onLikeClick = { onAction(HomeAction.ToggleLike(feedItem.feedId)) },
                                     onProfileClick = { },
                                     onMoreClick = { feed ->
                                         onAction(HomeAction.ShowFeedMenu(feed))
@@ -329,6 +334,7 @@ private fun HomeScreenPreview() {
                 feedState = rememberLazyListState(),
                 feedUploadStatuses = feedUploadStatuses,
                 feeds = mockFeeds,
+                likeFeeds = setOf(LikeFeed("1", "user1")),
                 menuVisibleFeed = null,
                 onAction = {},
                 onFeedLayoutChange = {}

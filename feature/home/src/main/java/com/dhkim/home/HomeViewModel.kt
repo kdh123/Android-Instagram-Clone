@@ -8,7 +8,9 @@ import androidx.paging.map
 import com.dhkim.common.handle
 import com.dhkim.domain.feed.useCase.GetFeedUploadStatusesUseCase
 import com.dhkim.domain.feed.useCase.GetFeedsUseCase
+import com.dhkim.domain.feed.useCase.GetLikeFeedsUseCase
 import com.dhkim.domain.feed.useCase.HideFeedUseCase
+import com.dhkim.domain.feed.useCase.ToggleFeedLikeUseCase
 import com.dhkim.domain.feed.useCase.UnhideFeedUseCase
 import com.dhkim.domain.feed.useCase.UpdateEnableFeedCommentUseCase
 import com.dhkim.domain.feed.useCase.UpdateFeedLikeCountVisibilityUseCase
@@ -42,6 +44,8 @@ class HomeViewModel @Inject constructor(
     private val updateEnableFeedCommentUseCase: UpdateEnableFeedCommentUseCase,
     private val hideFeedUseCase: HideFeedUseCase,
     private val unhideFeedUseCase: UnhideFeedUseCase,
+    private val toggleFeedLikeUseCase: ToggleFeedLikeUseCase,
+    private val getLikeFeedsUseCase: GetLikeFeedsUseCase,
     private val getUserUseCase: GetUserUseCase,
 ) : ViewModel() {
 
@@ -51,6 +55,13 @@ class HomeViewModel @Inject constructor(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = persistentListOf()
+        )
+
+    val likeFeeds = getLikeFeedsUseCase()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = emptySet()
         )
 
     val feeds = getFeedsUseCase()
@@ -92,7 +103,22 @@ class HomeViewModel @Inject constructor(
             HomeAction.DismissFeedMenu -> {
                 dismissFeedMenu()
             }
+
+            is HomeAction.ToggleLike -> {
+                toggleLike(action.feedId)
+            }
         }
+    }
+
+    private fun toggleLike(feedId: String) {
+        viewModelScope.handle(
+            block = {
+                toggleFeedLikeUseCase(feedId)
+            },
+            onError = {
+
+            }
+        )
     }
 
     private fun dismissFeedMenu() {

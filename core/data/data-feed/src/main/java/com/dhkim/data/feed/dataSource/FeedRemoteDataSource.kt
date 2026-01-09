@@ -11,9 +11,17 @@ import com.dhkim.data.feed.model.toDto
 import com.dhkim.database.AppDatabase
 import com.dhkim.database.entity.HomeFeedEntity
 import com.dhkim.domain.feed.model.Feed
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.MutableData
+import com.google.firebase.database.Transaction
 import com.google.firebase.storage.FirebaseStorage
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.tasks.await
 import java.io.File
@@ -26,6 +34,7 @@ class FeedRemoteDataSource @Inject constructor(
     private val storage: FirebaseStorage
 ) {
     private val feedRef = firebaseDatabase.getReference("feeds")
+    private val likeRef = firebaseDatabase.getReference("likes")
     private val hiddenFeedRef = firebaseDatabase.getReference("hidden_feeds")
     private val storageRef = storage.reference
 
@@ -92,5 +101,63 @@ class FeedRemoteDataSource @Inject constructor(
             feedRef.setValue(shouldShow).await()
             emit(Unit)
         }.retryWithDelay()
+    }
+
+    suspend fun toggleLike(feedId: String, myUid: String): Boolean {
+        val likeRef = likeRef.child(feedId).child(myUid)
+        val feedRef = feedRef.child(feedId).child("likeCount")
+
+        val snapshot = likeRef.get().await()
+        val isAlreadyLiked = snapshot.exists()
+
+        return if (!isAlreadyLiked) {
+            likeRef.setValue(true).await()
+            incrementLikeCount(feedRef).first()
+        } else {
+            likeRef.removeValue().await()
+            decrementLikeCount(feedRef).first()
+        }
+    }
+
+    private fun incrementLikeCount(countRef: DatabaseReference): Flow<Boolean> {
+        return callbackFlow {
+            countRef.runTransaction(object : Transaction.Handler {
+                override fun doTransaction(mutableData: MutableData): Transaction.Result {
+                    val currentValue = mutableData.getValue(Int::class.java) ?: 0
+                    mutableData.value = currentValue + 1
+                    return Transaction.success(mutableData)
+                }
+
+                override fun onComplete(error: DatabaseError?, committed: Boolean, snapshot: DataSnapshot?) {
+                    if (committed) {
+                        trySend(true)
+                    } else {
+                        trySend(false)
+                    }
+                }
+            })
+            awaitClose()
+        }
+    }
+
+    private fun decrementLikeCount(countRef: DatabaseReference): Flow<Boolean> {
+        return callbackFlow {
+            countRef.runTransaction(object : Transaction.Handler {
+                override fun doTransaction(mutableData: MutableData): Transaction.Result {
+                    val currentValue = mutableData.getValue(Int::class.java) ?: 0
+                    mutableData.value = if (currentValue > 0) currentValue - 1 else 0
+                    return Transaction.success(mutableData)
+                }
+
+                override fun onComplete(error: DatabaseError?, committed: Boolean, snapshot: DataSnapshot?) {
+                    if (committed) {
+                        trySend(true)
+                    } else {
+                        trySend(false)
+                    }
+                }
+            })
+            awaitClose()
+        }
     }
 }

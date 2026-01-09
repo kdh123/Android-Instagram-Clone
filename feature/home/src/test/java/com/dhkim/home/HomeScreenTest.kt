@@ -13,10 +13,13 @@ import androidx.paging.PagingData
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.dhkim.domain.feed.model.Feed
 import com.dhkim.domain.feed.model.HiddenFeed
+import com.dhkim.domain.feed.model.LikeFeed
 import com.dhkim.domain.feed.repository.FeedRepository
 import com.dhkim.domain.feed.useCase.GetFeedUploadStatusesUseCase
 import com.dhkim.domain.feed.useCase.GetFeedsUseCase
+import com.dhkim.domain.feed.useCase.GetLikeFeedsUseCase
 import com.dhkim.domain.feed.useCase.HideFeedUseCase
+import com.dhkim.domain.feed.useCase.ToggleFeedLikeUseCase
 import com.dhkim.domain.feed.useCase.UnhideFeedUseCase
 import com.dhkim.domain.feed.useCase.UpdateEnableFeedCommentUseCase
 import com.dhkim.domain.feed.useCase.UpdateFeedLikeCountVisibilityUseCase
@@ -53,6 +56,8 @@ class HomeScreenTest {
     private val updateEnableFeedCommentUseCase = UpdateEnableFeedCommentUseCase(feedRepository)
     private val hideFeedUseCase = HideFeedUseCase(feedRepository, getUserUseCase)
     private val unhideFeedUseCase = UnhideFeedUseCase(feedRepository, getUserUseCase)
+    private val toggleFeedLikeUseCase = ToggleFeedLikeUseCase(feedRepository, getUserUseCase)
+    private val getLikeFeedsUseCase = GetLikeFeedsUseCase(feedRepository, getUserUseCase)
 
     @get:Rule
     val composeRule = createComposeRule()
@@ -98,6 +103,7 @@ class HomeScreenTest {
         coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf()
         coEvery { feedRepository.getHomeFeeds() } returns flowOf(PagingData.from(fakeFeeds))
         coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf()
+        coEvery { feedRepository.getAllLikedFeeds(any()) } returns flowOf(setOf(LikeFeed("feedId1", "userId1")))
         coEvery { userRepository.getUser() } returns flowOf(testUser)
 
         viewModel = HomeViewModel(
@@ -107,11 +113,14 @@ class HomeScreenTest {
             updateEnableFeedCommentUseCase,
             hideFeedUseCase,
             unhideFeedUseCase,
+            toggleFeedLikeUseCase,
+            getLikeFeedsUseCase,
             getUserUseCase,
         )
 
         composeRule.setContent {
             val feeds = viewModel.feeds.collectAsLazyPagingItems()
+            val likeFeeds by viewModel.likeFeeds.collectAsStateWithLifecycle()
             val menuVisibleFeed by viewModel.menuVisibleFeed.collectAsStateWithLifecycle()
             val feedUploadStatuses by viewModel.feedUploadStatuses.collectAsStateWithLifecycle()
             val feedState = rememberLazyListState()
@@ -120,6 +129,7 @@ class HomeScreenTest {
                 feedState = feedState,
                 feedUploadStatuses = feedUploadStatuses,
                 feeds = feeds,
+                likeFeeds = likeFeeds,
                 menuVisibleFeed = menuVisibleFeed,
                 onAction = viewModel::onAction,
                 onFeedLayoutChange = {}
@@ -149,6 +159,7 @@ class HomeScreenTest {
         coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf()
         coEvery { feedRepository.getHomeFeeds() } returns flowOf(PagingData.from(fakeFeeds))
         coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf()
+        coEvery { feedRepository.getAllLikedFeeds(any()) } returns flowOf(setOf(LikeFeed("feedId1", "userId1")))
         coEvery { userRepository.getUser() } returns flowOf(testUser)
 
         viewModel = HomeViewModel(
@@ -158,11 +169,14 @@ class HomeScreenTest {
             updateEnableFeedCommentUseCase,
             hideFeedUseCase,
             unhideFeedUseCase,
+            toggleFeedLikeUseCase,
+            getLikeFeedsUseCase,
             getUserUseCase,
         )
 
         composeRule.setContent {
             val feeds = viewModel.feeds.collectAsLazyPagingItems()
+            val likeFeeds by viewModel.likeFeeds.collectAsStateWithLifecycle()
             val menuVisibleFeed by viewModel.menuVisibleFeed.collectAsStateWithLifecycle()
             val feedUploadStatuses by viewModel.feedUploadStatuses.collectAsStateWithLifecycle()
             val feedState = rememberLazyListState()
@@ -171,6 +185,7 @@ class HomeScreenTest {
                 feedState = feedState,
                 feedUploadStatuses = feedUploadStatuses,
                 feeds = feeds,
+                likeFeeds = likeFeeds,
                 menuVisibleFeed = menuVisibleFeed,
                 onAction = viewModel::onAction,
                 onFeedLayoutChange = {}

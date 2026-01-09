@@ -7,10 +7,12 @@ import com.dhkim.database.dao.FeedDao
 import com.dhkim.database.dao.FeedUploadDao
 import com.dhkim.database.dao.HiddenFeedDao
 import com.dhkim.database.dao.HomeFeedRemoteKeyDao
+import com.dhkim.database.dao.LikeDao
 import com.dhkim.database.entity.FeedUploadStatusEntity
 import com.dhkim.database.entity.HiddenFeedEntity
 import com.dhkim.database.entity.HomeFeedEntity
 import com.dhkim.database.entity.HomeFeedRemoteKey
+import com.dhkim.database.entity.LikeEntity
 import com.dhkim.database.entity.SearchFeedEntity
 
 private const val DATABASE_VERSION = 1
@@ -21,7 +23,8 @@ private const val DATABASE_VERSION = 1
         HomeFeedRemoteKey::class,
         SearchFeedEntity::class,
         FeedUploadStatusEntity::class,
-        HiddenFeedEntity::class
+        HiddenFeedEntity::class,
+        LikeEntity::class
     ],
     version = DATABASE_VERSION,
     exportSchema = false
@@ -33,4 +36,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun feedUploadDao(): FeedUploadDao
     abstract fun hiddenFeedDao(): HiddenFeedDao
     abstract fun homeFeedRemoteKeyDao(): HomeFeedRemoteKeyDao
+    abstract fun likeDao(): LikeDao
 }
