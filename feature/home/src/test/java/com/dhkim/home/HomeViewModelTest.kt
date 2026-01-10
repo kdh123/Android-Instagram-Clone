@@ -20,6 +20,7 @@ import com.dhkim.domain.user.model.User
 import com.dhkim.domain.user.repository.UserRepository
 import com.dhkim.domain.user.useCase.GetUserUseCase
 import com.dhkim.feed.common.toFeedItem
+import com.dhkim.network.ConnectivityChecker
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
@@ -50,6 +51,7 @@ class HomeViewModelTest {
     private val unhideFeedUseCase = UnhideFeedUseCase(feedRepository, getUserUseCase)
     private val toggleFeedLikeUseCase = ToggleFeedLikeUseCase(feedRepository, getUserUseCase)
     private val getLikeFeedsUseCase = GetLikeFeedsUseCase(feedRepository, getUserUseCase)
+    private val connectivityChecker = mockk<ConnectivityChecker>()
 
     private lateinit var viewModel: HomeViewModel
 
@@ -88,6 +90,7 @@ class HomeViewModelTest {
         coEvery { feedRepository.getHomeFeeds() } returns flowOf(PagingData.from(fakeFeeds))
         coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf()
         coEvery { userRepository.getUser() } returns flowOf(testUser)
+        coEvery { connectivityChecker.isNetworkAvailable() } returns flowOf(true)
 
         viewModel = HomeViewModel(
             getFeedsUseCase,
@@ -99,6 +102,7 @@ class HomeViewModelTest {
             toggleFeedLikeUseCase,
             getLikeFeedsUseCase,
             getUserUseCase,
+            connectivityChecker
         )
         viewModel.feeds.test {
             val userId = getUserUseCase().first()?.id ?: ""
@@ -123,6 +127,7 @@ class HomeViewModelTest {
         coEvery { feedRepository.updateCommentVisibility(any(), any()) }  returns Unit
         coEvery { feedRepository.updateLikeCountVisibility(any(), any()) }  returns Unit
         coEvery { feedRepository.getHiddenFeeds() } returns flowOf(setOf(HiddenFeed("feedId1", 1234567890)))
+        coEvery { connectivityChecker.isNetworkAvailable() } returns flowOf(true)
 
         viewModel = HomeViewModel(
             getFeedsUseCase,
@@ -134,6 +139,7 @@ class HomeViewModelTest {
             toggleFeedLikeUseCase,
             getLikeFeedsUseCase,
             getUserUseCase,
+            connectivityChecker
         )
         viewModel.feeds.test {
             val userId = getUserUseCase().first()?.id ?: ""

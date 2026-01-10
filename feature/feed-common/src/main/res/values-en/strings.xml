@@ -16,6 +16,7 @@
     <string name="cancel_disable_comment">Turn on commenting</string>
     <string name="edit">Edit</string>
     <string name="delete_media">Delete media</string>
+    <string name="feed_refresh_failed">Couldn\'t refresh feed</string>
 
     <string name="time_just_now">Just now</string>
     <string name="time_minutes_ago">%d minutes ago</string>

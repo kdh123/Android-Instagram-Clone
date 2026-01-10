@@ -27,14 +27,18 @@ import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -59,11 +63,13 @@ import com.dhkim.feed.common.MyFeedBottomSheet
 import com.dhkim.feed.common.SponsoredFeedBottomSheet
 import com.dhkim.feed.common.SuggestedFeedBottomSheet
 import com.dhkim.feed.common.toFeedItem
+import com.dhkim.ui.NoticeMessage
 import com.dhkim.ui.shimmerEffect
 import com.skydoves.landscapist.ImageOptions
 import com.skydoves.landscapist.glide.GlideImage
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 
@@ -75,10 +81,14 @@ fun HomeScreen(
     feeds: LazyPagingItems<FeedItem>,
     likeFeeds: Set<LikeFeed>,
     menuVisibleFeed: FeedItem?,
+    isNetworkAvailable: Boolean,
     onAction: (HomeAction) -> Unit,
     onFeedLayoutChange: (Boolean) -> Unit,
 ) {
-    val isRefreshing = feeds.loadState.refresh is LoadState.Loading
+    val context = LocalContext.current
+    var showNoticeMessage: String? by remember { mutableStateOf(null) }
+    var isRefreshing by remember { mutableStateOf(false) }
+    val pagingLoading = feeds.loadState.refresh is LoadState.Loading
     val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(
         bottomSheetState = rememberStandardBottomSheetState(
             initialValue = SheetValue.Hidden,
@@ -105,6 +115,17 @@ fun HomeScreen(
                     onAction(HomeAction.DismissFeedMenu)
                 }
             }
+    }
+
+    LaunchedEffect(pagingLoading) {
+        if (!pagingLoading) isRefreshing = false
+    }
+
+    LaunchedEffect(showNoticeMessage) {
+        if (showNoticeMessage != null) {
+            delay(3_000)
+            showNoticeMessage = null
+        }
     }
 
     BottomSheetScaffold(
@@ -166,8 +187,21 @@ fun HomeScreen(
         ) {
             PullToRefreshBox(
                 isRefreshing = isRefreshing,
-                onRefresh = { feeds.refresh() },
-                modifier = Modifier.fillMaxSize()
+                onRefresh = {
+                    if (isNetworkAvailable) {
+                        isRefreshing = true // 로딩 시작
+                        feeds.refresh()
+                    } else {
+                        isRefreshing = true
+                        scope.launch {
+                            delay(100)
+                            isRefreshing = false
+                            showNoticeMessage = context.getString(com.dhkim.feed.common.R.string.feed_refresh_failed)
+                        }
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxSize()
             ) {
                 LazyColumn(
                     state = feedState,
@@ -217,6 +251,10 @@ fun HomeScreen(
                         }
                     }
                 }
+            }
+
+            if (showNoticeMessage != null) {
+                NoticeMessage(message = showNoticeMessage!!)
             }
         }
     }
@@ -336,8 +374,9 @@ private fun HomeScreenPreview() {
                 feeds = mockFeeds,
                 likeFeeds = setOf(LikeFeed("1", "user1")),
                 menuVisibleFeed = null,
+                isNetworkAvailable = true,
                 onAction = {},
-                onFeedLayoutChange = {}
+                onFeedLayoutChange = {},
             )
         }
     }

@@ -18,6 +18,7 @@ import com.dhkim.domain.user.exception.NoUserFoundException
 import com.dhkim.domain.user.useCase.GetUserUseCase
 import com.dhkim.feed.common.FeedItem
 import com.dhkim.feed.common.toFeedItem
+import com.dhkim.network.ConnectivityChecker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
@@ -47,6 +48,7 @@ class HomeViewModel @Inject constructor(
     private val toggleFeedLikeUseCase: ToggleFeedLikeUseCase,
     private val getLikeFeedsUseCase: GetLikeFeedsUseCase,
     private val getUserUseCase: GetUserUseCase,
+    private val connectivityChecker: ConnectivityChecker
 ) : ViewModel() {
 
     val feedUploadStatuses = getFeedUploadStatusesUseCase()
@@ -71,6 +73,13 @@ class HomeViewModel @Inject constructor(
         }.catch {
             emit(PagingData.empty())
         }.cachedIn(viewModelScope)
+
+    val isNetworkAvailable = connectivityChecker.isNetworkAvailable()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = true
+        )
 
     private val _menuVisibleFeed: MutableStateFlow<FeedItem?> = MutableStateFlow(null)
     val menuVisibleFeed = _menuVisibleFeed.asStateFlow()

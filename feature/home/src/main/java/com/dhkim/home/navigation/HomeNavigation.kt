@@ -28,6 +28,7 @@ fun NavGraphBuilder.home() {
         val feeds = viewModel.feeds.collectAsLazyPagingItems()
         val likeFeeds by viewModel.likeFeeds.collectAsStateWithLifecycle()
         val menuVisibleFeed by viewModel.menuVisibleFeed.collectAsStateWithLifecycle()
+        val isNetworkAvailable by viewModel.isNetworkAvailable.collectAsStateWithLifecycle()
         val feedState = rememberLazyListState()
         var isFeedLayoutChanged by remember { mutableStateOf(false) }
 
@@ -53,6 +54,7 @@ fun NavGraphBuilder.home() {
             feeds = feeds,
             likeFeeds = likeFeeds,
             menuVisibleFeed = menuVisibleFeed,
+            isNetworkAvailable = isNetworkAvailable,
             onAction = viewModel::onAction,
             onFeedLayoutChange = { isFeedLayoutChanged = it }
         )

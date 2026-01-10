@@ -26,6 +26,7 @@ import com.dhkim.domain.feed.useCase.UpdateFeedLikeCountVisibilityUseCase
 import com.dhkim.domain.user.model.User
 import com.dhkim.domain.user.repository.UserRepository
 import com.dhkim.domain.user.useCase.GetUserUseCase
+import com.dhkim.network.ConnectivityChecker
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
@@ -58,6 +59,7 @@ class HomeScreenTest {
     private val unhideFeedUseCase = UnhideFeedUseCase(feedRepository, getUserUseCase)
     private val toggleFeedLikeUseCase = ToggleFeedLikeUseCase(feedRepository, getUserUseCase)
     private val getLikeFeedsUseCase = GetLikeFeedsUseCase(feedRepository, getUserUseCase)
+    private val connectivityChecker = mockk<ConnectivityChecker>()
 
     @get:Rule
     val composeRule = createComposeRule()
@@ -105,6 +107,7 @@ class HomeScreenTest {
         coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf()
         coEvery { feedRepository.getAllLikedFeeds(any()) } returns flowOf(setOf(LikeFeed("feedId1", "userId1")))
         coEvery { userRepository.getUser() } returns flowOf(testUser)
+        coEvery { connectivityChecker.isNetworkAvailable() } returns flowOf(true)
 
         viewModel = HomeViewModel(
             getFeedsUseCase,
@@ -116,6 +119,7 @@ class HomeScreenTest {
             toggleFeedLikeUseCase,
             getLikeFeedsUseCase,
             getUserUseCase,
+            connectivityChecker
         )
 
         composeRule.setContent {
@@ -123,6 +127,7 @@ class HomeScreenTest {
             val likeFeeds by viewModel.likeFeeds.collectAsStateWithLifecycle()
             val menuVisibleFeed by viewModel.menuVisibleFeed.collectAsStateWithLifecycle()
             val feedUploadStatuses by viewModel.feedUploadStatuses.collectAsStateWithLifecycle()
+            val isNetworkAvailable by viewModel.isNetworkAvailable.collectAsStateWithLifecycle()
             val feedState = rememberLazyListState()
 
             HomeScreen(
@@ -131,6 +136,7 @@ class HomeScreenTest {
                 feeds = feeds,
                 likeFeeds = likeFeeds,
                 menuVisibleFeed = menuVisibleFeed,
+                isNetworkAvailable = isNetworkAvailable,
                 onAction = viewModel::onAction,
                 onFeedLayoutChange = {}
             )
@@ -161,6 +167,7 @@ class HomeScreenTest {
         coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf()
         coEvery { feedRepository.getAllLikedFeeds(any()) } returns flowOf(setOf(LikeFeed("feedId1", "userId1")))
         coEvery { userRepository.getUser() } returns flowOf(testUser)
+        coEvery { connectivityChecker.isNetworkAvailable() } returns flowOf(true)
 
         viewModel = HomeViewModel(
             getFeedsUseCase,
@@ -172,6 +179,7 @@ class HomeScreenTest {
             toggleFeedLikeUseCase,
             getLikeFeedsUseCase,
             getUserUseCase,
+            connectivityChecker
         )
 
         composeRule.setContent {
@@ -179,6 +187,7 @@ class HomeScreenTest {
             val likeFeeds by viewModel.likeFeeds.collectAsStateWithLifecycle()
             val menuVisibleFeed by viewModel.menuVisibleFeed.collectAsStateWithLifecycle()
             val feedUploadStatuses by viewModel.feedUploadStatuses.collectAsStateWithLifecycle()
+            val isNetworkAvailable by viewModel.isNetworkAvailable.collectAsStateWithLifecycle()
             val feedState = rememberLazyListState()
 
             HomeScreen(
@@ -187,6 +196,7 @@ class HomeScreenTest {
                 feeds = feeds,
                 likeFeeds = likeFeeds,
                 menuVisibleFeed = menuVisibleFeed,
+                isNetworkAvailable = isNetworkAvailable,
                 onAction = viewModel::onAction,
                 onFeedLayoutChange = {}
             )
