@@ -121,6 +121,13 @@ fun HomeScreen(
         if (!pagingLoading) isRefreshing = false
     }
 
+    LaunchedEffect(feeds.loadState.refresh) {
+        if (feeds.loadState.refresh is LoadState.NotLoading) {
+            delay(300)
+            feedState.scrollToItem(0)
+        }
+    }
+
     LaunchedEffect(showNoticeMessage) {
         if (showNoticeMessage != null) {
             delay(3_000)

@@ -16,7 +16,7 @@ import kotlinx.coroutines.tasks.await
 
 @OptIn(ExperimentalPagingApi::class)
 class HomeFeedRemoteMediator(
-    private val query: DatabaseReference,
+    private val feedRef: DatabaseReference,
     private val database: AppDatabase
 ) : RemoteMediator<Int, HomeFeedEntity>() {
 
@@ -47,13 +47,13 @@ class HomeFeedRemoteMediator(
             }
 
             val snapshot = if (loadKey == null) {
-                query
+                feedRef
                     .orderByKey()
                     .limitToFirst(state.config.pageSize)
                     .get()
                     .await()
             } else {
-                query
+                feedRef
                     .orderByKey()
                     .startAfter(loadKey)
                     .limitToFirst(state.config.pageSize)
