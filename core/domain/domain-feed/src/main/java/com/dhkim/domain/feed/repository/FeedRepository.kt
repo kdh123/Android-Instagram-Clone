@@ -27,6 +27,7 @@ interface FeedRepository {
     suspend fun updateCommentVisibility(feedId: String, enableComment: Boolean)
     suspend fun toggleLike(feedId: String, userId: String)
     suspend fun remoteToggleLike(feedId: String, userId: String)
+    suspend fun syncLikeFeeds(userId: String)
     fun getAllLikedFeeds(userId: String): Flow<Set<LikeFeed>>
     fun getLikeFeed(feedId: String, userId: String): Flow<LikeFeed?>
     suspend fun updateLikeFeed(likeFeed: LikeFeed)

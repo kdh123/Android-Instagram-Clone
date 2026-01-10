@@ -1,6 +1,7 @@
 package com.dhkim.data.feed.extension
 
 import com.dhkim.data.feed.model.FeedDto
+import com.dhkim.data.feed.model.LikeFeedDto
 import com.dhkim.database.entity.FeedUploadStatusEntity
 import com.dhkim.database.entity.HiddenFeedEntity
 import com.dhkim.database.entity.HomeFeedEntity
@@ -139,5 +140,14 @@ fun LikeFeed.toEntity(): LikeEntity {
         userId = userId,
         likedAt = likedAt,
         isSynced = isSynced
+    )
+}
+
+fun LikeFeedDto.toLikeFeed(): LikeFeed {
+    return LikeFeed(
+        feedId = feedId,
+        userId = userId,
+        likedAt = isLikeAt,
+        isSynced = true
     )
 }

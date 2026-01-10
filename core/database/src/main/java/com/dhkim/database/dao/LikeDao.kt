@@ -11,6 +11,9 @@ import kotlinx.coroutines.flow.Flow
 interface LikeDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(likes: List<LikeEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertLike(like: LikeEntity)
 
     @Query("DELETE FROM liked_feeds WHERE feedId = :feedId AND userId = :userId")

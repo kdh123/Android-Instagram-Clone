@@ -66,6 +66,10 @@ class FeedLocalDataSource @Inject constructor(
         hiddenFeedDao.clear()
     }
 
+    suspend fun insertAllLike(likes: List<LikeEntity>) {
+        likeDao.insertAll(likes)
+    }
+
     suspend fun insertLike(like: LikeEntity) {
         likeDao.insertLike(like)
     }

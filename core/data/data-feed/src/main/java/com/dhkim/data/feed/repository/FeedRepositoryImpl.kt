@@ -101,7 +101,7 @@ class FeedRepositoryImpl @Inject constructor(
     }
 
     override suspend fun updateCommentVisibility(feedId: String, enableComment: Boolean) {
-        remoteDataSource.updateCommentVisibility(feedId, enableComment).first()
+        remoteDataSource.updateCommentEnable(feedId, enableComment).first()
     }
 
     override suspend fun toggleLike(feedId: String, userId: String) {
@@ -117,6 +117,13 @@ class FeedRepositoryImpl @Inject constructor(
     override suspend fun remoteToggleLike(feedId: String, userId: String) {
         val isLiked = localDataSource.observeIsLiked(feedId, userId).first()
         remoteDataSource.toggleLike(feedId, myUid = userId, isLiked)
+    }
+
+    override suspend fun syncLikeFeeds(userId: String) {
+        val likeFeeds = remoteDataSource.getLikesByUser(userId).map { it.toLikeFeed() }
+        if (likeFeeds.isNotEmpty()) {
+            localDataSource.insertAllLike(likeFeeds.map { it.toEntity() })
+        }
     }
 
     override fun getAllLikedFeeds(userId: String): Flow<Set<LikeFeed>> {

@@ -3,6 +3,7 @@ package com.dhkim.login
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dhkim.common.handle
+import com.dhkim.domain.feed.useCase.SyncLikeFeedsUseCase
 import com.dhkim.domain.login.useCase.LoginUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -13,7 +14,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
-    private val loginUseCase: LoginUseCase
+    private val loginUseCase: LoginUseCase,
+    private val syncLikeFeedsUseCase: SyncLikeFeedsUseCase
 ) : ViewModel() {
 
     private val _sideEffect = Channel<LoginSideEffect>(Channel.BUFFERED)
@@ -29,6 +31,7 @@ class LoginViewModel @Inject constructor(
         viewModelScope.handle(
             block = {
                 loginUseCase().first()
+                syncLikeFeedsUseCase()
                 _sideEffect.send(LoginSideEffect.NavigateToHome)
             },
             onError = {

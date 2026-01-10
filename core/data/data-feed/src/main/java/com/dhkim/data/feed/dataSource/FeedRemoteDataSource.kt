@@ -7,6 +7,7 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import com.dhkim.common.retryWithDelay
 import com.dhkim.data.feed.model.HiddenFeedDto
+import com.dhkim.data.feed.model.LikeFeedDto
 import com.dhkim.data.feed.model.toDto
 import com.dhkim.database.AppDatabase
 import com.dhkim.database.entity.HomeFeedEntity
@@ -95,18 +96,18 @@ class FeedRemoteDataSource @Inject constructor(
         }.retryWithDelay()
     }
 
-    fun updateCommentVisibility(feedId: String, shouldShow: Boolean): Flow<Unit> {
+    fun updateCommentEnable(feedId: String, isEnabled: Boolean): Flow<Unit> {
         return flow {
             val feedRef = feedRef.child(feedId).child("isCommentEnabled")
-            feedRef.setValue(shouldShow).await()
+            feedRef.setValue(isEnabled).await()
             emit(Unit)
         }.retryWithDelay()
     }
 
     suspend fun toggleLike(feedId: String, myUid: String, isLiked: Boolean): Boolean {
         val updates = hashMapOf<String, Any?>(
-            "/likes_by_feed/$feedId/$myUid" to if (isLiked) true else null,
-            "/likes_by_user/$myUid/$feedId" to if (isLiked) true else null
+            "/likes_by_feed/$feedId/$myUid" to if (isLiked) System.currentTimeMillis() else null,
+            "/likes_by_user/$myUid/$feedId" to if (isLiked) System.currentTimeMillis() else null
         )
 
         likeRef.updateChildren(updates).await()
@@ -157,6 +158,40 @@ class FeedRemoteDataSource @Inject constructor(
                 }
             })
             awaitClose()
+        }
+    }
+
+    suspend fun getLikesByFeed(feedId: String): List<LikeFeedDto> {
+        return try {
+            val snapshot = likeRef.child("likes_by_feed").child(feedId).get().await()
+            snapshot.children.mapNotNull { child ->
+                val userId = child.key ?: return@mapNotNull null
+                val timestamp = child.getValue(Long::class.java) ?: 0L
+                LikeFeedDto(
+                    feedId = feedId,
+                    userId = userId,
+                    isLikeAt = timestamp
+                )
+            }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    suspend fun getLikesByUser(userId: String): List<LikeFeedDto> {
+        return try {
+            val snapshot = likeRef.child("likes_by_user").child(userId).get().await()
+            snapshot.children.mapNotNull { child ->
+                val feedId = child.key ?: return@mapNotNull null
+                val timestamp = child.getValue(Long::class.java) ?: 0L
+                LikeFeedDto(
+                    feedId = feedId,
+                    userId = userId,
+                    isLikeAt = timestamp
+                )
+            }
+        } catch (e: Exception) {
+            emptyList()
         }
     }
 }

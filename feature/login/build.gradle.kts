@@ -59,6 +59,7 @@ dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:domain:domain-login"))
     implementation(project(":core:domain:domain-user"))
+    implementation(project(":core:domain:domain-feed"))
 
     implementation(libs.bundles.androidx.compose.main)
     implementation(libs.bundles.androidx.compose.side)
