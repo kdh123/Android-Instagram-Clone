@@ -106,10 +106,14 @@ fun CommonFeedContent(
         onMoreClick = onMoreClick,
     ) {
         FeedImagePager()
+        Spacer(modifier = Modifier.height(8.dp))
         FeedItemActions(
             onLikeClick = { onLikeClick(feedItem) },
             onCommentClick = { },
             onShareClick = { }
+        )
+        FeedLikeSummaryText(
+            onLikeCountClick = { }
         )
         FeedCaption(
             onUserClick = { },
@@ -135,6 +139,9 @@ fun SponsoredFeedContent(
             onLikeClick = { onLikeClick(feedItem) },
             onCommentClick = { },
             onShareClick = { }
+        )
+        FeedLikeSummaryText(
+            onLikeCountClick = { }
         )
         FeedCaption(
             onUserClick = { },
@@ -275,8 +282,7 @@ fun FeedContentScope.FeedItemActions(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(48.dp)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(horizontal = 12.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
@@ -321,6 +327,52 @@ fun FeedContentScope.FeedItemActions(
             contentDescription = "Comment",
         )
     }
+}
+
+@Composable
+fun FeedContentScope.FeedLikeSummaryText(
+    onLikeCountClick: () -> Unit,
+) {
+    val representativeLikerName = feedItem.representativeLikeName
+    val totalLikeCount = feedItem.likeCount
+    val isLikeCountVisible = feedItem.isLikeCountVisible
+
+    if (totalLikeCount == 0) return
+
+    val annotatedString = buildAnnotatedString {
+        if (representativeLikerName.isNotEmpty()) {
+            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                append(representativeLikerName)
+            }
+            if (totalLikeCount > 1) {
+                append("님 ")
+                withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                    if (isLikeCountVisible) {
+                        append("외 ${totalLikeCount - 1}명")
+                    } else {
+                        append("외 여러 명")
+                    }
+                }
+                append("이 좋아합니다")
+            } else {
+                append("님이 좋아합니다")
+            }
+        } else {
+            append("좋아요 ")
+            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                append("${totalLikeCount}개")
+            }
+        }
+    }
+
+    Text(
+        text = annotatedString,
+        modifier = Modifier
+            .fillMaxWidth()
+            .noRippleClick(onClick = onLikeCountClick)
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+        style = MaterialTheme.typography.bodyMedium
+    )
 }
 
 @Composable
@@ -550,6 +602,8 @@ class FeedContentPreviewParameterProvider : PreviewParameterProvider<FeedItem> {
                 userProfileImage = "",
                 caption = "Test Caption, Test Caption, Test Caption, Test Caption, Test Caption, Test Caption, Test Caption, Test Caption, Test Caption, ",
                 likeCount = 10,
+                representativeLikeId = "user1",
+                representativeLikeName = "Tom",
                 commentCount = 5,
                 isLiked = true,
                 isLikeCountVisible = true,
@@ -566,9 +620,11 @@ class FeedContentPreviewParameterProvider : PreviewParameterProvider<FeedItem> {
                 userProfileImage = "",
                 caption = "Test Caption 1",
                 likeCount = 10,
+                representativeLikeId = "user1",
+                representativeLikeName = "Jay",
                 commentCount = 5,
                 isLiked = false,
-                isLikeCountVisible = true,
+                isLikeCountVisible = false,
                 isCommentEnabled = true,
                 type = FeedItemType.Sponsored(
                     imageUrl = "https://picsum.photos/400/400",

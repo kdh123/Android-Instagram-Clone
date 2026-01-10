@@ -36,11 +36,12 @@ class FeedRemoteDataSource @Inject constructor(
 ) {
     private val feedRef = firebaseDatabase.getReference("feeds")
     private val likeRef = firebaseDatabase.getReference("likes")
+    private val userRef = firebaseDatabase.getReference("users")
     private val hiddenFeedRef = firebaseDatabase.getReference("hidden_feeds")
     private val storageRef = storage.reference
 
     fun getHomeFeed(): Flow<PagingData<HomeFeedEntity>> = Pager(
-        config = PagingConfig(pageSize = 10),
+        config = PagingConfig(pageSize = 30),
         remoteMediator = HomeFeedRemoteMediator(feedRef, appDatabase),
         pagingSourceFactory = { appDatabase.feedDao().getHomeFeeds() }
     ).flow
@@ -103,22 +104,47 @@ class FeedRemoteDataSource @Inject constructor(
     }
 
     suspend fun toggleLike(feedId: String, myUid: String, isLiked: Boolean): Boolean {
-        val updates = hashMapOf<String, Any?>(
+        val likeUpdates = hashMapOf<String, Any?>(
             "/likes_by_feed/$feedId/$myUid" to if (isLiked) System.currentTimeMillis() else null,
             "/likes_by_user/$myUid/$feedId" to if (isLiked) System.currentTimeMillis() else null
         )
 
-        likeRef.updateChildren(updates).await()
-        val feedRef = feedRef.child(feedId).child("likeCount")
-        return if (!isLiked) {
-            incrementLikeCount(feedRef).first()
+        likeRef.updateChildren(likeUpdates).await()
+
+        val nextLikerSnapshot = likeRef.child("likes_by_feed").child(feedId)
+            .orderByValue()
+            .limitToLast(2)
+            .get().await()
+
+        val nextLikerId = nextLikerSnapshot.children
+            .map { it.key }
+            .firstOrNull()
+
+        val feedsUpdates = if (nextLikerId != null) {
+            val nextLikerName = userRef.child(nextLikerId).child("name").get().await().value as String
+            hashMapOf<String, Any?>(
+                "$feedId/representativeLikerId" to nextLikerId,
+                "$feedId/representativeLikerName" to nextLikerName
+            )
         } else {
-            decrementLikeCount(feedRef).first()
+            hashMapOf<String, Any?>(
+                "$feedId/representativeLikerId" to null,
+                "$feedId/representativeLikerName" to null
+            )
+        }
+
+        feedRef.updateChildren(feedsUpdates).await()
+
+        return if (isLiked) {
+            incrementLikeCount(feedId).first()
+        } else {
+            decrementLikeCount(feedId).first()
         }
     }
 
-    private fun incrementLikeCount(countRef: DatabaseReference): Flow<Boolean> {
+    private fun incrementLikeCount(feedId: String): Flow<Boolean> {
         return callbackFlow {
+            val countRef = feedRef.child(feedId).child("likeCount")
             countRef.runTransaction(object : Transaction.Handler {
                 override fun doTransaction(mutableData: MutableData): Transaction.Result {
                     val currentValue = mutableData.getValue(Int::class.java) ?: 0
@@ -138,7 +164,8 @@ class FeedRemoteDataSource @Inject constructor(
         }
     }
 
-    private fun decrementLikeCount(countRef: DatabaseReference): Flow<Boolean> {
+    private fun decrementLikeCount(feedId: String): Flow<Boolean> {
+        val countRef = feedRef.child(feedId).child("likeCount")
         return callbackFlow {
             countRef.runTransaction(object : Transaction.Handler {
                 override fun doTransaction(mutableData: MutableData): Transaction.Result {

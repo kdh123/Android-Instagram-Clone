@@ -13,6 +13,8 @@ data class FeedItem(
     val likeCount: Int,
     val commentCount: Int,
     val isLiked: Boolean,
+    val representativeLikeName: String,
+    val representativeLikeId: String,
     val type: FeedItemType,
     val isLikeCountVisible: Boolean,
     val isCommentEnabled: Boolean,

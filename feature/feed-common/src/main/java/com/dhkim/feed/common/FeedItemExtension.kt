@@ -28,6 +28,8 @@ fun Feed.toFeedItem(myUserId: String): FeedItem {
         likeCount = likeCount,
         commentCount = commentCount,
         isLiked = isLiked,
+        representativeLikeName = representativeLikerName,
+        representativeLikeId = representativeLikerId,
         type = feedType,
         isLikeCountVisible = isLikeCountVisible,
         isCommentEnabled = isCommentEnabled

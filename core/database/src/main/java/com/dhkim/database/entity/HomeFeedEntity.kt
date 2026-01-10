@@ -14,6 +14,8 @@ data class HomeFeedEntity(
     val caption: String,
     val timestamp: Long,
     val likeCount: Int,
+    val representativeLikeId: String,
+    val representativeLikeName: String,
     val commentCount: Int,
     val adUrl: String,
     val isLikeCountVisible: Boolean,

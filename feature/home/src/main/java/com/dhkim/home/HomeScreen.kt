@@ -121,10 +121,9 @@ fun HomeScreen(
         if (!pagingLoading) isRefreshing = false
     }
 
-    LaunchedEffect(feeds.loadState.refresh) {
-        if (feeds.loadState.refresh is LoadState.NotLoading) {
-            delay(300)
-            feedState.scrollToItem(0)
+    LaunchedEffect(feeds.itemCount) {
+        if (feeds.itemCount > 0) {
+            feedState.animateScrollToItem(0)
         }
     }
 
