@@ -17,6 +17,9 @@ interface HiddenFeedDao {
     fun isHidden(feedId: String): Flow<Boolean>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAllHiddenFeed(hiddenFeeds: List<HiddenFeedEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertHiddenFeed(hiddenFeed: HiddenFeedEntity)
 
     @Query("DELETE FROM hidden_feeds WHERE feedId = :feedId")

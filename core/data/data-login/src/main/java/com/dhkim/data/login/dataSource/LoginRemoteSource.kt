@@ -22,15 +22,16 @@ class LoginRemoteSource @Inject constructor(
     @param:ApplicationContext private val context: Context
 ) {
 
-    fun login(): Flow<Unit> {
-        return flow {
+    suspend fun login() {
+        try {
             val result = credentialManager.getCredential(
                 request = credentialRequest,
                 context = context,
             )
             val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(result.credential.data)
             val user = firebaseAuthWithGoogleToken(auth, googleIdTokenCredential.idToken)
-            emit(Unit)
+        } catch (e: Exception) {
+            throw LoginFailException(e.message ?: "Unknown Error")
         }
     }
 

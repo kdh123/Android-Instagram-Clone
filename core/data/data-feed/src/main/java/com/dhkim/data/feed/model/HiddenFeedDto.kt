@@ -5,8 +5,8 @@ import com.google.firebase.database.IgnoreExtraProperties
 
 @IgnoreExtraProperties
 data class HiddenFeedDto(
-    val feedId: String,
-    val hiddenAt: Long = System.currentTimeMillis()
+    val feedId: String = "",
+    val hiddenAt: Long = 0L
 ) {
     fun toHiddenFeed(): HiddenFeed {
         return HiddenFeed(

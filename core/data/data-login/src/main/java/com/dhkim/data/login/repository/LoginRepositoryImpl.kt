@@ -9,8 +9,8 @@ class LoginRepositoryImpl @Inject constructor(
     private val remoteSource: LoginRemoteSource,
 ): LoginRepository {
 
-    override fun login(): Flow<Unit> {
-        return remoteSource.login()
+    override suspend fun login() {
+        remoteSource.login()
     }
 
     override fun logout(): Flow<Unit> {

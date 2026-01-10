@@ -80,6 +80,13 @@ class FeedRepositoryImpl @Inject constructor(
         return localDataSource.isHidden(feedId)
     }
 
+    override suspend fun syncHiddenFeeds(userId: String) {
+        val hiddenFeeds = remoteDataSource.getHiddenFeeds(userId).map { it.toHiddenFeed() }
+        if (hiddenFeeds.isNotEmpty()) {
+            localDataSource.insertAllHiddenFeeds(hiddenFeeds.map { it.toEntity() })
+        }
+    }
+
     override suspend fun hideFeed(userId: String, hiddenFeed: HiddenFeed) {
         localDataSource.insertHiddenFeed(hiddenFeed.toEntity())
         remoteDataSource.hideFeed(userId, hiddenFeed.feedId).first()

@@ -20,6 +20,7 @@ interface FeedRepository {
     suspend fun clearFeedUploadStatuses()
     fun getHiddenFeeds(): Flow<Set<HiddenFeed>>
     fun isHidden(feedId: String): Flow<Boolean>
+    suspend fun syncHiddenFeeds(userId: String)
     suspend fun hideFeed(userId:String, hiddenFeed: HiddenFeed)
     suspend fun unhideFeed(userId:String, feedId: String)
     suspend fun clearHiddenFeeds()

@@ -62,13 +62,11 @@ class FeedRemoteDataSource @Inject constructor(
         }.retryWithDelay()
     }
 
-    fun getHiddenFeeds(userId: String): Flow<List<HiddenFeedDto>> {
-        return flow {
-            val snapshot = hiddenFeedRef.child(userId).get().await()
-            val hiddenFeeds = snapshot.children
-                .mapNotNull { it.getValue(HiddenFeedDto::class.java) }
-            emit(hiddenFeeds)
-        }
+    suspend fun getHiddenFeeds(userId: String): List<HiddenFeedDto> {
+        val snapshot = hiddenFeedRef.child(userId).get().await()
+        val hiddenFeeds = snapshot.children
+            .mapNotNull { it.getValue(HiddenFeedDto::class.java) }
+        return hiddenFeeds
     }
 
     fun hideFeed(userId: String, feedId: String): Flow<Unit> {

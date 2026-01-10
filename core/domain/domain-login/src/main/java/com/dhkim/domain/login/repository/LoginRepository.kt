@@ -4,6 +4,6 @@ import kotlinx.coroutines.flow.Flow
 
 interface LoginRepository {
 
-    fun login(): Flow<Unit>
+    suspend fun login()
     fun logout(): Flow<Unit>
 }

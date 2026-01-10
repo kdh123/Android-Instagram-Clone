@@ -54,6 +54,10 @@ class FeedLocalDataSource @Inject constructor(
         return hiddenFeedDao.isHidden(feedId)
     }
 
+    suspend fun insertAllHiddenFeeds(hiddenFeeds: List<HiddenFeedEntity>) {
+        hiddenFeedDao.insertAllHiddenFeed(hiddenFeeds)
+    }
+
     suspend fun insertHiddenFeed(hiddenFeed: HiddenFeedEntity) {
         hiddenFeedDao.insertHiddenFeed(hiddenFeed)
     }
