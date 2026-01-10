@@ -89,7 +89,7 @@ class FeedRemoteDataSource @Inject constructor(
 
     fun updateLikeCountVisibility(feedId: String, shouldShow: Boolean): Flow<Unit> {
         return flow {
-            val feedRef = feedRef.child(feedId).child("shouldShowLikeCount")
+            val feedRef = feedRef.child(feedId).child("isLikeCountVisible")
             feedRef.setValue(shouldShow).await()
             emit(Unit)
         }.retryWithDelay()
@@ -97,24 +97,23 @@ class FeedRemoteDataSource @Inject constructor(
 
     fun updateCommentVisibility(feedId: String, shouldShow: Boolean): Flow<Unit> {
         return flow {
-            val feedRef = feedRef.child(feedId).child("enableComment")
+            val feedRef = feedRef.child(feedId).child("isCommentEnabled")
             feedRef.setValue(shouldShow).await()
             emit(Unit)
         }.retryWithDelay()
     }
 
-    suspend fun toggleLike(feedId: String, myUid: String): Boolean {
-        val likeRef = likeRef.child(feedId).child(myUid)
+    suspend fun toggleLike(feedId: String, myUid: String, isLiked: Boolean): Boolean {
+        val updates = hashMapOf<String, Any?>(
+            "/likes_by_feed/$feedId/$myUid" to if (isLiked) true else null,
+            "/likes_by_user/$myUid/$feedId" to if (isLiked) true else null
+        )
+
+        likeRef.updateChildren(updates).await()
         val feedRef = feedRef.child(feedId).child("likeCount")
-
-        val snapshot = likeRef.get().await()
-        val isAlreadyLiked = snapshot.exists()
-
-        return if (!isAlreadyLiked) {
-            likeRef.setValue(true).await()
+        return if (!isLiked) {
             incrementLikeCount(feedRef).first()
         } else {
-            likeRef.removeValue().await()
             decrementLikeCount(feedRef).first()
         }
     }

@@ -97,7 +97,7 @@ class FeedRepositoryImpl @Inject constructor(
     override suspend fun updateLikeCountVisibility(feedId: String, isVisible: Boolean) {
         remoteDataSource.updateLikeCountVisibility(feedId, shouldShow = isVisible).first()
         val feed = localDataSource.getHomeFeed(feedId).first()
-        localDataSource.updateHomeFeed(feed.copy(shouldShowLikeCount = isVisible))
+        localDataSource.updateHomeFeed(feed.copy(isLikeCountVisible = isVisible))
     }
 
     override suspend fun updateCommentVisibility(feedId: String, enableComment: Boolean) {
@@ -115,7 +115,8 @@ class FeedRepositoryImpl @Inject constructor(
     }
 
     override suspend fun remoteToggleLike(feedId: String, userId: String) {
-        remoteDataSource.toggleLike(feedId, myUid = userId)
+        val isLiked = localDataSource.observeIsLiked(feedId, userId).first()
+        remoteDataSource.toggleLike(feedId, myUid = userId, isLiked)
     }
 
     override fun getAllLikedFeeds(userId: String): Flow<Set<LikeFeed>> {

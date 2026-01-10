@@ -65,8 +65,8 @@ fun FeedDto.toHomeEntity(): HomeFeedEntity {
         likeCount = likeCount,
         commentCount = commentCount,
         adUrl = adUrl,
-        shouldShowLikeCount = isLikeCountVisible,
-        enableComment = isCommentEnabled
+        isLikeCountVisible = isLikeCountVisible,
+        isCommentEnabled = isCommentEnabled
     )
 }
 
@@ -83,8 +83,8 @@ fun HomeFeedEntity.toFeed(): Feed {
         likeCount = likeCount,
         commentCount = commentCount,
         adUrl = adUrl,
-        isLikeCountVisible = shouldShowLikeCount,
-        isCommentEnabled = enableComment
+        isLikeCountVisible = isLikeCountVisible,
+        isCommentEnabled = isCommentEnabled
     )
 }
 
@@ -101,8 +101,8 @@ fun FeedDto.toSearchEntity(): SearchFeedEntity {
         likeCount = likeCount,
         commentCount = commentCount,
         adUrl = adUrl,
-        shouldShowLikeCount = isLikeCountVisible,
-        enableComment = isCommentEnabled
+        isLikeCountVisible = isLikeCountVisible,
+        isCommentEnabled = isCommentEnabled
     )
 }
 
@@ -119,8 +119,8 @@ fun SearchFeedEntity.toFeed(): Feed {
         likeCount = likeCount,
         commentCount = commentCount,
         adUrl = adUrl,
-        isLikeCountVisible = shouldShowLikeCount,
-        isCommentEnabled = enableComment
+        isLikeCountVisible = isLikeCountVisible,
+        isCommentEnabled = isCommentEnabled
     )
 }
 

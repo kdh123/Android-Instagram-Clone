@@ -16,6 +16,6 @@ data class HomeFeedEntity(
     val likeCount: Int,
     val commentCount: Int,
     val adUrl: String,
-    val shouldShowLikeCount: Boolean,
-    val enableComment: Boolean,
+    val isLikeCountVisible: Boolean,
+    val isCommentEnabled: Boolean,
 )
