@@ -68,7 +68,7 @@ fun MyFeedBottomSheet(
                 }
         ) {
             val commentIcon = if (isCommentEnabled) R.drawable.ic_disable_comment else R.drawable.ic_comment
-            val commentText = if (isCommentEnabled) R.string.cancel_disable_comment else R.string.disable_comment
+            val commentText = if (isCommentEnabled) R.string.disable_comment else R.string.cancel_disable_comment
 
             Icon(
                 painter = painterResource(commentIcon),

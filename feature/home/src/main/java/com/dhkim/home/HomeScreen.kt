@@ -105,8 +105,8 @@ fun HomeScreen(
                     MyFeedBottomSheet(
                         isLikeCountVisible = menuVisibleFeed.isLikeCountVisible,
                         isCommentEnabled = menuVisibleFeed.isCommentEnabled,
-                        onLikeVisibleChange = { onAction(HomeAction.UpdateLikeCountVisibility(isVisible = it)) },
-                        onCommentEnabledChange = { onAction(HomeAction.UpdateEnableComment(isEnabled = it)) },
+                        onLikeVisibleChange = { onAction(HomeAction.ToggleLikeCountVisibility(isVisible = it)) },
+                        onCommentEnabledChange = { onAction(HomeAction.ToggleEnableComment(isEnabled = it)) },
                         onEditClick = {},
                         onDeleteClick = {}
                     )

@@ -4,19 +4,46 @@ import com.dhkim.database.dao.FeedDao
 import com.dhkim.database.dao.FeedUploadDao
 import com.dhkim.database.dao.HiddenFeedDao
 import com.dhkim.database.dao.LikeDao
+import com.dhkim.database.dao.MyFeedDao
 import com.dhkim.database.entity.FeedUploadStatusEntity
 import com.dhkim.database.entity.HiddenFeedEntity
 import com.dhkim.database.entity.HomeFeedEntity
 import com.dhkim.database.entity.LikeEntity
+import com.dhkim.database.entity.MyFeedEntity
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
 class FeedLocalDataSource @Inject constructor(
     private val feedDao: FeedDao,
+    private val myFeedDao: MyFeedDao,
     private val feedUploadDao: FeedUploadDao,
     private val hiddenFeedDao: HiddenFeedDao,
     private val likeDao: LikeDao
 ) {
+
+    fun getMyFeeds(): Flow<List<MyFeedEntity>> {
+        return myFeedDao.getMyFeeds()
+    }
+
+    fun getMyFeed(feedId: String): Flow<MyFeedEntity> {
+        return myFeedDao.getMyFeed(feedId)
+    }
+
+    suspend fun updateMyFeed(feed: MyFeedEntity) {
+        myFeedDao.updateMyFeed(feed)
+    }
+
+    suspend fun insertMyFeeds(feeds: List<MyFeedEntity>) {
+        myFeedDao.insertMyFeeds(feeds)
+    }
+
+    suspend fun deleteMyFeed(feedId: String) {
+        myFeedDao.deleteMyFeed(feedId)
+    }
+
+    suspend fun clearMyFeeds() {
+        myFeedDao.clearMyFeeds()
+    }
 
     fun getHomeFeed(feedId: String): Flow<HomeFeedEntity> {
         return feedDao.getHomeFeed(feedId)

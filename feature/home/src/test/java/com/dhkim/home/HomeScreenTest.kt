@@ -22,11 +22,12 @@ import com.dhkim.domain.feed.repository.FeedRepository
 import com.dhkim.domain.feed.useCase.GetFeedUploadStatusesUseCase
 import com.dhkim.domain.feed.useCase.GetFeedsUseCase
 import com.dhkim.domain.feed.useCase.GetLikeFeedsUseCase
+import com.dhkim.domain.feed.useCase.GetMyFeedsUseCase
 import com.dhkim.domain.feed.useCase.HideFeedUseCase
+import com.dhkim.domain.feed.useCase.ToggleEnableCommentUseCase
 import com.dhkim.domain.feed.useCase.ToggleFeedLikeUseCase
 import com.dhkim.domain.feed.useCase.UnhideFeedUseCase
-import com.dhkim.domain.feed.useCase.UpdateEnableFeedCommentUseCase
-import com.dhkim.domain.feed.useCase.UpdateFeedLikeCountVisibilityUseCase
+import com.dhkim.domain.feed.useCase.ToggleFeedLikeCountVisibilityUseCase
 import com.dhkim.domain.user.model.User
 import com.dhkim.domain.user.repository.UserRepository
 import com.dhkim.domain.user.useCase.GetUserUseCase
@@ -57,11 +58,12 @@ class HomeScreenTest {
     private val getFeedsUseCase = GetFeedsUseCase(feedRepository)
     private val getUserUseCase = GetUserUseCase(userRepository)
     private val getFeedUploadStatusesUseCase = GetFeedUploadStatusesUseCase(feedRepository)
-    private val updateFeedLikeCountVisibilityUseCase = UpdateFeedLikeCountVisibilityUseCase(feedRepository)
-    private val updateEnableFeedCommentUseCase = UpdateEnableFeedCommentUseCase(feedRepository)
+    private val toggleFeedLikeCountVisibilityUseCase = ToggleFeedLikeCountVisibilityUseCase(feedRepository, getUserUseCase)
     private val hideFeedUseCase = HideFeedUseCase(feedRepository, getUserUseCase)
     private val unhideFeedUseCase = UnhideFeedUseCase(feedRepository, getUserUseCase)
     private val toggleFeedLikeUseCase = ToggleFeedLikeUseCase(feedRepository, getUserUseCase)
+    private val toggleEnableCommentUseCase = ToggleEnableCommentUseCase(feedRepository, getUserUseCase)
+    private val getMyFeedsUseCase = GetMyFeedsUseCase(feedRepository)
     private val getLikeFeedsUseCase = GetLikeFeedsUseCase(feedRepository, getUserUseCase)
     private val connectivityChecker = mockk<ConnectivityChecker>()
 
@@ -69,6 +71,20 @@ class HomeScreenTest {
     val composeRule = createComposeRule()
 
     private lateinit var viewModel: HomeViewModel
+
+    private val myFeeds = List(3) {
+        Feed(
+            feedId = it.toString(),
+            userId = "user1",
+            userName = "Tester",
+            userProfileImage = "",
+            imageUrls = listOf("url1"),
+            caption = "Test Caption",
+            timestamp = 123456789L,
+            likeCount = 10,
+            commentCount = 5
+        )
+    }.toSet()
 
     private val fakeFeeds = List(10) {
         Feed(
@@ -104,27 +120,29 @@ class HomeScreenTest {
     @OptIn(ExperimentalMaterial3Api::class)
     @Test
     fun whenFeedsLoadedSuccessfully_showsFeedList() = runTest {
-        coEvery { feedRepository.updateCommentVisibility(any(), any()) } returns Unit
-        coEvery { feedRepository.updateLikeCountVisibility(any(), any()) } returns Unit
+        coEvery { feedRepository.getAllLikedFeeds(any()) } returns flowOf(setOf(LikeFeed("feedId1", "userId1")))
+        coEvery { feedRepository.toggleEnableComment(any(), any()) } returns Unit
+        coEvery { feedRepository.toggleLikeCountVisibility(any(), any()) } returns Unit
         coEvery { feedRepository.getHiddenFeeds() } returns flowOf(setOf(HiddenFeed("feedId1", 1234567890)))
         coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf()
+        coEvery { feedRepository.getMyFeeds() } returns flowOf(myFeeds)
         coEvery { feedRepository.getHomeFeeds() } returns flowOf(PagingData.from(fakeFeeds))
         coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf()
-        coEvery { feedRepository.getAllLikedFeeds(any()) } returns flowOf(setOf(LikeFeed("feedId1", "userId1")))
         coEvery { userRepository.getUser() } returns flowOf(testUser)
         coEvery { connectivityChecker.isNetworkAvailable() } returns flowOf(true)
 
         viewModel = HomeViewModel(
-            getFeedsUseCase,
-            getFeedUploadStatusesUseCase,
-            updateFeedLikeCountVisibilityUseCase,
-            updateEnableFeedCommentUseCase,
-            hideFeedUseCase,
-            unhideFeedUseCase,
-            toggleFeedLikeUseCase,
-            getLikeFeedsUseCase,
-            getUserUseCase,
-            connectivityChecker
+            getMyFeedsUseCase = getMyFeedsUseCase,
+            getFeedsUseCase = getFeedsUseCase,
+            getFeedUploadStatusesUseCase = getFeedUploadStatusesUseCase,
+            toggleFeedLikeCountVisibilityUseCase = toggleFeedLikeCountVisibilityUseCase,
+            hideFeedUseCase = hideFeedUseCase,
+            unhideFeedUseCase = unhideFeedUseCase,
+            toggleFeedLikeUseCase = toggleFeedLikeUseCase,
+            toggleEnableCommentUseCase = toggleEnableCommentUseCase,
+            getLikeFeedsUseCase = getLikeFeedsUseCase,
+            getUserUseCase = getUserUseCase,
+            connectivityChecker = connectivityChecker
         )
 
         composeRule.setContent {
@@ -166,10 +184,11 @@ class HomeScreenTest {
                 append = LoadState.NotLoading(endOfPaginationReached = true)
             )
         )
-        coEvery { feedRepository.updateCommentVisibility(any(), any()) } returns Unit
-        coEvery { feedRepository.updateLikeCountVisibility(any(), any()) } returns Unit
+        coEvery { feedRepository.toggleEnableComment(any(), any()) } returns Unit
+        coEvery { feedRepository.toggleLikeCountVisibility(any(), any()) } returns Unit
         coEvery { feedRepository.getHiddenFeeds() } returns flowOf(setOf(HiddenFeed("feedId1", 1234567890)))
         coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf()
+        coEvery { feedRepository.getMyFeeds() } returns flowOf(myFeeds)
         coEvery { feedRepository.getHomeFeeds() } returns flowOf(PagingData.from(fakeFeeds))
         coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf()
         coEvery { feedRepository.getAllLikedFeeds(any()) } returns flowOf(setOf(LikeFeed("feedId1", "userId1")))
@@ -177,16 +196,17 @@ class HomeScreenTest {
         coEvery { connectivityChecker.isNetworkAvailable() } returns flowOf(true)
 
         viewModel = HomeViewModel(
-            getFeedsUseCase,
-            getFeedUploadStatusesUseCase,
-            updateFeedLikeCountVisibilityUseCase,
-            updateEnableFeedCommentUseCase,
-            hideFeedUseCase,
-            unhideFeedUseCase,
-            toggleFeedLikeUseCase,
-            getLikeFeedsUseCase,
-            getUserUseCase,
-            connectivityChecker
+            getMyFeedsUseCase = getMyFeedsUseCase,
+            getFeedsUseCase = getFeedsUseCase,
+            getFeedUploadStatusesUseCase = getFeedUploadStatusesUseCase,
+            toggleFeedLikeCountVisibilityUseCase = toggleFeedLikeCountVisibilityUseCase,
+            hideFeedUseCase = hideFeedUseCase,
+            unhideFeedUseCase = unhideFeedUseCase,
+            toggleFeedLikeUseCase = toggleFeedLikeUseCase,
+            toggleEnableCommentUseCase = toggleEnableCommentUseCase,
+            getLikeFeedsUseCase = getLikeFeedsUseCase,
+            getUserUseCase = getUserUseCase,
+            connectivityChecker = connectivityChecker
         )
 
         composeRule.setContent {

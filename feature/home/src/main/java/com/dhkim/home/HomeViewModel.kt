@@ -11,11 +11,12 @@ import com.dhkim.common.restartableStateIn
 import com.dhkim.domain.feed.useCase.GetFeedUploadStatusesUseCase
 import com.dhkim.domain.feed.useCase.GetFeedsUseCase
 import com.dhkim.domain.feed.useCase.GetLikeFeedsUseCase
+import com.dhkim.domain.feed.useCase.GetMyFeedsUseCase
 import com.dhkim.domain.feed.useCase.HideFeedUseCase
+import com.dhkim.domain.feed.useCase.ToggleEnableCommentUseCase
 import com.dhkim.domain.feed.useCase.ToggleFeedLikeUseCase
 import com.dhkim.domain.feed.useCase.UnhideFeedUseCase
-import com.dhkim.domain.feed.useCase.UpdateEnableFeedCommentUseCase
-import com.dhkim.domain.feed.useCase.UpdateFeedLikeCountVisibilityUseCase
+import com.dhkim.domain.feed.useCase.ToggleFeedLikeCountVisibilityUseCase
 import com.dhkim.domain.user.exception.NoUserFoundException
 import com.dhkim.domain.user.useCase.GetUserUseCase
 import com.dhkim.feed.common.FeedItem
@@ -42,13 +43,14 @@ import javax.inject.Inject
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class HomeViewModel @Inject constructor(
+    private val getMyFeedsUseCase: GetMyFeedsUseCase,
     private val getFeedsUseCase: GetFeedsUseCase,
     private val getFeedUploadStatusesUseCase: GetFeedUploadStatusesUseCase,
-    private val updateFeedLikeCountVisibilityUseCase: UpdateFeedLikeCountVisibilityUseCase,
-    private val updateEnableFeedCommentUseCase: UpdateEnableFeedCommentUseCase,
+    private val toggleFeedLikeCountVisibilityUseCase: ToggleFeedLikeCountVisibilityUseCase,
     private val hideFeedUseCase: HideFeedUseCase,
     private val unhideFeedUseCase: UnhideFeedUseCase,
     private val toggleFeedLikeUseCase: ToggleFeedLikeUseCase,
+    private val toggleEnableCommentUseCase: ToggleEnableCommentUseCase,
     private val getLikeFeedsUseCase: GetLikeFeedsUseCase,
     private val getUserUseCase: GetUserUseCase,
     private val connectivityChecker: ConnectivityChecker
@@ -69,20 +71,23 @@ class HomeViewModel @Inject constructor(
     private val menuVisibleFeed: MutableStateFlow<FeedItem?> = MutableStateFlow(null)
     private val isRefreshing = MutableStateFlow(false)
 
-    val uiState: RestartableStateFlow<HomeUiState> = combine(
-        isRefreshing,
-        getFeedUploadStatusesUseCase(),
-        getLikeFeedsUseCase(),
-        menuVisibleFeed,
-        connectivityChecker.isNetworkAvailable()
-    ) { isRefreshing, feedUploadStatuses, likeFeeds, menuVisibleFeed, isNetworkAvailable ->
-        HomeUiState(
-            isRefreshing = isRefreshing,
-            feedUploadStatuses = feedUploadStatuses.toImmutableList(),
-            likeFeeds = likeFeeds.toImmutableSet(),
-            menuVisibleFeed = menuVisibleFeed,
-            isNetworkAvailable = isNetworkAvailable
-        )
+    val uiState: RestartableStateFlow<HomeUiState> = isRefreshing.flatMapLatest { isRefreshing ->
+        combine(
+            getMyFeedsUseCase(),
+            getFeedUploadStatusesUseCase(),
+            getLikeFeedsUseCase(),
+            menuVisibleFeed,
+            connectivityChecker.isNetworkAvailable()
+        ) { myFeeds, feedUploadStatuses, likeFeeds, menuVisibleFeed, isNetworkAvailable ->
+            HomeUiState(
+                isRefreshing = isRefreshing,
+                myFeeds = myFeeds.toImmutableSet(),
+                feedUploadStatuses = feedUploadStatuses.toImmutableList(),
+                likeFeeds = likeFeeds.toImmutableSet(),
+                menuVisibleFeed = menuVisibleFeed,
+                isNetworkAvailable = isNetworkAvailable
+            )
+        }
     }.restartableStateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -94,12 +99,8 @@ class HomeViewModel @Inject constructor(
 
     fun onAction(action: HomeAction) {
         when (action) {
-            is HomeAction.UpdateLikeCountVisibility -> {
-                updateLikeCountVisibility(action.isVisible)
-            }
-
-            is HomeAction.UpdateEnableComment -> {
-                updateEnableComment(action.isEnabled)
+            is HomeAction.ToggleLikeCountVisibility -> {
+                toggleLikeCountVisibility(action.isVisible)
             }
 
             is HomeAction.HideFeed -> {
@@ -129,7 +130,26 @@ class HomeViewModel @Inject constructor(
             HomeAction.OnFeedCompleted -> {
                 onFeedCompleted()
             }
+
+            is HomeAction.ToggleEnableComment -> {
+                toggleEnableComment(action.isEnabled)
+            }
         }
+    }
+
+    private fun toggleEnableComment(isEnabled: Boolean) {
+        viewModelScope.handle(
+            block = {
+                val feedId = menuVisibleFeed.value?.feedId ?: return@handle
+                toggleEnableCommentUseCase(feedId)
+                menuVisibleFeed.update { it?.copy(isCommentEnabled = isEnabled) }
+            },
+            onError = {
+                viewModelScope.launch {
+                    _sideEffect.send(HomeSideEffect.ShowRefreshFeedsFailNotice)
+                }
+            }
+        )
     }
 
     private fun onFeedCompleted() {
@@ -167,27 +187,12 @@ class HomeViewModel @Inject constructor(
         menuVisibleFeed.update { feed }
     }
 
-    private fun updateLikeCountVisibility(isVisible: Boolean) {
+    private fun toggleLikeCountVisibility(isVisible: Boolean) {
         viewModelScope.handle(
             block = {
                 val feedId = menuVisibleFeed.value?.feedId ?: return@handle
-                updateFeedLikeCountVisibilityUseCase(feedId, isVisible)
+                toggleFeedLikeCountVisibilityUseCase(feedId)
                 menuVisibleFeed.update { it?.copy(isLikeCountVisible = isVisible) }
-            },
-            onError = {
-                viewModelScope.launch {
-                    _sideEffect.send(HomeSideEffect.ShowToast(it.message ?: "Unknown Error"))
-                }
-            }
-        )
-    }
-
-    private fun updateEnableComment(isEnabled: Boolean) {
-        viewModelScope.handle(
-            block = {
-                val feedId = menuVisibleFeed.value?.feedId ?: return@handle
-                updateEnableFeedCommentUseCase(feedId, isEnabled)
-                menuVisibleFeed.update { it?.copy(isCommentEnabled = isEnabled) }
             },
             onError = {
                 viewModelScope.launch {

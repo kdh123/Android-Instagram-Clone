@@ -12,12 +12,7 @@ import com.dhkim.data.feed.model.toDto
 import com.dhkim.database.AppDatabase
 import com.dhkim.database.entity.HomeFeedEntity
 import com.dhkim.domain.feed.model.Feed
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.database.MutableData
-import com.google.firebase.database.Transaction
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -42,14 +37,17 @@ class FeedRemoteDataSource @Inject constructor(
 
     fun getHomeFeed(): Flow<PagingData<HomeFeedEntity>> = Pager(
         config = PagingConfig(pageSize = 30),
-        remoteMediator = HomeFeedRemoteMediator(feedRef, appDatabase),
+        remoteMediator = HomeFeedRemoteMediator(feedRef.child("feeds_by_feed_id"), appDatabase),
         pagingSourceFactory = { appDatabase.feedDao().getHomeFeeds() }
     ).flow
 
-    fun uploadFeed(feed: Feed): Flow<Unit> {
+    fun uploadFeed(feed: Feed, userId: String): Flow<Unit> {
         return flow {
-            val feedRef = feedRef.child(feed.feedId)
-            feedRef.setValue(feed.toDto()).await()
+            val feedUpdates = hashMapOf<String, Any?>(
+                "/feeds_by_user/$userId/${feed.feedId}" to feed.toDto(),
+                "/feeds_by_feed_id/${feed.feedId}" to feed.toDto(),
+            )
+            feedRef.updateChildren(feedUpdates).await()
             emit(Unit)
         }.retryWithDelay()
     }
@@ -87,20 +85,12 @@ class FeedRemoteDataSource @Inject constructor(
         }
     }
 
-    fun updateLikeCountVisibility(feedId: String, shouldShow: Boolean): Flow<Unit> {
-        return flow {
-            val feedRef = feedRef.child(feedId).child("isLikeCountVisible")
-            feedRef.setValue(shouldShow).await()
-            emit(Unit)
-        }.retryWithDelay()
-    }
-
-    fun updateCommentEnable(feedId: String, isEnabled: Boolean): Flow<Unit> {
-        return flow {
-            val feedRef = feedRef.child(feedId).child("isCommentEnabled")
-            feedRef.setValue(isEnabled).await()
-            emit(Unit)
-        }.retryWithDelay()
+    suspend fun toggleLikeCountVisibility(feedId: String, userId: String, isVisible: Boolean) {
+        val feedUpdates = hashMapOf<String, Any?>(
+            "/feeds_by_feed_id/$feedId/showLikeCount" to isVisible,
+            "/feeds_by_user/$userId/$feedId/showLikeCount" to isVisible
+        )
+        feedRef.updateChildren(feedUpdates).await()
     }
 
     suspend fun toggleLike(feedId: String, myUid: String, isLiked: Boolean): Boolean {
@@ -123,65 +113,73 @@ class FeedRemoteDataSource @Inject constructor(
         val feedsUpdates = if (nextLikerId != null) {
             val nextLikerName = userRef.child(nextLikerId).child("name").get().await().value as String
             hashMapOf<String, Any?>(
-                "$feedId/representativeLikerId" to nextLikerId,
-                "$feedId/representativeLikerName" to nextLikerName
+                "feeds_by_feed_id/$feedId/representativeLikerId" to nextLikerId,
+                "feeds_by_feed_id/$feedId/representativeLikerName" to nextLikerName,
+                "feeds_by_user/$myUid/$feedId/representativeLikerId" to nextLikerId,
+                "feeds_by_user/$myUid/$feedId/representativeLikerName" to nextLikerName
             )
         } else {
             hashMapOf<String, Any?>(
-                "$feedId/representativeLikerId" to null,
-                "$feedId/representativeLikerName" to null
+                "feeds_by_feed_id/$feedId/representativeLikerId" to null,
+                "feeds_by_feed_id/$feedId/representativeLikerName" to null,
+                "feeds_by_user/$myUid/$feedId/representativeLikerId" to null,
+                "feeds_by_user/$myUid/$feedId/representativeLikerName" to null
             )
         }
 
         feedRef.updateChildren(feedsUpdates).await()
 
         return if (isLiked) {
-            incrementLikeCount(feedId).first()
+            incrementLikeCount(feedId, myUid).first()
         } else {
-            decrementLikeCount(feedId).first()
+            decrementLikeCount(feedId, myUid).first()
         }
     }
 
-    private fun incrementLikeCount(feedId: String): Flow<Boolean> {
+    private fun incrementLikeCount(feedId: String, userId: String): Flow<Boolean> {
         return callbackFlow {
-            val countRef = feedRef.child(feedId).child("likeCount")
-            countRef.runTransaction(object : Transaction.Handler {
-                override fun doTransaction(mutableData: MutableData): Transaction.Result {
-                    val currentValue = mutableData.getValue(Int::class.java) ?: 0
-                    mutableData.value = currentValue + 1
-                    return Transaction.success(mutableData)
-                }
+            feedRef.child("feeds_by_feed_id").child(feedId).child("likeCount")
+                .get().addOnSuccessListener { snapshot ->
+                    val currentValue = snapshot.getValue(Int::class.java) ?: 0
+                    val nextValue = currentValue + 1
+                    val updates = hashMapOf<String, Any?>(
+                        "feeds_by_feed_id/$feedId/likeCount" to nextValue,
+                        "feeds_by_user/$userId/$feedId/likeCount" to nextValue
+                    )
 
-                override fun onComplete(error: DatabaseError?, committed: Boolean, snapshot: DataSnapshot?) {
-                    if (committed) {
-                        trySend(true)
-                    } else {
-                        trySend(false)
+                    feedRef.updateChildren(updates).addOnCompleteListener { task ->
+                        trySend(task.isSuccessful)
                     }
+                }.addOnFailureListener {
+                    trySend(false)
                 }
-            })
             awaitClose()
         }
     }
 
-    private fun decrementLikeCount(feedId: String): Flow<Boolean> {
-        val countRef = feedRef.child(feedId).child("likeCount")
+    private fun decrementLikeCount(feedId: String, userId: String): Flow<Boolean> {
         return callbackFlow {
-            countRef.runTransaction(object : Transaction.Handler {
-                override fun doTransaction(mutableData: MutableData): Transaction.Result {
-                    val currentValue = mutableData.getValue(Int::class.java) ?: 0
-                    mutableData.value = if (currentValue > 0) currentValue - 1 else 0
-                    return Transaction.success(mutableData)
-                }
+            val mainCountRef = feedRef.child("feeds_by_feed_id").child(feedId).child("likeCount")
 
-                override fun onComplete(error: DatabaseError?, committed: Boolean, snapshot: DataSnapshot?) {
-                    if (committed) {
+            mainCountRef.get().addOnSuccessListener { snapshot ->
+                val currentValue = snapshot.getValue(Int::class.java) ?: 0
+                val newValue = if (currentValue > 0) currentValue - 1 else 0
+                val updates = hashMapOf<String, Any?>(
+                    "feeds_by_feed_id/$feedId/likeCount" to newValue,
+                    "feeds_by_user/$userId/$feedId/likeCount" to newValue
+                )
+
+                feedRef.updateChildren(updates).addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
                         trySend(true)
                     } else {
                         trySend(false)
                     }
                 }
-            })
+            }.addOnFailureListener {
+                trySend(false)
+            }
+
             awaitClose()
         }
     }
@@ -218,5 +216,14 @@ class FeedRemoteDataSource @Inject constructor(
         } catch (e: Exception) {
             emptyList()
         }
+    }
+
+    suspend fun toggleEnableComment(feedId: String, userId: String, isEnabled: Boolean) {
+        val feedUpdates = hashMapOf<String, Any?>(
+            "/feeds_by_user/$userId/$feedId/commentEnabled" to isEnabled,
+            "/feeds_by_feed_id/$feedId/commentEnabled" to isEnabled,
+        )
+
+        feedRef.updateChildren(feedUpdates).await()
     }
 }

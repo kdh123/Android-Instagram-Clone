@@ -25,7 +25,7 @@ class UploadFeedContentUseCase @Inject constructor(
                 imageUrls = imageUrls,
                 caption = caption,
             )
-            feedRepository.uploadFeed(feed).first()
+            feedRepository.uploadFeed(feed, userId = user.id).first()
             emit(Unit)
         }
     }

@@ -135,6 +135,7 @@ fun SponsoredFeedContent(
         onMoreClick = onMoreClick,
     ) {
         SponsoredFeedImage()
+        Spacer(modifier = Modifier.height(8.dp))
         FeedItemActions(
             onLikeClick = { onLikeClick(feedItem) },
             onCommentClick = { },
@@ -294,23 +295,25 @@ fun FeedContentScope.FeedItemActions(
                 .noRippleClick(onClick = onLikeClick)
         )
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_comment),
-                contentDescription = "Comment",
-                modifier = Modifier
-                    .padding(end = 4.dp)
-                    .noRippleClick(onClick = onCommentClick)
-            )
+        if (feedItem.isCommentEnabled) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_comment),
+                    contentDescription = "Comment",
+                    modifier = Modifier
+                        .padding(end = 4.dp)
+                        .noRippleClick(onClick = onCommentClick)
+                )
 
-            Text(
-                text = "$commentCount",
-                style = InstagramTheme.typography.bodyMedium,
-                modifier = Modifier
+                Text(
+                    text = "$commentCount",
+                    style = InstagramTheme.typography.bodyMedium,
+                    modifier = Modifier
 
-            )
+                )
+            }
         }
 
         Icon(
@@ -625,7 +628,7 @@ class FeedContentPreviewParameterProvider : PreviewParameterProvider<FeedItem> {
                 commentCount = 5,
                 isLiked = false,
                 isLikeCountVisible = false,
-                isCommentEnabled = true,
+                isCommentEnabled = false,
                 type = FeedItemType.Sponsored(
                     imageUrl = "https://picsum.photos/400/400",
                     adUrl = "https://www.naver.com"
