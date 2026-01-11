@@ -67,7 +67,7 @@ import com.dhkim.ui.NoticeMessage
 import com.dhkim.ui.shimmerEffect
 import com.skydoves.landscapist.ImageOptions
 import com.skydoves.landscapist.glide.GlideImage
-import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flowOf
@@ -76,16 +76,17 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
+    uiState: HomeUiState,
     feedState: LazyListState,
-    feedUploadStatuses: ImmutableList<FeedUploadStatus>,
     feeds: LazyPagingItems<FeedItem>,
-    likeFeeds: Set<LikeFeed>,
-    menuVisibleFeed: FeedItem?,
-    isNetworkAvailable: Boolean,
     onAction: (HomeAction) -> Unit,
     onFeedLayoutChange: (Boolean) -> Unit,
 ) {
     val context = LocalContext.current
+    val feedUploadStatuses = uiState.feedUploadStatuses
+    val likeFeeds = uiState.likeFeeds
+    val menuVisibleFeed = uiState.menuVisibleFeed
+    val isNetworkAvailable = uiState.isNetworkAvailable
     var showNoticeMessage: String? by remember { mutableStateOf(null) }
     var isRefreshing by remember { mutableStateOf(false) }
     val pagingLoading = feeds.loadState.refresh is LoadState.Loading
@@ -119,12 +120,6 @@ fun HomeScreen(
 
     LaunchedEffect(pagingLoading) {
         if (!pagingLoading) isRefreshing = false
-    }
-
-    LaunchedEffect(feeds.itemCount) {
-        if (feeds.itemCount > 0) {
-            feedState.animateScrollToItem(0)
-        }
     }
 
     LaunchedEffect(showNoticeMessage) {
@@ -369,25 +364,28 @@ private fun HomeScreenPreview() {
         }
     }.toImmutableList()
 
+    val uiState = HomeUiState(
+        feedUploadStatuses = feedUploadStatuses,
+        likeFeeds = persistentSetOf(LikeFeed("1", "user1")),
+        menuVisibleFeed = null,
+        isNetworkAvailable = true
+    )
+
     InstagramTheme {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background
         ) {
             HomeScreen(
+                uiState = uiState,
                 feedState = rememberLazyListState(),
-                feedUploadStatuses = feedUploadStatuses,
                 feeds = mockFeeds,
-                likeFeeds = setOf(LikeFeed("1", "user1")),
-                menuVisibleFeed = null,
-                isNetworkAvailable = true,
                 onAction = {},
                 onFeedLayoutChange = {},
             )
         }
     }
 }
-
 
 @Preview(showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Preview(showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_NO)

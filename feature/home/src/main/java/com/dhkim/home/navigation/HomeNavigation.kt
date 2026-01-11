@@ -24,11 +24,8 @@ fun NavGraphBuilder.home() {
         val context = LocalContext.current
         val shouldScrollToTop = backStackEntry.savedStateHandle.get<Boolean>("extra_should_scroll_to_top") ?: false
         val viewModel = hiltViewModel<HomeViewModel>()
-        val feedUploadStatuses by viewModel.feedUploadStatuses.collectAsStateWithLifecycle()
+        val uiState by viewModel.uiState.collectAsStateWithLifecycle()
         val feeds = viewModel.feeds.collectAsLazyPagingItems()
-        val likeFeeds by viewModel.likeFeeds.collectAsStateWithLifecycle()
-        val menuVisibleFeed by viewModel.menuVisibleFeed.collectAsStateWithLifecycle()
-        val isNetworkAvailable by viewModel.isNetworkAvailable.collectAsStateWithLifecycle()
         val feedState = rememberLazyListState()
         var isFeedLayoutChanged by remember { mutableStateOf(false) }
 
@@ -49,12 +46,9 @@ fun NavGraphBuilder.home() {
         }
 
         HomeScreen(
+            uiState = uiState,
             feedState = feedState,
-            feedUploadStatuses = feedUploadStatuses,
             feeds = feeds,
-            likeFeeds = likeFeeds,
-            menuVisibleFeed = menuVisibleFeed,
-            isNetworkAvailable = isNetworkAvailable,
             onAction = viewModel::onAction,
             onFeedLayoutChange = { isFeedLayoutChanged = it }
         )

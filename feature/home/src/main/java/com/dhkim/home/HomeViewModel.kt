@@ -5,7 +5,9 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.map
+import com.dhkim.common.RestartableStateFlow
 import com.dhkim.common.handle
+import com.dhkim.common.restartableStateIn
 import com.dhkim.domain.feed.useCase.GetFeedUploadStatusesUseCase
 import com.dhkim.domain.feed.useCase.GetFeedsUseCase
 import com.dhkim.domain.feed.useCase.GetLikeFeedsUseCase
@@ -20,18 +22,17 @@ import com.dhkim.feed.common.FeedItem
 import com.dhkim.feed.common.toFeedItem
 import com.dhkim.network.ConnectivityChecker
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.collections.immutable.toImmutableSet
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -51,21 +52,6 @@ class HomeViewModel @Inject constructor(
     private val connectivityChecker: ConnectivityChecker
 ) : ViewModel() {
 
-    val feedUploadStatuses = getFeedUploadStatusesUseCase()
-        .map { it.toImmutableList() }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = persistentListOf()
-        )
-
-    val likeFeeds = getLikeFeedsUseCase()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = emptySet()
-        )
-
     val feeds = getFeedsUseCase()
         .map { pagingData ->
             val userId = getUserUseCase().first()?.id ?: throw NoUserFoundException()
@@ -74,15 +60,25 @@ class HomeViewModel @Inject constructor(
             emit(PagingData.empty())
         }.cachedIn(viewModelScope)
 
-    val isNetworkAvailable = connectivityChecker.isNetworkAvailable()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = true
-        )
+    private val menuVisibleFeed: MutableStateFlow<FeedItem?> = MutableStateFlow(null)
 
-    private val _menuVisibleFeed: MutableStateFlow<FeedItem?> = MutableStateFlow(null)
-    val menuVisibleFeed = _menuVisibleFeed.asStateFlow()
+    val uiState: RestartableStateFlow<HomeUiState> = combine(
+        getFeedUploadStatusesUseCase(),
+        getLikeFeedsUseCase(),
+        menuVisibleFeed,
+        connectivityChecker.isNetworkAvailable()
+    ) { feedUploadStatuses, likeFeeds, menuVisibleFeed, isNetworkAvailable ->
+        HomeUiState(
+            feedUploadStatuses = feedUploadStatuses.toImmutableList(),
+            likeFeeds = likeFeeds.toImmutableSet(),
+            menuVisibleFeed = menuVisibleFeed,
+            isNetworkAvailable = isNetworkAvailable
+        )
+    }.restartableStateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = HomeUiState()
+    )
 
     private val _sideEffect = Channel<HomeSideEffect>(Channel.BUFFERED)
     val sideEffect = _sideEffect.receiveAsFlow()
@@ -131,11 +127,11 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun dismissFeedMenu() {
-        _menuVisibleFeed.update { null }
+        menuVisibleFeed.update { null }
     }
 
     private fun showFeedMenu(feed: FeedItem) {
-        _menuVisibleFeed.update { feed }
+        menuVisibleFeed.update { feed }
     }
 
     private fun updateLikeCountVisibility(isVisible: Boolean) {
@@ -143,7 +139,7 @@ class HomeViewModel @Inject constructor(
             block = {
                 val feedId = menuVisibleFeed.value?.feedId ?: return@handle
                 updateFeedLikeCountVisibilityUseCase(feedId, isVisible)
-                _menuVisibleFeed.update { it?.copy(isLikeCountVisible = isVisible) }
+                menuVisibleFeed.update { it?.copy(isLikeCountVisible = isVisible) }
             },
             onError = {
                 viewModelScope.launch {
@@ -158,7 +154,7 @@ class HomeViewModel @Inject constructor(
             block = {
                 val feedId = menuVisibleFeed.value?.feedId ?: return@handle
                 updateEnableFeedCommentUseCase(feedId, isEnabled)
-                _menuVisibleFeed.update { it?.copy(isCommentEnabled = isEnabled) }
+                menuVisibleFeed.update { it?.copy(isCommentEnabled = isEnabled) }
             },
             onError = {
                 viewModelScope.launch {
