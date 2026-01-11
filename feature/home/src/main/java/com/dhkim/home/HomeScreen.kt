@@ -186,7 +186,15 @@ fun HomeScreen(
                         } else {
                             feeds[index - feedUploadStatuses.size]?.let { item ->
                                 val isLiked = likeFeeds.any { it.feedId == item.feedId }
-                                val feedItem = item.copy(isLiked = isLiked)
+                                val likeCount = if (isLiked) {
+                                    item.likeCount
+                                } else {
+                                    item.likeCount - 1
+                                }.run {
+                                    if (this < 0) 0 else this
+                                }
+                                val feedItem = item.copy(isLiked = isLiked, likeCount = likeCount)
+
                                 FeedContent(
                                     feedItem = feedItem,
                                     onLikeClick = { onAction(HomeAction.ToggleLike(feedItem.feedId)) },
