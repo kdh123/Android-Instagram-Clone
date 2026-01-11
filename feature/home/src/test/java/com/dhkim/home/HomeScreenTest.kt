@@ -1,6 +1,10 @@
 package com.dhkim.home
 
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.rememberBottomSheetScaffoldState
+import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.hasTestTag
@@ -97,6 +101,7 @@ class HomeScreenTest {
         Dispatchers.resetMain()
     }
 
+    @OptIn(ExperimentalMaterial3Api::class)
     @Test
     fun whenFeedsLoadedSuccessfully_showsFeedList() = runTest {
         coEvery { feedRepository.updateCommentVisibility(any(), any()) } returns Unit
@@ -126,10 +131,17 @@ class HomeScreenTest {
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
             val feeds = viewModel.feeds.collectAsLazyPagingItems()
             val feedState = rememberLazyListState()
+            val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(
+                bottomSheetState = rememberStandardBottomSheetState(
+                    initialValue = SheetValue.Hidden,
+                    skipHiddenState = false
+                )
+            )
 
             HomeScreen(
                 uiState = uiState,
                 feedState = feedState,
+                bottomSheetScaffoldState = bottomSheetScaffoldState,
                 feeds = feeds,
                 onAction = viewModel::onAction,
                 onFeedLayoutChange = {}
@@ -142,6 +154,7 @@ class HomeScreenTest {
         )
     }
 
+    @OptIn(ExperimentalMaterial3Api::class)
     @Test
     fun whenFeedsLoadingFails_doesNotShowFeedItems() = runTest {
         val exception = Exception("Network error occurred!")
@@ -180,10 +193,17 @@ class HomeScreenTest {
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
             val feeds = viewModel.feeds.collectAsLazyPagingItems()
             val feedState = rememberLazyListState()
+            val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(
+                bottomSheetState = rememberStandardBottomSheetState(
+                    initialValue = SheetValue.Hidden,
+                    skipHiddenState = false
+                )
+            )
 
             HomeScreen(
                 uiState = uiState,
                 feedState = feedState,
+                bottomSheetScaffoldState = bottomSheetScaffoldState,
                 feeds = feeds,
                 onAction = viewModel::onAction,
                 onFeedLayoutChange = {}

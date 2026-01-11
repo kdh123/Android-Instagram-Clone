@@ -11,4 +11,6 @@ sealed interface HomeAction {
     data class ShowFeedMenu(val feed: FeedItem) : HomeAction
     data object DismissFeedMenu : HomeAction
     data class ToggleLike(val feedId: String) : HomeAction
+    data object RefreshFeeds : HomeAction
+    data object OnFeedCompleted : HomeAction
 }

@@ -11,6 +11,7 @@ import kotlinx.collections.immutable.persistentSetOf
 
 @Immutable
 data class HomeUiState(
+    val isRefreshing: Boolean = false,
     val feedUploadStatuses: ImmutableList<FeedUploadStatus> = persistentListOf(),
     val likeFeeds: ImmutableSet<LikeFeed> = persistentSetOf(),
     val menuVisibleFeed: FeedItem? = null,

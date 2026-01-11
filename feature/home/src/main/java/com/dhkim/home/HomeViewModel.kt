@@ -26,11 +26,13 @@ import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toImmutableSet
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
@@ -52,23 +54,30 @@ class HomeViewModel @Inject constructor(
     private val connectivityChecker: ConnectivityChecker
 ) : ViewModel() {
 
-    val feeds = getFeedsUseCase()
-        .map { pagingData ->
-            val userId = getUserUseCase().first()?.id ?: throw NoUserFoundException()
-            pagingData.map { it.toFeedItem(userId) }
-        }.catch {
-            emit(PagingData.empty())
-        }.cachedIn(viewModelScope)
+    private val refreshTrigger = MutableStateFlow(0)
+
+    val feeds = refreshTrigger.flatMapLatest {
+        getFeedsUseCase()
+            .map { pagingData ->
+                val userId = getUserUseCase().first()?.id ?: throw NoUserFoundException()
+                pagingData.map { it.toFeedItem(userId) }
+            }.catch {
+                emit(PagingData.empty())
+            }.cachedIn(viewModelScope)
+    }
 
     private val menuVisibleFeed: MutableStateFlow<FeedItem?> = MutableStateFlow(null)
+    private val isRefreshing = MutableStateFlow(false)
 
     val uiState: RestartableStateFlow<HomeUiState> = combine(
+        isRefreshing,
         getFeedUploadStatusesUseCase(),
         getLikeFeedsUseCase(),
         menuVisibleFeed,
         connectivityChecker.isNetworkAvailable()
-    ) { feedUploadStatuses, likeFeeds, menuVisibleFeed, isNetworkAvailable ->
+    ) { isRefreshing, feedUploadStatuses, likeFeeds, menuVisibleFeed, isNetworkAvailable ->
         HomeUiState(
+            isRefreshing = isRefreshing,
             feedUploadStatuses = feedUploadStatuses.toImmutableList(),
             likeFeeds = likeFeeds.toImmutableSet(),
             menuVisibleFeed = menuVisibleFeed,
@@ -112,6 +121,30 @@ class HomeViewModel @Inject constructor(
             is HomeAction.ToggleLike -> {
                 toggleLike(action.feedId)
             }
+
+            HomeAction.RefreshFeeds -> {
+                refreshFeeds()
+            }
+
+            HomeAction.OnFeedCompleted -> {
+                onFeedCompleted()
+            }
+        }
+    }
+
+    private fun onFeedCompleted() {
+        isRefreshing.update { false }
+    }
+
+    private fun refreshFeeds() = viewModelScope.launch {
+        val isNetworkAvailable = uiState.value.isNetworkAvailable
+        isRefreshing.update { true }
+        if (isNetworkAvailable) {
+            refreshTrigger.update { it + 1 }
+        } else {
+            delay(100)
+            isRefreshing.update { false }
+            _sideEffect.send(HomeSideEffect.ShowRefreshFeedsFailNotice)
         }
     }
 

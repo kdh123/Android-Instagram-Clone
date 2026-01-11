@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.BottomSheetScaffold
+import androidx.compose.material3.BottomSheetScaffoldState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SheetValue
@@ -26,25 +27,18 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.paging.LoadState
 import androidx.paging.PagingData
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
@@ -63,13 +57,11 @@ import com.dhkim.feed.common.MyFeedBottomSheet
 import com.dhkim.feed.common.SponsoredFeedBottomSheet
 import com.dhkim.feed.common.SuggestedFeedBottomSheet
 import com.dhkim.feed.common.toFeedItem
-import com.dhkim.ui.NoticeMessage
 import com.dhkim.ui.shimmerEffect
 import com.skydoves.landscapist.ImageOptions
 import com.skydoves.landscapist.glide.GlideImage
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toImmutableList
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 
@@ -78,24 +70,14 @@ import kotlinx.coroutines.launch
 fun HomeScreen(
     uiState: HomeUiState,
     feedState: LazyListState,
+    bottomSheetScaffoldState: BottomSheetScaffoldState,
     feeds: LazyPagingItems<FeedItem>,
     onAction: (HomeAction) -> Unit,
     onFeedLayoutChange: (Boolean) -> Unit,
 ) {
-    val context = LocalContext.current
     val feedUploadStatuses = uiState.feedUploadStatuses
     val likeFeeds = uiState.likeFeeds
     val menuVisibleFeed = uiState.menuVisibleFeed
-    val isNetworkAvailable = uiState.isNetworkAvailable
-    var showNoticeMessage: String? by remember { mutableStateOf(null) }
-    var isRefreshing by remember { mutableStateOf(false) }
-    val pagingLoading = feeds.loadState.refresh is LoadState.Loading
-    val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(
-        bottomSheetState = rememberStandardBottomSheetState(
-            initialValue = SheetValue.Hidden,
-            skipHiddenState = false
-        )
-    )
     val bottomSheetState = bottomSheetScaffoldState.bottomSheetState
     val scope = rememberCoroutineScope()
     val onNotInterestedClick: () -> Unit = remember(menuVisibleFeed) {
@@ -106,26 +88,6 @@ fun HomeScreen(
             scope.launch {
                 bottomSheetState.hide()
             }
-        }
-    }
-
-    LaunchedEffect(bottomSheetScaffoldState) {
-        snapshotFlow { bottomSheetScaffoldState.bottomSheetState.currentValue }
-            .collect { currentValue ->
-                if (currentValue == SheetValue.Hidden || currentValue == SheetValue.PartiallyExpanded) {
-                    onAction(HomeAction.DismissFeedMenu)
-                }
-            }
-    }
-
-    LaunchedEffect(pagingLoading) {
-        if (!pagingLoading) isRefreshing = false
-    }
-
-    LaunchedEffect(showNoticeMessage) {
-        if (showNoticeMessage != null) {
-            delay(3_000)
-            showNoticeMessage = null
         }
     }
 
@@ -187,20 +149,8 @@ fun HomeScreen(
                 }
         ) {
             PullToRefreshBox(
-                isRefreshing = isRefreshing,
-                onRefresh = {
-                    if (isNetworkAvailable) {
-                        isRefreshing = true // 로딩 시작
-                        feeds.refresh()
-                    } else {
-                        isRefreshing = true
-                        scope.launch {
-                            delay(100)
-                            isRefreshing = false
-                            showNoticeMessage = context.getString(com.dhkim.feed.common.R.string.feed_refresh_failed)
-                        }
-                    }
-                },
+                isRefreshing = uiState.isRefreshing,
+                onRefresh = { onAction(HomeAction.RefreshFeeds) },
                 modifier = Modifier
                     .fillMaxSize()
             ) {
@@ -253,10 +203,6 @@ fun HomeScreen(
                     }
                 }
             }
-
-            if (showNoticeMessage != null) {
-                NoticeMessage(message = showNoticeMessage!!)
-            }
         }
     }
 }
@@ -306,6 +252,7 @@ fun FeedUploadStatusContent(feedUploadStatus: FeedUploadStatus) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @HomeScreenPreviews
 @Composable
 private fun HomeScreenPreview() {
@@ -371,6 +318,13 @@ private fun HomeScreenPreview() {
         isNetworkAvailable = true
     )
 
+    val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(
+        bottomSheetState = rememberStandardBottomSheetState(
+            initialValue = SheetValue.Hidden,
+            skipHiddenState = false
+        )
+    )
+
     InstagramTheme {
         Surface(
             modifier = Modifier.fillMaxSize(),
@@ -379,6 +333,7 @@ private fun HomeScreenPreview() {
             HomeScreen(
                 uiState = uiState,
                 feedState = rememberLazyListState(),
+                bottomSheetScaffoldState = bottomSheetScaffoldState,
                 feeds = mockFeeds,
                 onAction = {},
                 onFeedLayoutChange = {},
