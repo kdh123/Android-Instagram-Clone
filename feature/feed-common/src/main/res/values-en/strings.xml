@@ -1,11 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="feed_suggested_label">Suggested for you</string>
-    <string name="sponsored">sponsored</string>
-    <string name="follow">follow</string>
+    <string name="sponsored">Sponsored</string>
+    <string name="follow">Follow</string>
+    <string name="cancel_follow">cancel follow</string>
     <string name="feed_more">...more</string>
     <string name="feed_image_load_fail">Couldn\'t load image. Tap to try again.</string>
     <string name="feed_view_details">View Details</string>
+    <string name="hide_feed">Hide</string>
+    <string name="account_info">Account Information</string>
+    <string name="not_interested">Not Interested</string>
+    <string name="hide_like_count">Hide like count</string>
+    <string name="cancel_hide_like_count">Cancel Hide like count</string>
+    <string name="disable_comment">Turn off commenting</string>
+    <string name="cancel_disable_comment">Turn on commenting</string>
+    <string name="edit">Edit</string>
+    <string name="delete_media">Delete media</string>
+    <string name="feed_refresh_failed">Couldn\'t refresh feed</string>
 
     <string name="time_just_now">Just now</string>
     <string name="time_minutes_ago">%d minutes ago</string>

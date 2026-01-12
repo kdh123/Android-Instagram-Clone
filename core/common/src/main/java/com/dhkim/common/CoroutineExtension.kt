@@ -2,12 +2,14 @@ package com.dhkim.common
 
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharingCommand
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.flow.retryWhen
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlin.coroutines.CoroutineContext
@@ -63,6 +65,21 @@ fun <T> Flow<T>.restartableStateIn(
     val stateFlow = stateIn(scope, sharingRestartable, initialValue)
     return object : RestartableStateFlow<T>, StateFlow<T> by stateFlow {
         override fun restart() = sharingRestartable.restart()
+    }
+}
+
+fun <T> Flow<T>.retryWithDelay(
+    maxAttempts: Int = 3,
+    baseDelayMillis: Long = 1_000L
+): Flow<T> {
+    return this.retryWhen { _, attempt ->
+        if (attempt < maxAttempts) {
+            val nextDelay = (attempt + 1) * baseDelayMillis
+            delay(nextDelay)
+            true
+        } else {
+            false
+        }
     }
 }
 

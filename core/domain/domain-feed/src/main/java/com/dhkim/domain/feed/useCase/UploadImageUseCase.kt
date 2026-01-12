@@ -1,7 +1,7 @@
 package com.dhkim.domain.feed.useCase
 
 import com.dhkim.domain.feed.repository.FeedRepository
-import com.dhkim.domain.user.exception.NouUserFoundException
+import com.dhkim.domain.user.exception.NoUserFoundException
 import com.dhkim.domain.user.useCase.GetUserUseCase
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -18,7 +18,7 @@ class UploadImageUseCase @Inject constructor(
 
     operator fun invoke(file: File): Flow<ImageDownloadUrl> {
         return flow {
-            val user = getUserUseCase().first() ?: throw NouUserFoundException()
+            val user = getUserUseCase().first() ?: throw NoUserFoundException()
             val storagePath = "feeds/${user.id}/photo_${System.currentTimeMillis()}.jpg"
             val imageDownloadUrl = feedRepository.uploadImage(storagePath, file).first()
             emit(imageDownloadUrl)

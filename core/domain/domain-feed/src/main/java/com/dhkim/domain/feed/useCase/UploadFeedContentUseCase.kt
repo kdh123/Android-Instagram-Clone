@@ -2,7 +2,7 @@ package com.dhkim.domain.feed.useCase
 
 import com.dhkim.domain.feed.model.Feed
 import com.dhkim.domain.feed.repository.FeedRepository
-import com.dhkim.domain.user.exception.NouUserFoundException
+import com.dhkim.domain.user.exception.NoUserFoundException
 import com.dhkim.domain.user.useCase.GetUserUseCase
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -16,7 +16,7 @@ class UploadFeedContentUseCase @Inject constructor(
 
     operator fun invoke(caption: String, imageUrls: List<String>): Flow<Unit> {
         return flow {
-            val user = getUserUseCase().first() ?: throw NouUserFoundException()
+            val user = getUserUseCase().first() ?: throw NoUserFoundException()
             val feed = Feed(
                 feedId = "feedId_${System.currentTimeMillis()}",
                 userId = user.id,
@@ -25,7 +25,7 @@ class UploadFeedContentUseCase @Inject constructor(
                 imageUrls = imageUrls,
                 caption = caption,
             )
-            feedRepository.uploadFeed(feed).first()
+            feedRepository.uploadFeed(feed, userId = user.id).first()
             emit(Unit)
         }
     }

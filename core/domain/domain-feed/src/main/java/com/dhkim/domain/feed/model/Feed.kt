@@ -10,7 +10,11 @@ data class Feed(
     val caption: String = "",
     val timestamp: Long = System.currentTimeMillis(),
     val likeCount: Int = 0,
+    val representativeLikerName: String = "",
+    val representativeLikerId: String = "",
     val commentCount: Int = 0,
     val isLiked: Boolean = false,
     val adUrl: String = "",
+    val isLikeCountVisible: Boolean = true,
+    val isCommentEnabled: Boolean = true,
 )

@@ -27,6 +27,9 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -45,8 +48,12 @@ class AddViewModel @Inject constructor(
     private val workManager: WorkManager
 ) : ViewModel() {
 
-    val galleryImages = getGalleryImagesUseCase(pageSize = 10)
-        .cachedIn(viewModelScope)
+    private val refreshTrigger = MutableStateFlow(0)
+
+    val galleryImages = refreshTrigger.flatMapLatest {
+        getGalleryImagesUseCase(pageSize = 20)
+            .cachedIn(viewModelScope)
+    }
 
     private val _selectImageState = MutableStateFlow<SelectImageState>(SelectImageState.Single(null))
     val selectImageState = _selectImageState.asStateFlow()
@@ -60,17 +67,18 @@ class AddViewModel @Inject constructor(
     private val feedId: String = "feedId_${System.currentTimeMillis()}"
 
     init {
-        viewModelScope.launch {
-            val firstImage = getRecentGalleryImageUseCase().first()
-            if (firstImage != null) {
-                _selectImageState.value = SelectImageState.Single(
-                    currentImage = SelectedImage(
-                        number = 1,
-                        imageUri = firstImage.uri
+        refreshTrigger.flatMapLatest {
+            getRecentGalleryImageUseCase().onEach { firstImage ->
+                if (firstImage != null) {
+                    _selectImageState.value = SelectImageState.Single(
+                        currentImage = SelectedImage(
+                            number = 1,
+                            imageUri = firstImage.uri
+                        )
                     )
-                )
+                }
             }
-        }
+        }.launchIn(viewModelScope)
     }
 
     fun onAction(action: AddAction) {
@@ -105,7 +113,15 @@ class AddViewModel @Inject constructor(
                     _sideEffect.send(AddSideEffect.NavigateToFeedUpload)
                 }
             }
+
+            AddAction.RefreshGalleryImages -> {
+                refreshGalleryImages()
+            }
         }
+    }
+
+    private fun refreshGalleryImages() {
+        refreshTrigger.update { it + 1 }
     }
 
     private fun typeCaption(text: String) {

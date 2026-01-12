@@ -66,23 +66,26 @@ import kotlinx.coroutines.delay
 @Composable
 fun FeedContent(
     feedItem: FeedItem,
+    onLikeClick: (FeedItem) -> Unit,
     onProfileClick: () -> Unit,
-    onMoreClick: () -> Unit
+    onMoreClick: (FeedItem) -> Unit
 ) {
-    when (feedItem) {
-        is FeedItem.Mine,
-        is FeedItem.Following,
-        is FeedItem.Suggested -> {
+    when (feedItem.type) {
+        is FeedItemType.Mine,
+        is FeedItemType.Following,
+        is FeedItemType.Suggested -> {
             CommonFeedContent(
                 feedItem = feedItem,
+                onLikeClick = onLikeClick,
                 onProfileClick = onProfileClick,
                 onMoreClick = onMoreClick
             )
         }
 
-        is FeedItem.Sponsored -> {
+        is FeedItemType.Sponsored -> {
             SponsoredFeedContent(
                 feedItem = feedItem,
+                onLikeClick = onLikeClick,
                 onProfileClick = onProfileClick,
                 onMoreClick = onMoreClick
             )
@@ -93,8 +96,9 @@ fun FeedContent(
 @Composable
 fun CommonFeedContent(
     feedItem: FeedItem,
+    onLikeClick: (FeedItem) -> Unit,
     onProfileClick: () -> Unit,
-    onMoreClick: () -> Unit
+    onMoreClick: (FeedItem) -> Unit
 ) {
     FeedContents(
         feedItem = feedItem,
@@ -102,10 +106,14 @@ fun CommonFeedContent(
         onMoreClick = onMoreClick,
     ) {
         FeedImagePager()
+        Spacer(modifier = Modifier.height(8.dp))
         FeedItemActions(
-            onLikeClick = { },
+            onLikeClick = { onLikeClick(feedItem) },
             onCommentClick = { },
             onShareClick = { }
+        )
+        FeedLikeSummaryText(
+            onLikeCountClick = { }
         )
         FeedCaption(
             onUserClick = { },
@@ -117,8 +125,9 @@ fun CommonFeedContent(
 @Composable
 fun SponsoredFeedContent(
     feedItem: FeedItem,
+    onLikeClick: (FeedItem) -> Unit,
     onProfileClick: () -> Unit,
-    onMoreClick: () -> Unit
+    onMoreClick: (FeedItem) -> Unit
 ) {
     FeedContents(
         feedItem = feedItem,
@@ -126,10 +135,14 @@ fun SponsoredFeedContent(
         onMoreClick = onMoreClick,
     ) {
         SponsoredFeedImage()
+        Spacer(modifier = Modifier.height(8.dp))
         FeedItemActions(
-            onLikeClick = { },
+            onLikeClick = { onLikeClick(feedItem) },
             onCommentClick = { },
             onShareClick = { }
+        )
+        FeedLikeSummaryText(
+            onLikeCountClick = { }
         )
         FeedCaption(
             onUserClick = { },
@@ -141,7 +154,7 @@ fun SponsoredFeedContent(
 fun FeedContents(
     feedItem: FeedItem,
     onProfileClick: () -> Unit,
-    onMoreClick: () -> Unit,
+    onMoreClick: (FeedItem) -> Unit,
     content: @Composable FeedContentScope.() -> Unit
 ) {
     val scope = remember(feedItem) { DefaultFeedContentScope(feedItem) }
@@ -163,11 +176,11 @@ fun FeedContents(
 @Composable
 fun FeedContentScope.FeedTimestamp() {
     val context = LocalContext.current
-    val timestamp = when (val feed = feedItem) {
-        is FeedItem.Mine -> feed.timestamp
-        is FeedItem.Following -> feed.timestamp
-        is FeedItem.Suggested -> feed.timestamp
-        is FeedItem.Sponsored -> return
+    val timestamp = when (val feedType = feedItem.type) {
+        is FeedItemType.Mine -> feedType.timestamp
+        is FeedItemType.Following -> feedType.timestamp
+        is FeedItemType.Suggested -> feedType.timestamp
+        is FeedItemType.Sponsored -> return
     }
     val timestampText = when (timestamp) {
         is Timestamp.JustNow -> stringResource(R.string.time_just_now)
@@ -270,8 +283,7 @@ fun FeedContentScope.FeedItemActions(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(48.dp)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(horizontal = 12.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
@@ -283,23 +295,25 @@ fun FeedContentScope.FeedItemActions(
                 .noRippleClick(onClick = onLikeClick)
         )
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_chat),
-                contentDescription = "Comment",
-                modifier = Modifier
-                    .padding(end = 4.dp)
-                    .noRippleClick(onClick = onCommentClick)
-            )
+        if (feedItem.isCommentEnabled) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_comment),
+                    contentDescription = "Comment",
+                    modifier = Modifier
+                        .padding(end = 4.dp)
+                        .noRippleClick(onClick = onCommentClick)
+                )
 
-            Text(
-                text = "$commentCount",
-                style = InstagramTheme.typography.bodyMedium,
-                modifier = Modifier
+                Text(
+                    text = "$commentCount",
+                    style = InstagramTheme.typography.bodyMedium,
+                    modifier = Modifier
 
-            )
+                )
+            }
         }
 
         Icon(
@@ -319,10 +333,56 @@ fun FeedContentScope.FeedItemActions(
 }
 
 @Composable
-fun FeedContentScope.SponsoredFeedImage() {
-    if (feedItem !is FeedItem.Sponsored) return
+fun FeedContentScope.FeedLikeSummaryText(
+    onLikeCountClick: () -> Unit,
+) {
+    val representativeLikerName = feedItem.representativeLikeName
+    val totalLikeCount = feedItem.likeCount
+    val isLikeCountVisible = feedItem.isLikeCountVisible
 
-    val imageUrl = (feedItem as FeedItem.Sponsored).imageUrl
+    if (totalLikeCount == 0) return
+
+    val annotatedString = buildAnnotatedString {
+        if (representativeLikerName.isNotEmpty()) {
+            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                append(representativeLikerName)
+            }
+            if (totalLikeCount > 1) {
+                append("님 ")
+                withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                    if (isLikeCountVisible) {
+                        append("외 ${totalLikeCount - 1}명")
+                    } else {
+                        append("외 여러 명")
+                    }
+                }
+                append("이 좋아합니다")
+            } else {
+                append("님이 좋아합니다")
+            }
+        } else {
+            append("좋아요 ")
+            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                append("${totalLikeCount}개")
+            }
+        }
+    }
+
+    Text(
+        text = annotatedString,
+        modifier = Modifier
+            .fillMaxWidth()
+            .noRippleClick(onClick = onLikeCountClick)
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+        style = MaterialTheme.typography.bodyMedium
+    )
+}
+
+@Composable
+fun FeedContentScope.SponsoredFeedImage() {
+    if (feedItem.type !is FeedItemType.Sponsored) return
+
+    val imageUrl = (feedItem.type as FeedItemType.Sponsored).imageUrl
 
     Column {
         GlideImage(
@@ -358,11 +418,11 @@ fun FeedContentScope.SponsoredFeedImage() {
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun FeedContentScope.FeedImagePager() {
-    val imageUrls = when (val feed = feedItem) {
-        is FeedItem.Mine -> feed.imageUrls
-        is FeedItem.Following -> feed.imageUrls
-        is FeedItem.Suggested -> feed.imageUrls
-        is FeedItem.Sponsored -> return
+    val imageUrls = when (val feedType = feedItem.type) {
+        is FeedItemType.Mine -> feedType.imageUrls
+        is FeedItemType.Following -> feedType.imageUrls
+        is FeedItemType.Suggested -> feedType.imageUrls
+        is FeedItemType.Sponsored -> return
     }
 
     val pagerState = rememberPagerState { imageUrls.size }
@@ -474,13 +534,13 @@ fun PageIndicator(
 }
 
 @Composable
-private fun FeedHeader(
+fun FeedHeader(
     feedItem: FeedItem,
     onProfileClick: () -> Unit,
-    onMoreClick: () -> Unit
+    onMoreClick: (FeedItem) -> Unit
 ) {
-    when (feedItem) {
-        is FeedItem.Mine -> {
+    when (feedItem.type) {
+        is FeedItemType.Mine -> {
             MyFeedHeader(
                 feedItem = feedItem,
                 onProfileClick = onProfileClick,
@@ -488,7 +548,7 @@ private fun FeedHeader(
             )
         }
 
-        is FeedItem.Following -> {
+        is FeedItemType.Following -> {
             FollowingFeedHeader(
                 feedItem = feedItem,
                 onProfileClick = onProfileClick,
@@ -496,7 +556,7 @@ private fun FeedHeader(
             )
         }
 
-        is FeedItem.Suggested -> {
+        is FeedItemType.Suggested -> {
             SuggestedFeedHeader(
                 feedItem = feedItem,
                 onProfileClick = onProfileClick,
@@ -504,7 +564,7 @@ private fun FeedHeader(
             )
         }
 
-        is FeedItem.Sponsored -> {
+        is FeedItemType.Sponsored -> {
             SponsoredFeedHeader(
                 feedItem = feedItem,
                 onProfileClick = onProfileClick,
@@ -526,6 +586,7 @@ private fun FeedContentPreview(
         ) {
             FeedContent(
                 feedItem = feedItem,
+                onLikeClick = {},
                 onProfileClick = {},
                 onMoreClick = {}
             )
@@ -537,29 +598,41 @@ class FeedContentPreviewParameterProvider : PreviewParameterProvider<FeedItem> {
 
     override val values: Sequence<FeedItem>
         get() = sequenceOf(
-            FeedItem.Mine(
+            FeedItem(
                 feedId = "1",
                 userId = "user1",
                 userName = "Tester",
                 userProfileImage = "",
                 caption = "Test Caption, Test Caption, Test Caption, Test Caption, Test Caption, Test Caption, Test Caption, Test Caption, Test Caption, ",
                 likeCount = 10,
+                representativeLikeId = "user1",
+                representativeLikeName = "Tom",
                 commentCount = 5,
                 isLiked = true,
-                imageUrls = persistentListOf("https://picsum.photos/400/400", "https://picsum.photos/400/400"),
-                timestamp = Timestamp.HoursAgo(12)
+                isLikeCountVisible = true,
+                isCommentEnabled = true,
+                type = FeedItemType.Mine(
+                    imageUrls = persistentListOf("https://picsum.photos/400/400"),
+                    timestamp = Timestamp.HoursAgo(12)
+                )
             ),
-            FeedItem.Sponsored(
+            FeedItem(
                 feedId = "1",
                 userId = "user1",
                 userName = "Android",
                 userProfileImage = "",
                 caption = "Test Caption 1",
                 likeCount = 10,
+                representativeLikeId = "user1",
+                representativeLikeName = "Jay",
                 commentCount = 5,
                 isLiked = false,
-                imageUrl = "https://picsum.photos/400/400",
-                adUrl = "https://www.naver.com"
+                isLikeCountVisible = false,
+                isCommentEnabled = false,
+                type = FeedItemType.Sponsored(
+                    imageUrl = "https://picsum.photos/400/400",
+                    adUrl = "https://www.naver.com"
+                )
             )
         )
 }

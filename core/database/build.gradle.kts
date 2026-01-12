@@ -38,6 +38,7 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     implementation(libs.bundles.androidx.room)
+    implementation(libs.androidx.paging.common)
     implementation(libs.google.gson)
     implementation(libs.hilt)
     ksp(libs.hilt.compiler)

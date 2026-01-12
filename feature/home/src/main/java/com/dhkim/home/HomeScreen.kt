@@ -2,6 +2,7 @@ package com.dhkim.home
 
 import android.content.res.Configuration
 import android.graphics.BitmapFactory
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -14,14 +15,23 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.BottomSheetScaffold
+import androidx.compose.material3.BottomSheetScaffoldState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.rememberBottomSheetScaffoldState
+import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.res.painterResource
@@ -29,7 +39,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.paging.LoadState
 import androidx.paging.PagingData
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
@@ -38,68 +47,160 @@ import androidx.paging.compose.itemKey
 import com.dhkim.designsystem.InstagramTheme
 import com.dhkim.domain.feed.model.Feed
 import com.dhkim.domain.feed.model.FeedUploadStatus
+import com.dhkim.domain.feed.model.LikeFeed
 import com.dhkim.domain.feed.model.UploadState
 import com.dhkim.feed.common.FeedContent
 import com.dhkim.feed.common.FeedItem
+import com.dhkim.feed.common.FeedItemType
+import com.dhkim.feed.common.FollowingFeedBottomSheet
+import com.dhkim.feed.common.MyFeedBottomSheet
+import com.dhkim.feed.common.SponsoredFeedBottomSheet
+import com.dhkim.feed.common.SuggestedFeedBottomSheet
 import com.dhkim.feed.common.toFeedItem
 import com.dhkim.ui.shimmerEffect
 import com.skydoves.landscapist.ImageOptions
 import com.skydoves.landscapist.glide.GlideImage
-import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
+    uiState: HomeUiState,
     feedState: LazyListState,
-    feedUploadStatuses: ImmutableList<FeedUploadStatus>,
+    bottomSheetScaffoldState: BottomSheetScaffoldState,
     feeds: LazyPagingItems<FeedItem>,
+    onAction: (HomeAction) -> Unit,
     onFeedLayoutChange: (Boolean) -> Unit,
 ) {
-    val isRefreshing = feeds.loadState.refresh is LoadState.Loading
+    val feedUploadStatuses = uiState.feedUploadStatuses
+    val likeFeeds = uiState.likeFeeds
+    val menuVisibleFeed = uiState.menuVisibleFeed
+    val bottomSheetState = bottomSheetScaffoldState.bottomSheetState
+    val scope = rememberCoroutineScope()
+    val onNotInterestedClick: () -> Unit = remember(menuVisibleFeed) {
+        {
+            menuVisibleFeed?.feedId?.let {
+                onAction(HomeAction.HideFeed(feedId = it))
+            }
+            scope.launch {
+                bottomSheetState.hide()
+            }
+        }
+    }
 
-    PullToRefreshBox(
-        isRefreshing = isRefreshing,
-        onRefresh = { feeds.refresh() },
-        modifier = Modifier.fillMaxSize()
+    BottomSheetScaffold(
+        sheetPeekHeight = 0.dp,
+        sheetContainerColor = InstagramTheme.colors.background,
+        scaffoldState = bottomSheetScaffoldState,
+        sheetDragHandle = { if (menuVisibleFeed == null) null else BottomSheetDefaults.DragHandle() },
+        sheetSwipeEnabled = bottomSheetScaffoldState.bottomSheetState.currentValue != SheetValue.Hidden,
+        sheetContent = {
+            if (menuVisibleFeed == null) return@BottomSheetScaffold
+
+            when (menuVisibleFeed.type) {
+                is FeedItemType.Mine -> {
+                    MyFeedBottomSheet(
+                        isLikeCountVisible = menuVisibleFeed.isLikeCountVisible,
+                        isCommentEnabled = menuVisibleFeed.isCommentEnabled,
+                        onLikeVisibleChange = { onAction(HomeAction.ToggleLikeCountVisibility(isVisible = it)) },
+                        onCommentEnabledChange = { onAction(HomeAction.ToggleEnableComment(isEnabled = it)) },
+                        onEditClick = {},
+                        onDeleteClick = {}
+                    )
+                }
+
+                is FeedItemType.Following -> {
+                    FollowingFeedBottomSheet(
+                        isFollowing = true,
+                        onFollowChanged = {},
+                        onNotInterestedClick = onNotInterestedClick,
+                        onAccountInfoClick = {}
+                    )
+                }
+
+                is FeedItemType.Suggested -> {
+                    SuggestedFeedBottomSheet(
+                        onNotInterestedClick = onNotInterestedClick,
+                        onAccountInfoClick = {}
+                    )
+                }
+
+                is FeedItemType.Sponsored -> {
+                    SponsoredFeedBottomSheet(
+                        onNotInterestedClick = onNotInterestedClick,
+                        onAccountInfoClick = {}
+                    )
+                }
+            }
+        }
     ) {
-        LazyColumn(
-            state = feedState,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 10.dp)
-                .onGloballyPositioned {
-                    onFeedLayoutChange(it.size != IntSize.Zero)
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    detectTapGestures {
+                        scope.launch {
+                            bottomSheetScaffoldState.bottomSheetState.hide()
+                        }
+                    }
                 }
         ) {
-            items(
-                count = feeds.itemCount + feedUploadStatuses.size,
-                key = { index ->
-                    if (index < feedUploadStatuses.size) {
-                        feedUploadStatuses[index].feedId
-                    } else {
-                        feeds.itemKey { it.feedId }.invoke(index - feedUploadStatuses.size)
-                    }
-                },
-                contentType = { index ->
-                    if (index < feedUploadStatuses.size) {
-                        "upload_status"
-                    } else {
-                        feeds.itemContentType { "feed_item" }.invoke(index - feedUploadStatuses.size)
-                    }
-                }
-            ) { index ->
-                if (index < feedUploadStatuses.size) {
-                    FeedUploadStatusContent(feedUploadStatus = feedUploadStatuses[index])
-                } else {
-                    feeds[index - feedUploadStatuses.size]?.let { feedItem ->
-                        FeedContent(
-                            feedItem = feedItem,
-                            onProfileClick = { },
-                            onMoreClick = { }
-                        )
+            PullToRefreshBox(
+                isRefreshing = uiState.isRefreshing,
+                onRefresh = { onAction(HomeAction.RefreshFeeds) },
+                modifier = Modifier
+                    .fillMaxSize()
+            ) {
+                LazyColumn(
+                    state = feedState,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp)
+                        .onGloballyPositioned {
+                            onFeedLayoutChange(it.size != IntSize.Zero)
+                        }
+                ) {
+                    items(
+                        count = feeds.itemCount + feedUploadStatuses.size,
+                        key = { index ->
+                            if (index < feedUploadStatuses.size) {
+                                feedUploadStatuses[index].feedId
+                            } else {
+                                feeds.itemKey { it.feedId }.invoke(index - feedUploadStatuses.size)
+                            }
+                        },
+                        contentType = { index ->
+                            if (index < feedUploadStatuses.size) {
+                                "upload_status"
+                            } else {
+                                feeds.itemContentType { "feed_item" }.invoke(index - feedUploadStatuses.size)
+                            }
+                        }
+                    ) { index ->
+                        if (index < feedUploadStatuses.size) {
+                            FeedUploadStatusContent(feedUploadStatus = feedUploadStatuses[index])
+                        } else {
+                            feeds[index - feedUploadStatuses.size]?.let { item ->
+                                val isLiked = likeFeeds.any { it.feedId == item.feedId }
+                                val feedItem = item.copy(isLiked = isLiked)
+
+                                FeedContent(
+                                    feedItem = feedItem,
+                                    onLikeClick = { onAction(HomeAction.ToggleLike(feedItem.feedId)) },
+                                    onProfileClick = { },
+                                    onMoreClick = { feed ->
+                                        onAction(HomeAction.ShowFeedMenu(feed))
+                                        scope.launch {
+                                            bottomSheetState.expand()
+                                        }
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -152,6 +253,7 @@ fun FeedUploadStatusContent(feedUploadStatus: FeedUploadStatus) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @HomeScreenPreviews
 @Composable
 private fun HomeScreenPreview() {
@@ -210,21 +312,36 @@ private fun HomeScreenPreview() {
         }
     }.toImmutableList()
 
+    val uiState = HomeUiState(
+        feedUploadStatuses = feedUploadStatuses,
+        likeFeeds = persistentSetOf(LikeFeed("1", "user1")),
+        menuVisibleFeed = null,
+        isNetworkAvailable = true
+    )
+
+    val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(
+        bottomSheetState = rememberStandardBottomSheetState(
+            initialValue = SheetValue.Hidden,
+            skipHiddenState = false
+        )
+    )
+
     InstagramTheme {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background
         ) {
             HomeScreen(
+                uiState = uiState,
                 feedState = rememberLazyListState(),
-                feedUploadStatuses = feedUploadStatuses,
+                bottomSheetScaffoldState = bottomSheetScaffoldState,
                 feeds = mockFeeds,
-                onFeedLayoutChange = {}
+                onAction = {},
+                onFeedLayoutChange = {},
             )
         }
     }
 }
-
 
 @Preview(showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Preview(showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_NO)

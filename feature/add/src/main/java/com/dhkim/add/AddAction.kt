@@ -30,4 +30,6 @@ sealed interface AddAction {
     data class TypeCaption(
         val text: String
     ) : AddAction
+
+    data object RefreshGalleryImages : AddAction
 }

@@ -1,7 +1,17 @@
 package com.dhkim.data.feed.extension
 
+import com.dhkim.data.feed.model.FeedDto
+import com.dhkim.data.feed.model.LikeFeedDto
 import com.dhkim.database.entity.FeedUploadStatusEntity
+import com.dhkim.database.entity.HiddenFeedEntity
+import com.dhkim.database.entity.HomeFeedEntity
+import com.dhkim.database.entity.LikeEntity
+import com.dhkim.database.entity.MyFeedEntity
+import com.dhkim.database.entity.SearchFeedEntity
+import com.dhkim.domain.feed.model.Feed
 import com.dhkim.domain.feed.model.FeedUploadStatus
+import com.dhkim.domain.feed.model.HiddenFeed
+import com.dhkim.domain.feed.model.LikeFeed
 import com.dhkim.domain.feed.model.UploadState
 
 fun FeedUploadStatusEntity.toFeedUploadStatus(): FeedUploadStatus {
@@ -27,5 +37,182 @@ fun FeedUploadStatus.toEntity(): FeedUploadStatusEntity {
         imageUrls = imageUrls,
         uploadStatus = uploadState.code,
         shouldUpload = shouldUpload
+    )
+}
+
+fun HiddenFeedEntity.toHiddenFeed(): HiddenFeed {
+    return HiddenFeed(
+        feedId = feedId,
+        hiddenAt = hiddenAt
+    )
+}
+
+fun HiddenFeed.toEntity(): HiddenFeedEntity {
+    return HiddenFeedEntity(
+        feedId = feedId,
+        hiddenAt = hiddenAt
+    )
+}
+
+fun FeedDto.toMyFeedEntity(): MyFeedEntity {
+    return MyFeedEntity(
+        feedId = feedId,
+        type = type,
+        userId = userId,
+        userName = userName,
+        userProfileImage = userProfileImage,
+        imageUrls = imageUrls,
+        caption = caption,
+        timestamp = timestamp,
+        likeCount = likeCount,
+        representativeLikeId = representativeLikerId,
+        representativeLikeName = representativeLikerName,
+        commentCount = commentCount,
+        adUrl = adUrl,
+        isLikeCountVisible = showLikeCount,
+        isCommentEnabled = commentEnabled
+    )
+}
+
+fun MyFeedEntity.toFeed(): Feed {
+    return Feed(
+        feedId = feedId,
+        type = type,
+        userId = userId,
+        userName = userName,
+        userProfileImage = userProfileImage,
+        imageUrls = imageUrls,
+        caption = caption,
+        timestamp = timestamp,
+        likeCount = likeCount,
+        representativeLikerId = representativeLikeId,
+        representativeLikerName = representativeLikeName,
+        commentCount = commentCount,
+        adUrl = adUrl,
+        isLikeCountVisible = isLikeCountVisible,
+        isCommentEnabled = isCommentEnabled
+    )
+}
+
+fun Feed.toMyFeedEntity(): MyFeedEntity {
+    return MyFeedEntity(
+        feedId = feedId,
+        type = type,
+        userId = userId,
+        userName = userName,
+        userProfileImage = userProfileImage,
+        imageUrls = imageUrls,
+        caption = caption,
+        timestamp = timestamp,
+        likeCount = likeCount,
+        representativeLikeId = representativeLikerId,
+        representativeLikeName = representativeLikerName,
+        commentCount = commentCount,
+        adUrl = adUrl,
+        isLikeCountVisible = isLikeCountVisible,
+        isCommentEnabled = isCommentEnabled
+    )
+}
+
+fun FeedDto.toHomeEntity(): HomeFeedEntity {
+    return HomeFeedEntity(
+        feedId = feedId,
+        type = type,
+        userId = userId,
+        userName = userName,
+        userProfileImage = userProfileImage,
+        imageUrls = imageUrls,
+        caption = caption,
+        timestamp = timestamp,
+        likeCount = likeCount,
+        representativeLikeId = representativeLikerId,
+        representativeLikeName = representativeLikerName,
+        commentCount = commentCount,
+        adUrl = adUrl,
+        isLikeCountVisible = showLikeCount,
+        isCommentEnabled = commentEnabled
+    )
+}
+
+fun HomeFeedEntity.toFeed(): Feed {
+    return Feed(
+        feedId = feedId,
+        type = type,
+        userId = userId,
+        userName = userName,
+        userProfileImage = userProfileImage,
+        imageUrls = imageUrls,
+        caption = caption,
+        timestamp = timestamp,
+        likeCount = likeCount,
+        representativeLikerId = representativeLikeId,
+        representativeLikerName = representativeLikeName,
+        commentCount = commentCount,
+        adUrl = adUrl,
+        isLikeCountVisible = isLikeCountVisible,
+        isCommentEnabled = isCommentEnabled
+    )
+}
+
+fun FeedDto.toSearchEntity(): SearchFeedEntity {
+    return SearchFeedEntity(
+        feedId = feedId,
+        type = type,
+        userId = userId,
+        userName = userName,
+        userProfileImage = userProfileImage,
+        imageUrls = imageUrls,
+        caption = caption,
+        timestamp = timestamp,
+        likeCount = likeCount,
+        commentCount = commentCount,
+        adUrl = adUrl,
+        isLikeCountVisible = showLikeCount,
+        isCommentEnabled = commentEnabled
+    )
+}
+
+fun SearchFeedEntity.toFeed(): Feed {
+    return Feed(
+        feedId = feedId,
+        type = type,
+        userId = userId,
+        userName = userName,
+        userProfileImage = userProfileImage,
+        imageUrls = imageUrls,
+        caption = caption,
+        timestamp = timestamp,
+        likeCount = likeCount,
+        commentCount = commentCount,
+        adUrl = adUrl,
+        isLikeCountVisible = isLikeCountVisible,
+        isCommentEnabled = isCommentEnabled
+    )
+}
+
+fun LikeEntity.toLikeFeed(): LikeFeed {
+    return LikeFeed(
+        feedId = feedId,
+        userId = userId,
+        likedAt = likedAt,
+        isSynced = isSynced
+    )
+}
+
+fun LikeFeed.toEntity(): LikeEntity {
+    return LikeEntity(
+        feedId = feedId,
+        userId = userId,
+        likedAt = likedAt,
+        isSynced = isSynced
+    )
+}
+
+fun LikeFeedDto.toLikeFeed(): LikeFeed {
+    return LikeFeed(
+        feedId = feedId,
+        userId = userId,
+        likedAt = isLikeAt,
+        isSynced = true
     )
 }

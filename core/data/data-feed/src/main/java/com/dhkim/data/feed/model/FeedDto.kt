@@ -14,8 +14,12 @@ data class FeedDto(
     val caption: String = "",
     val timestamp: Long = 0L,
     val likeCount: Int = 0,
+    val representativeLikerName: String = "",
+    val representativeLikerId: String = "",
     val commentCount: Int = 0,
     val adUrl: String = "",
+    val showLikeCount: Boolean = true,
+    val commentEnabled: Boolean = true,
 ) {
     fun toFeed(): Feed {
         return Feed(
@@ -28,8 +32,12 @@ data class FeedDto(
             caption = caption,
             timestamp = timestamp,
             likeCount = likeCount,
+            representativeLikerName = representativeLikerName,
+            representativeLikerId = representativeLikerId,
             commentCount = commentCount,
-            adUrl = adUrl
+            adUrl = adUrl,
+            isLikeCountVisible = showLikeCount,
+            isCommentEnabled = commentEnabled
         )
     }
 }
@@ -45,7 +53,11 @@ fun Feed.toDto(): FeedDto {
         caption = caption,
         timestamp = timestamp,
         likeCount = likeCount,
+        representativeLikerName = representativeLikerName,
+        representativeLikerId = representativeLikerId,
         commentCount = commentCount,
-        adUrl = adUrl
+        adUrl = adUrl,
+        showLikeCount = isLikeCountVisible,
+        commentEnabled = isCommentEnabled
     )
 }

@@ -1,13 +1,13 @@
 package com.dhkim.domain.login.useCase
 
 import com.dhkim.domain.login.repository.LoginRepository
-import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
 class LoginUseCase @Inject constructor(
     private val loginRepository: LoginRepository
 ) {
-    operator fun invoke(): Flow<Unit> {
-        return loginRepository.login()
+
+    suspend operator fun invoke() {
+        loginRepository.login()
     }
 }
