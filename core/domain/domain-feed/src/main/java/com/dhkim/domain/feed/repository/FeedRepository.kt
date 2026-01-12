@@ -26,7 +26,7 @@ interface FeedRepository {
     suspend fun unhideFeed(userId:String, feedId: String)
     suspend fun clearHiddenFeeds()
     suspend fun toggleLikeCountVisibility(feedId: String, userId: String)
-    suspend fun toggleLike(feedId: String, userId: String)
+    suspend fun toggleLike(feedId: String, userId: String, userName: String, isLiked: Boolean)
     suspend fun remoteToggleLike(feedId: String, userId: String)
     suspend fun syncLikeFeeds(userId: String)
     fun getAllLikedFeeds(userId: String): Flow<Set<LikeFeed>>

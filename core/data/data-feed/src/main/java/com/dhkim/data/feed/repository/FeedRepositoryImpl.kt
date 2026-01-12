@@ -123,12 +123,37 @@ class FeedRepositoryImpl @Inject constructor(
         localDataSource.updateMyFeed(myFeed.copy(isLikeCountVisible = !isVisible))
     }
 
-    override suspend fun toggleLike(feedId: String, userId: String) {
-        val isLiked = localDataSource.observeIsLiked(feedId, userId).first()
+    override suspend fun toggleLike(feedId: String, userId: String, userName: String, isLiked: Boolean) {
+        val homeFeed = localDataSource.getHomeFeed(feedId).first()
+        val likeCount = homeFeed.likeCount
         if (isLiked) {
+            val (representativeLikerId, representativeLikeName) = if (likeCount <= 1) {
+                "" to ""
+            } else {
+                homeFeed.representativeLikeId to homeFeed.representativeLikeName
+            }
             localDataSource.deleteLike(feedId, userId)
+            localDataSource.updateHomeFeed(
+                homeFeed.copy(
+                    likeCount = likeCount - 1,
+                    representativeLikeId = representativeLikerId,
+                    representativeLikeName = representativeLikeName
+                )
+            )
         } else {
+            val (representativeLikerId, representativeLikeName) = if (likeCount >= 1) {
+                homeFeed.representativeLikeId to homeFeed.representativeLikeName
+            } else {
+                userId to userName
+            }
             localDataSource.insertLike(LikeEntity(feedId, userId))
+            localDataSource.updateHomeFeed(
+                homeFeed.copy(
+                    likeCount = likeCount + 1,
+                    representativeLikeId = representativeLikerId,
+                    representativeLikeName = representativeLikeName
+                )
+            )
         }
         enqueueLikeWorker(feedId, userId)
     }

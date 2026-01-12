@@ -171,7 +171,8 @@ class HomeViewModel @Inject constructor(
     private fun toggleLike(feedId: String) {
         viewModelScope.handle(
             block = {
-                toggleFeedLikeUseCase(feedId)
+                val isLiked = uiState.value.likeFeeds.any { it.feedId == feedId }
+                toggleFeedLikeUseCase(feedId, isLiked)
             },
             onError = {
 

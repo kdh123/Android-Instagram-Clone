@@ -11,9 +11,11 @@ class ToggleFeedLikeUseCase @Inject constructor(
     private val getUserUseCase: GetUserUseCase
 ){
 
-    suspend operator fun invoke(feedId: String) {
-        val userId = getUserUseCase().first()?.id ?: throw NoUserFoundException()
+    suspend operator fun invoke(feedId: String, isLiked: Boolean) {
+        val (userId, userName) = getUserUseCase().first()?.run {
+            id to name
+        } ?: throw NoUserFoundException()
 
-        feedRepository.toggleLike(feedId, userId)
+        feedRepository.toggleLike(feedId, userId, userName, isLiked)
     }
 }
