@@ -99,8 +99,8 @@ class HomeViewModelTest {
 
     @Test
     fun whenFetchFeedsSucceeds_emitsSuccessfulPagingData() = runTest {
-        coEvery { feedRepository.toggleEnableComment(any(), any()) } returns Unit
-        coEvery { feedRepository.toggleLikeCountVisibility(any(), any()) } returns Unit
+        coEvery { feedRepository.toggleEnableComment(any(), any(), any()) } returns Unit
+        coEvery { feedRepository.toggleLikeCountVisibility(any(), any(), any()) } returns Unit
         coEvery { feedRepository.getHiddenFeeds() } returns flowOf(setOf(HiddenFeed("feedId1", 1234567890)))
         coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf()
         coEvery { feedRepository.getMyFeeds() } returns flowOf(myFeeds)
@@ -143,8 +143,8 @@ class HomeViewModelTest {
         coEvery { feedRepository.getHomeFeeds() } returns flowOf(errorPagingData)
         coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf()
         coEvery { userRepository.getUser() } returns flowOf(testUser)
-        coEvery { feedRepository.toggleEnableComment(any(), any()) } returns Unit
-        coEvery { feedRepository.toggleLikeCountVisibility(any(), any()) } returns Unit
+        coEvery { feedRepository.toggleEnableComment(any(), any(), any()) } returns Unit
+        coEvery { feedRepository.toggleLikeCountVisibility(any(), any(), any()) } returns Unit
         coEvery { feedRepository.getHiddenFeeds() } returns flowOf(setOf(HiddenFeed("feedId1", 1234567890)))
         coEvery { connectivityChecker.isNetworkAvailable() } returns flowOf(true)
 

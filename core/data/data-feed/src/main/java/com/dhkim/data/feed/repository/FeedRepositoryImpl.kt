@@ -113,10 +113,9 @@ class FeedRepositoryImpl @Inject constructor(
         localDataSource.clearHiddenFeeds()
     }
 
-    override suspend fun toggleLikeCountVisibility(feedId: String, userId: String) {
+    override suspend fun toggleLikeCountVisibility(feedId: String, userId: String, isVisible: Boolean) {
         val myFeed = localDataSource.getMyFeed(feedId).first()
         val homeFeed = localDataSource.getHomeFeed(feedId).first()
-        val isVisible = homeFeed.isLikeCountVisible
 
         remoteDataSource.toggleLikeCountVisibility(feedId, userId, isVisible = !isVisible)
         localDataSource.updateHomeFeed(homeFeed.copy(isLikeCountVisible = !isVisible))
@@ -135,7 +134,7 @@ class FeedRepositoryImpl @Inject constructor(
             localDataSource.deleteLike(feedId, userId)
             localDataSource.updateHomeFeed(
                 homeFeed.copy(
-                    likeCount = likeCount - 1,
+                    likeCount = (likeCount - 1).let { if (it < 0) 0 else it },
                     representativeLikeId = representativeLikerId,
                     representativeLikeName = representativeLikeName
                 )
@@ -188,17 +187,13 @@ class FeedRepositoryImpl @Inject constructor(
         return localDataSource.getUnSyncedLikes().map { it.toLikeFeed() }
     }
 
-    override suspend fun toggleEnableComment(feedId: String, userId: String) {
+    override suspend fun toggleEnableComment(feedId: String, userId: String, isEnabled: Boolean) {
         val myFeed = localDataSource.getMyFeed(feedId).first()
         val homeFeed = localDataSource.getHomeFeed(feedId).first()
-        remoteDataSource.toggleEnableComment(feedId, userId, isEnabled = !myFeed.isCommentEnabled)
-        localDataSource.updateHomeFeed(homeFeed.copy(isCommentEnabled = !homeFeed.isCommentEnabled))
-        localDataSource.updateMyFeed(myFeed.copy(isCommentEnabled = !myFeed.isCommentEnabled))
-    }
 
-    override suspend fun remoteToggleEnableComment(feedId: String, userId: String) {
-        val myFeed = localDataSource.getMyFeed(feedId).first()
-        remoteDataSource.toggleEnableComment(feedId, userId, isEnabled = !myFeed.isCommentEnabled)
+        remoteDataSource.toggleEnableComment(feedId, userId, isEnabled = !isEnabled)
+        localDataSource.updateHomeFeed(homeFeed.copy(isCommentEnabled = !isEnabled))
+        localDataSource.updateMyFeed(myFeed.copy(isCommentEnabled = !isEnabled))
     }
 
     private fun enqueueLikeWorker(feedId: String, userId: String) {

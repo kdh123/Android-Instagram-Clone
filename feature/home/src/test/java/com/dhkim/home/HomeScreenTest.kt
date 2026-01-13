@@ -121,8 +121,8 @@ class HomeScreenTest {
     @Test
     fun whenFeedsLoadedSuccessfully_showsFeedList() = runTest {
         coEvery { feedRepository.getAllLikedFeeds(any()) } returns flowOf(setOf(LikeFeed("feedId1", "userId1")))
-        coEvery { feedRepository.toggleEnableComment(any(), any()) } returns Unit
-        coEvery { feedRepository.toggleLikeCountVisibility(any(), any()) } returns Unit
+        coEvery { feedRepository.toggleEnableComment(any(), any(), any()) } returns Unit
+        coEvery { feedRepository.toggleLikeCountVisibility(any(), any(), any()) } returns Unit
         coEvery { feedRepository.getHiddenFeeds() } returns flowOf(setOf(HiddenFeed("feedId1", 1234567890)))
         coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf()
         coEvery { feedRepository.getMyFeeds() } returns flowOf(myFeeds)
@@ -184,8 +184,8 @@ class HomeScreenTest {
                 append = LoadState.NotLoading(endOfPaginationReached = true)
             )
         )
-        coEvery { feedRepository.toggleEnableComment(any(), any()) } returns Unit
-        coEvery { feedRepository.toggleLikeCountVisibility(any(), any()) } returns Unit
+        coEvery { feedRepository.toggleEnableComment(any(), any(), any()) } returns Unit
+        coEvery { feedRepository.toggleLikeCountVisibility(any(), any(), any()) } returns Unit
         coEvery { feedRepository.getHiddenFeeds() } returns flowOf(setOf(HiddenFeed("feedId1", 1234567890)))
         coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf()
         coEvery { feedRepository.getMyFeeds() } returns flowOf(myFeeds)

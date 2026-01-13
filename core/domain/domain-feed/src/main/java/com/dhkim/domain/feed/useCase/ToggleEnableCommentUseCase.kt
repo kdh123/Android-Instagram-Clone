@@ -11,8 +11,8 @@ class ToggleEnableCommentUseCase @Inject constructor(
     private val getUserUseCase: GetUserUseCase
 ) {
 
-    suspend operator fun invoke(feedId: String) {
+    suspend operator fun invoke(feedId: String, isEnabled: Boolean) {
         val userId = getUserUseCase().first()?.id ?: throw NoUserFoundException()
-        feedRepository.toggleEnableComment(feedId, userId)
+        feedRepository.toggleEnableComment(feedId, userId, isEnabled)
     }
 }

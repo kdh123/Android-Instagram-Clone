@@ -24,8 +24,8 @@ import com.dhkim.ui.noRippleClick
 fun MyFeedBottomSheet(
     isLikeCountVisible: Boolean,
     isCommentEnabled: Boolean,
-    onLikeVisibleChange: (Boolean) -> Unit,
-    onCommentEnabledChange: (Boolean) -> Unit,
+    onLikeVisibleChange: () -> Unit,
+    onCommentEnabledChange: () -> Unit,
     onEditClick: () -> Unit,
     onDeleteClick: () -> Unit,
 ) {
@@ -39,9 +39,7 @@ fun MyFeedBottomSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(10.dp)
-                .noRippleClick {
-                    onLikeVisibleChange(!isLikeCountVisible)
-                }
+                .noRippleClick(onClick = onLikeVisibleChange)
         ) {
             val likeIcon = if (isLikeCountVisible) R.drawable.ic_cancel_like else R.drawable.ic_like
             val likeText = if (isLikeCountVisible) R.string.hide_like_count else R.string.cancel_hide_like_count
@@ -63,9 +61,7 @@ fun MyFeedBottomSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(10.dp)
-                .noRippleClick {
-                    onCommentEnabledChange(!isCommentEnabled)
-                }
+                .noRippleClick(onClick = onCommentEnabledChange)
         ) {
             val commentIcon = if (isCommentEnabled) R.drawable.ic_disable_comment else R.drawable.ic_comment
             val commentText = if (isCommentEnabled) R.string.disable_comment else R.string.cancel_disable_comment

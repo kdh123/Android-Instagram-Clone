@@ -25,7 +25,7 @@ interface FeedRepository {
     suspend fun hideFeed(userId:String, hiddenFeed: HiddenFeed)
     suspend fun unhideFeed(userId:String, feedId: String)
     suspend fun clearHiddenFeeds()
-    suspend fun toggleLikeCountVisibility(feedId: String, userId: String)
+    suspend fun toggleLikeCountVisibility(feedId: String, userId: String, isVisible: Boolean)
     suspend fun toggleLike(feedId: String, userId: String, userName: String, isLiked: Boolean)
     suspend fun remoteToggleLike(feedId: String, userId: String)
     suspend fun syncLikeFeeds(userId: String)
@@ -33,6 +33,5 @@ interface FeedRepository {
     fun getLikeFeed(feedId: String, userId: String): Flow<LikeFeed?>
     suspend fun updateLikeFeed(likeFeed: LikeFeed)
     suspend fun getUnSyncedLikes(): List<LikeFeed>
-    suspend fun toggleEnableComment(feedId: String, userId: String)
-    suspend fun remoteToggleEnableComment(feedId: String, userId: String)
+    suspend fun toggleEnableComment(feedId: String, userId: String, isEnabled: Boolean)
 }

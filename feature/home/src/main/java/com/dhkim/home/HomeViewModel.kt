@@ -100,7 +100,7 @@ class HomeViewModel @Inject constructor(
     fun onAction(action: HomeAction) {
         when (action) {
             is HomeAction.ToggleLikeCountVisibility -> {
-                toggleLikeCountVisibility(action.isVisible)
+                toggleLikeCountVisibility()
             }
 
             is HomeAction.HideFeed -> {
@@ -132,17 +132,18 @@ class HomeViewModel @Inject constructor(
             }
 
             is HomeAction.ToggleEnableComment -> {
-                toggleEnableComment(action.isEnabled)
+                toggleEnableComment()
             }
         }
     }
 
-    private fun toggleEnableComment(isEnabled: Boolean) {
+    private fun toggleEnableComment() {
         viewModelScope.handle(
             block = {
                 val feedId = menuVisibleFeed.value?.feedId ?: return@handle
-                toggleEnableCommentUseCase(feedId)
-                menuVisibleFeed.update { it?.copy(isCommentEnabled = isEnabled) }
+                val isEnabled = menuVisibleFeed.value?.isCommentEnabled ?: return@handle
+                toggleEnableCommentUseCase(feedId, isEnabled)
+                menuVisibleFeed.update { it?.copy(isCommentEnabled = !isEnabled) }
             },
             onError = {
                 viewModelScope.launch {
@@ -188,12 +189,13 @@ class HomeViewModel @Inject constructor(
         menuVisibleFeed.update { feed }
     }
 
-    private fun toggleLikeCountVisibility(isVisible: Boolean) {
+    private fun toggleLikeCountVisibility() {
         viewModelScope.handle(
             block = {
                 val feedId = menuVisibleFeed.value?.feedId ?: return@handle
-                toggleFeedLikeCountVisibilityUseCase(feedId)
-                menuVisibleFeed.update { it?.copy(isLikeCountVisible = isVisible) }
+                val isVisible = menuVisibleFeed.value?.isLikeCountVisible ?: return@handle
+                toggleFeedLikeCountVisibilityUseCase(feedId, isVisible)
+                menuVisibleFeed.update { it?.copy(isLikeCountVisible = !isVisible) }
             },
             onError = {
                 viewModelScope.launch {
