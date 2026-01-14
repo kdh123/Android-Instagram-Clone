@@ -13,4 +13,6 @@ sealed interface HomeAction {
     data object ToggleEnableComment : HomeAction
     data object RefreshFeeds : HomeAction
     data object OnFeedCompleted : HomeAction
+    data object DismissBottomSheet : HomeAction
+    data class ShowLikers(val feedItem: FeedItem) : HomeAction
 }

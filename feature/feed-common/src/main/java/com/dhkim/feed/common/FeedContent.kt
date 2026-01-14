@@ -67,6 +67,7 @@ import kotlinx.coroutines.delay
 fun FeedContent(
     feedItem: FeedItem,
     onLikeClick: (FeedItem) -> Unit,
+    onLikersClick: () -> Unit,
     onProfileClick: () -> Unit,
     onMoreClick: (FeedItem) -> Unit
 ) {
@@ -77,6 +78,7 @@ fun FeedContent(
             CommonFeedContent(
                 feedItem = feedItem,
                 onLikeClick = onLikeClick,
+                onLikersClick = onLikersClick,
                 onProfileClick = onProfileClick,
                 onMoreClick = onMoreClick
             )
@@ -86,6 +88,7 @@ fun FeedContent(
             SponsoredFeedContent(
                 feedItem = feedItem,
                 onLikeClick = onLikeClick,
+                onLikersClick = onLikersClick,
                 onProfileClick = onProfileClick,
                 onMoreClick = onMoreClick
             )
@@ -97,6 +100,7 @@ fun FeedContent(
 fun CommonFeedContent(
     feedItem: FeedItem,
     onLikeClick: (FeedItem) -> Unit,
+    onLikersClick: () -> Unit,
     onProfileClick: () -> Unit,
     onMoreClick: (FeedItem) -> Unit
 ) {
@@ -113,7 +117,7 @@ fun CommonFeedContent(
             onShareClick = { }
         )
         FeedLikeSummaryText(
-            onLikeCountClick = { }
+            onLikersClick = onLikersClick
         )
         FeedCaption(
             onUserClick = { },
@@ -126,6 +130,7 @@ fun CommonFeedContent(
 fun SponsoredFeedContent(
     feedItem: FeedItem,
     onLikeClick: (FeedItem) -> Unit,
+    onLikersClick: () -> Unit,
     onProfileClick: () -> Unit,
     onMoreClick: (FeedItem) -> Unit
 ) {
@@ -142,7 +147,7 @@ fun SponsoredFeedContent(
             onShareClick = { }
         )
         FeedLikeSummaryText(
-            onLikeCountClick = { }
+            onLikersClick = onLikersClick
         )
         FeedCaption(
             onUserClick = { },
@@ -334,7 +339,7 @@ fun FeedContentScope.FeedItemActions(
 
 @Composable
 fun FeedContentScope.FeedLikeSummaryText(
-    onLikeCountClick: () -> Unit,
+    onLikersClick: () -> Unit,
 ) {
     val representativeLikerName = feedItem.representativeLikeName
     val totalLikeCount = feedItem.likeCount
@@ -372,7 +377,7 @@ fun FeedContentScope.FeedLikeSummaryText(
         text = annotatedString,
         modifier = Modifier
             .fillMaxWidth()
-            .noRippleClick(onClick = onLikeCountClick)
+            .noRippleClick(onClick = onLikersClick)
             .padding(horizontal = 12.dp, vertical = 4.dp),
         style = MaterialTheme.typography.bodyMedium
     )
@@ -587,6 +592,7 @@ private fun FeedContentPreview(
             FeedContent(
                 feedItem = feedItem,
                 onLikeClick = {},
+                onLikersClick = {},
                 onProfileClick = {},
                 onMoreClick = {}
             )

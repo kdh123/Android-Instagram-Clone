@@ -22,6 +22,7 @@ import com.dhkim.domain.feed.repository.FeedRepository
 import com.dhkim.domain.feed.useCase.GetFeedUploadStatusesUseCase
 import com.dhkim.domain.feed.useCase.GetFeedsUseCase
 import com.dhkim.domain.feed.useCase.GetLikeFeedsUseCase
+import com.dhkim.domain.feed.useCase.GetLikersUseCase
 import com.dhkim.domain.feed.useCase.GetMyFeedsUseCase
 import com.dhkim.domain.feed.useCase.HideFeedUseCase
 import com.dhkim.domain.feed.useCase.ToggleEnableCommentUseCase
@@ -57,6 +58,7 @@ class HomeScreenTest {
     private val userRepository = mockk<UserRepository>()
     private val getFeedsUseCase = GetFeedsUseCase(feedRepository)
     private val getUserUseCase = GetUserUseCase(userRepository)
+    private val getLikersUseCase = GetLikersUseCase(feedRepository)
     private val getFeedUploadStatusesUseCase = GetFeedUploadStatusesUseCase(feedRepository)
     private val toggleFeedLikeCountVisibilityUseCase = ToggleFeedLikeCountVisibilityUseCase(feedRepository, getUserUseCase)
     private val hideFeedUseCase = HideFeedUseCase(feedRepository, getUserUseCase)
@@ -141,6 +143,7 @@ class HomeScreenTest {
             toggleFeedLikeUseCase = toggleFeedLikeUseCase,
             toggleEnableCommentUseCase = toggleEnableCommentUseCase,
             getLikeFeedsUseCase = getLikeFeedsUseCase,
+            getLikersUseCase = getLikersUseCase,
             getUserUseCase = getUserUseCase,
             connectivityChecker = connectivityChecker
         )
@@ -148,6 +151,7 @@ class HomeScreenTest {
         composeRule.setContent {
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
             val feeds = viewModel.feeds.collectAsLazyPagingItems()
+            val likers = viewModel.likers.collectAsLazyPagingItems()
             val feedState = rememberLazyListState()
             val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(
                 bottomSheetState = rememberStandardBottomSheetState(
@@ -161,6 +165,7 @@ class HomeScreenTest {
                 feedState = feedState,
                 bottomSheetScaffoldState = bottomSheetScaffoldState,
                 feeds = feeds,
+                likers = likers,
                 onAction = viewModel::onAction,
                 onFeedLayoutChange = {}
             )
@@ -205,6 +210,7 @@ class HomeScreenTest {
             toggleFeedLikeUseCase = toggleFeedLikeUseCase,
             toggleEnableCommentUseCase = toggleEnableCommentUseCase,
             getLikeFeedsUseCase = getLikeFeedsUseCase,
+            getLikersUseCase = getLikersUseCase,
             getUserUseCase = getUserUseCase,
             connectivityChecker = connectivityChecker
         )
@@ -212,6 +218,7 @@ class HomeScreenTest {
         composeRule.setContent {
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
             val feeds = viewModel.feeds.collectAsLazyPagingItems()
+            val likers = viewModel.likers.collectAsLazyPagingItems()
             val feedState = rememberLazyListState()
             val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(
                 bottomSheetState = rememberStandardBottomSheetState(
@@ -225,6 +232,7 @@ class HomeScreenTest {
                 feedState = feedState,
                 bottomSheetScaffoldState = bottomSheetScaffoldState,
                 feeds = feeds,
+                likers = likers,
                 onAction = viewModel::onAction,
                 onFeedLayoutChange = {}
             )

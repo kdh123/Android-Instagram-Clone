@@ -18,10 +18,12 @@ import kotlin.coroutines.EmptyCoroutineContext
 fun CoroutineScope.handle(
     context: CoroutineContext = EmptyCoroutineContext,
     block: suspend CoroutineScope.() -> Unit,
-    onError: (Throwable) -> Unit
+    onError: suspend (Throwable) -> Unit
 ) {
     launch(context + CoroutineExceptionHandler { _, throwable ->
-        onError(throwable)
+        launch {
+            onError(throwable)
+        }
     }) {
         block()
     }

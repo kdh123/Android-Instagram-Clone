@@ -16,6 +16,10 @@ data class HomeUiState(
     val myFeeds: ImmutableSet<Feed> = persistentSetOf(),
     val feedUploadStatuses: ImmutableList<FeedUploadStatus> = persistentListOf(),
     val likeFeeds: ImmutableSet<LikeFeed> = persistentSetOf(),
+    val targetFeedForLikers: FeedItem? = null,
     val menuVisibleFeed: FeedItem? = null,
     val isNetworkAvailable: Boolean = true
-)
+) {
+    val shouldShowLikersBottomSheet: Boolean
+        get() = targetFeedForLikers != null
+}

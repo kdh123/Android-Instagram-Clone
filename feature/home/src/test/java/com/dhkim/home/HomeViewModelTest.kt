@@ -11,6 +11,7 @@ import com.dhkim.domain.feed.repository.FeedRepository
 import com.dhkim.domain.feed.useCase.GetFeedUploadStatusesUseCase
 import com.dhkim.domain.feed.useCase.GetFeedsUseCase
 import com.dhkim.domain.feed.useCase.GetLikeFeedsUseCase
+import com.dhkim.domain.feed.useCase.GetLikersUseCase
 import com.dhkim.domain.feed.useCase.GetMyFeedsUseCase
 import com.dhkim.domain.feed.useCase.HideFeedUseCase
 import com.dhkim.domain.feed.useCase.ToggleEnableCommentUseCase
@@ -45,6 +46,7 @@ class HomeViewModelTest {
     private val userRepository = mockk<UserRepository>()
     private val getFeedsUseCase = GetFeedsUseCase(feedRepository)
     private val getUserUseCase = GetUserUseCase(userRepository)
+    private val getLikersUseCase = GetLikersUseCase(feedRepository)
     private val getFeedUploadStatusesUseCase = GetFeedUploadStatusesUseCase(feedRepository)
     private val toggleFeedLikeCountVisibilityUseCase = ToggleFeedLikeCountVisibilityUseCase(feedRepository, getUserUseCase)
     private val hideFeedUseCase = HideFeedUseCase(feedRepository, getUserUseCase)
@@ -119,6 +121,7 @@ class HomeViewModelTest {
             toggleFeedLikeUseCase = toggleFeedLikeUseCase,
             toggleEnableCommentUseCase = toggleEnableCommentUseCase,
             getLikeFeedsUseCase = getLikeFeedsUseCase,
+            getLikersUseCase = getLikersUseCase,
             getUserUseCase = getUserUseCase,
             connectivityChecker = connectivityChecker
         )
@@ -158,6 +161,7 @@ class HomeViewModelTest {
             toggleFeedLikeUseCase = toggleFeedLikeUseCase,
             toggleEnableCommentUseCase = toggleEnableCommentUseCase,
             getLikeFeedsUseCase = getLikeFeedsUseCase,
+            getLikersUseCase = getLikersUseCase,
             getUserUseCase = getUserUseCase,
             connectivityChecker = connectivityChecker
         )

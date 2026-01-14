@@ -11,6 +11,7 @@ import com.dhkim.common.restartableStateIn
 import com.dhkim.domain.feed.useCase.GetFeedUploadStatusesUseCase
 import com.dhkim.domain.feed.useCase.GetFeedsUseCase
 import com.dhkim.domain.feed.useCase.GetLikeFeedsUseCase
+import com.dhkim.domain.feed.useCase.GetLikersUseCase
 import com.dhkim.domain.feed.useCase.GetMyFeedsUseCase
 import com.dhkim.domain.feed.useCase.HideFeedUseCase
 import com.dhkim.domain.feed.useCase.ToggleEnableCommentUseCase
@@ -34,6 +35,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
@@ -52,6 +54,7 @@ class HomeViewModel @Inject constructor(
     private val toggleFeedLikeUseCase: ToggleFeedLikeUseCase,
     private val toggleEnableCommentUseCase: ToggleEnableCommentUseCase,
     private val getLikeFeedsUseCase: GetLikeFeedsUseCase,
+    private val getLikersUseCase: GetLikersUseCase,
     private val getUserUseCase: GetUserUseCase,
     private val connectivityChecker: ConnectivityChecker
 ) : ViewModel() {
@@ -68,6 +71,17 @@ class HomeViewModel @Inject constructor(
             }.cachedIn(viewModelScope)
     }
 
+    private val targetFeedForLikers: MutableStateFlow<FeedItem?> = MutableStateFlow(null)
+    val likers = targetFeedForLikers.flatMapLatest { feedItem ->
+        if (feedItem != null) {
+            getLikersUseCase(feedItem.feedId).map { pagingData ->
+                pagingData.map { it.toUserItem() }
+            }
+        } else {
+            flowOf(PagingData.empty())
+        }
+    }.cachedIn(viewModelScope)
+
     private val menuVisibleFeed: MutableStateFlow<FeedItem?> = MutableStateFlow(null)
     private val isRefreshing = MutableStateFlow(false)
 
@@ -77,7 +91,7 @@ class HomeViewModel @Inject constructor(
             getFeedUploadStatusesUseCase(),
             getLikeFeedsUseCase(),
             menuVisibleFeed,
-            connectivityChecker.isNetworkAvailable()
+            connectivityChecker.isNetworkAvailable(),
         ) { myFeeds, feedUploadStatuses, likeFeeds, menuVisibleFeed, isNetworkAvailable ->
             HomeUiState(
                 isRefreshing = isRefreshing,
@@ -87,6 +101,8 @@ class HomeViewModel @Inject constructor(
                 menuVisibleFeed = menuVisibleFeed,
                 isNetworkAvailable = isNetworkAvailable
             )
+        }.combine(targetFeedForLikers) { uiState, targetFeedForLikers ->
+            uiState.copy(targetFeedForLikers = targetFeedForLikers)
         }
     }.restartableStateIn(
         scope = viewModelScope,
@@ -134,7 +150,23 @@ class HomeViewModel @Inject constructor(
             is HomeAction.ToggleEnableComment -> {
                 toggleEnableComment()
             }
+
+            HomeAction.DismissBottomSheet -> {
+                dismissBottomSheet()
+            }
+
+            is HomeAction.ShowLikers -> {
+                showLikers(action.feedItem)
+            }
         }
+    }
+
+    private fun showLikers(feedItem: FeedItem) {
+        targetFeedForLikers.update { feedItem }
+    }
+
+    private fun dismissBottomSheet() {
+        targetFeedForLikers.update { null }
     }
 
     private fun toggleEnableComment() {
@@ -146,9 +178,7 @@ class HomeViewModel @Inject constructor(
                 menuVisibleFeed.update { it?.copy(isCommentEnabled = !isEnabled) }
             },
             onError = {
-                viewModelScope.launch {
-                    _sideEffect.send(HomeSideEffect.ShowRefreshFeedsFailNotice)
-                }
+                _sideEffect.send(HomeSideEffect.ShowRefreshFeedsFailNotice)
             }
         )
     }
@@ -198,9 +228,7 @@ class HomeViewModel @Inject constructor(
                 menuVisibleFeed.update { it?.copy(isLikeCountVisible = !isVisible) }
             },
             onError = {
-                viewModelScope.launch {
-                    _sideEffect.send(HomeSideEffect.ShowToast(it.message ?: "Unknown Error"))
-                }
+                _sideEffect.send(HomeSideEffect.ShowToast(it.message ?: "Unknown Error"))
             }
         )
     }
@@ -211,9 +239,7 @@ class HomeViewModel @Inject constructor(
                 hideFeedUseCase(feedId).first()
             },
             onError = {
-                viewModelScope.launch {
-                    _sideEffect.send(HomeSideEffect.ShowToast(it.message ?: "Unknown Error"))
-                }
+                _sideEffect.send(HomeSideEffect.ShowToast(it.message ?: "Unknown Error"))
             }
         )
     }
@@ -224,9 +250,7 @@ class HomeViewModel @Inject constructor(
                 unhideFeedUseCase(feedId).first()
             },
             onError = {
-                viewModelScope.launch {
-                    _sideEffect.send(HomeSideEffect.ShowToast(it.message ?: "Unknown Error"))
-                }
+                _sideEffect.send(HomeSideEffect.ShowToast(it.message ?: "Unknown Error"))
             }
         )
     }
