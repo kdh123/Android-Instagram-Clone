@@ -15,6 +15,8 @@ import com.dhkim.data.feed.extension.toFeed
 import com.dhkim.data.feed.extension.toFeedUploadStatus
 import com.dhkim.data.feed.extension.toHiddenFeed
 import com.dhkim.data.feed.extension.toLikeFeed
+import com.dhkim.data.feed.extension.toLikeUser
+import com.dhkim.data.feed.extension.toLikeUserDto
 import com.dhkim.data.feed.extension.toMyFeedEntity
 import com.dhkim.data.feed.work.FeedLikeSyncWorker
 import com.dhkim.database.entity.LikeEntity
@@ -22,7 +24,9 @@ import com.dhkim.domain.feed.model.Feed
 import com.dhkim.domain.feed.model.FeedUploadStatus
 import com.dhkim.domain.feed.model.HiddenFeed
 import com.dhkim.domain.feed.model.LikeFeed
+import com.dhkim.domain.feed.model.LikeUser
 import com.dhkim.domain.feed.repository.FeedRepository
+import com.dhkim.domain.user.model.User
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
@@ -154,12 +158,14 @@ class FeedRepositoryImpl @Inject constructor(
                 )
             )
         }
-        enqueueLikeWorker(feedId, userId)
+        enqueueLikeWorker(feedId)
     }
 
-    override suspend fun remoteToggleLike(feedId: String, userId: String) {
+    override suspend fun remoteToggleLike(feedId: String, user: User) {
+        val userId = user.id
         val isLiked = localDataSource.observeIsLiked(feedId, userId).first()
-        remoteDataSource.toggleLike(feedId, myUid = userId, isLiked)
+        val likeUserDto = user.toLikeUserDto()
+        remoteDataSource.toggleLike(feedId, likeUserDto, isLiked)
     }
 
     override suspend fun syncLikeFeeds(userId: String) {
@@ -196,8 +202,14 @@ class FeedRepositoryImpl @Inject constructor(
         localDataSource.updateMyFeed(myFeed.copy(isCommentEnabled = !isEnabled))
     }
 
-    private fun enqueueLikeWorker(feedId: String, userId: String) {
-        val data = workDataOf("KEY_FEED_ID" to feedId, "KEY_USER_ID" to userId)
+    override fun getLikeUsers(feedId: String): Flow<PagingData<LikeUser>> {
+        return remoteDataSource.getLikeUsers(feedId).map { pagingData ->
+            pagingData.map { it.toLikeUser() }
+        }
+    }
+
+    private fun enqueueLikeWorker(feedId: String) {
+        val data = workDataOf("KEY_FEED_ID" to feedId)
         val request = OneTimeWorkRequestBuilder<FeedLikeSyncWorker>()
             .setInputData(data)
             .setConstraints(Constraints(requiredNetworkType = NetworkType.CONNECTED))

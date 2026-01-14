@@ -5,6 +5,8 @@ import com.dhkim.domain.feed.model.Feed
 import com.dhkim.domain.feed.model.FeedUploadStatus
 import com.dhkim.domain.feed.model.HiddenFeed
 import com.dhkim.domain.feed.model.LikeFeed
+import com.dhkim.domain.feed.model.LikeUser
+import com.dhkim.domain.user.model.User
 import kotlinx.coroutines.flow.Flow
 import java.io.File
 
@@ -27,11 +29,12 @@ interface FeedRepository {
     suspend fun clearHiddenFeeds()
     suspend fun toggleLikeCountVisibility(feedId: String, userId: String, isVisible: Boolean)
     suspend fun toggleLike(feedId: String, userId: String, userName: String, isLiked: Boolean)
-    suspend fun remoteToggleLike(feedId: String, userId: String)
+    suspend fun remoteToggleLike(feedId: String, user: User)
     suspend fun syncLikeFeeds(userId: String)
     fun getAllLikedFeeds(userId: String): Flow<Set<LikeFeed>>
     fun getLikeFeed(feedId: String, userId: String): Flow<LikeFeed?>
     suspend fun updateLikeFeed(likeFeed: LikeFeed)
     suspend fun getUnSyncedLikes(): List<LikeFeed>
     suspend fun toggleEnableComment(feedId: String, userId: String, isEnabled: Boolean)
+    fun getLikeUsers(feedId: String): Flow<PagingData<LikeUser>>
 }
