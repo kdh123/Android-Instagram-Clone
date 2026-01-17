@@ -8,7 +8,7 @@ import androidx.paging.PagingData
 import com.dhkim.common.retryWithDelay
 import com.dhkim.data.feed.model.HiddenFeedDto
 import com.dhkim.data.feed.model.LikeFeedDto
-import com.dhkim.data.feed.model.LikeUserDto
+import com.dhkim.data.feed.model.UserDto
 import com.dhkim.data.feed.model.toDto
 import com.dhkim.database.AppDatabase
 import com.dhkim.database.entity.HomeFeedEntity
@@ -94,10 +94,10 @@ class FeedRemoteDataSource @Inject constructor(
         feedRef.updateChildren(feedUpdates).await()
     }
 
-    suspend fun toggleLike(feedId: String, likeUserDto: LikeUserDto, isLiked: Boolean): Boolean {
-        val userId = likeUserDto.id
+    suspend fun toggleLike(feedId: String, userDto: UserDto, isLiked: Boolean): Boolean {
+        val userId = userDto.id
         val likeUpdates = hashMapOf<String, Any?>(
-            "/likes_by_feed/$feedId/$userId" to if (isLiked) likeUserDto else null,
+            "/likes_by_feed/$feedId/$userId" to if (isLiked) userDto else null,
             "/likes_by_user/$userId/$feedId" to if (isLiked) System.currentTimeMillis() else null
         )
 
@@ -229,7 +229,7 @@ class FeedRemoteDataSource @Inject constructor(
         feedRef.updateChildren(feedUpdates).await()
     }
 
-    fun getLikeUsers(feedId: String): Flow<PagingData<LikeUserDto>> {
+    fun getLikeUsers(feedId: String): Flow<PagingData<UserDto>> {
         val query = likeRef.child("likes_by_feed").child(feedId)
         return Pager(
             config = PagingConfig(pageSize = 20),

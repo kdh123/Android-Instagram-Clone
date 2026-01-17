@@ -3,8 +3,9 @@ package com.dhkim.data.feed.model
 import com.google.firebase.database.IgnoreExtraProperties
 
 @IgnoreExtraProperties
-data class LikeUserDto(
+data class UserDto(
     val id: String = "",
     val name: String = "",
+    val email: String = "",
     val profileUrl: String = ""
 )

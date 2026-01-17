@@ -2,16 +2,16 @@ package com.dhkim.data.feed.dataSource
 
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
-import com.dhkim.data.feed.model.LikeUserDto
+import com.dhkim.data.feed.model.UserDto
 import com.google.firebase.database.DatabaseReference
 import kotlinx.coroutines.tasks.await
 
 class LikeUsersPagingSource(
     private val query: DatabaseReference,
     private val pageSize: Int
-) : PagingSource<String, LikeUserDto>() {
+) : PagingSource<String, UserDto>() {
 
-    override suspend fun load(params: LoadParams<String>): LoadResult<String, LikeUserDto> {
+    override suspend fun load(params: LoadParams<String>): LoadResult<String, UserDto> {
         return try {
             val lastKey = params.key
 
@@ -23,7 +23,7 @@ class LikeUsersPagingSource(
 
             val snapshot = currentQuery.get().await()
             val likeUsers = snapshot.children
-                .mapNotNull { it.getValue(LikeUserDto::class.java) }
+                .mapNotNull { it.getValue(UserDto::class.java) }
 
             val nextKey = if (likeUsers.size < pageSize) null else likeUsers.last().id
 
@@ -37,7 +37,7 @@ class LikeUsersPagingSource(
         }
     }
 
-    override fun getRefreshKey(state: PagingState<String, LikeUserDto>): String? {
+    override fun getRefreshKey(state: PagingState<String, UserDto>): String? {
         return null
     }
 }

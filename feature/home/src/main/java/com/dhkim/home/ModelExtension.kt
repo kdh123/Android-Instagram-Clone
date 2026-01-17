@@ -1,13 +1,13 @@
 package com.dhkim.home
 
-import com.dhkim.domain.feed.model.LikeUser
+import com.dhkim.domain.user.model.User
 import com.dhkim.feed.common.UserItem
 
-fun LikeUser.toUserItem(): UserItem {
+fun User.toUserItem(): UserItem {
     return UserItem(
         id = id,
         name = name,
-        profileImageUrl = profileImageUrl,
+        profileImageUrl = profileUrl,
         isFollowing = false
     )
 }

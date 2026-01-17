@@ -15,8 +15,8 @@ import com.dhkim.data.feed.extension.toFeed
 import com.dhkim.data.feed.extension.toFeedUploadStatus
 import com.dhkim.data.feed.extension.toHiddenFeed
 import com.dhkim.data.feed.extension.toLikeFeed
-import com.dhkim.data.feed.extension.toLikeUser
-import com.dhkim.data.feed.extension.toLikeUserDto
+import com.dhkim.data.feed.extension.toUser
+import com.dhkim.data.feed.extension.toUserDto
 import com.dhkim.data.feed.extension.toMyFeedEntity
 import com.dhkim.data.feed.work.FeedLikeSyncWorker
 import com.dhkim.database.entity.LikeEntity
@@ -24,7 +24,6 @@ import com.dhkim.domain.feed.model.Feed
 import com.dhkim.domain.feed.model.FeedUploadStatus
 import com.dhkim.domain.feed.model.HiddenFeed
 import com.dhkim.domain.feed.model.LikeFeed
-import com.dhkim.domain.feed.model.LikeUser
 import com.dhkim.domain.feed.repository.FeedRepository
 import com.dhkim.domain.user.model.User
 import kotlinx.coroutines.flow.Flow
@@ -164,7 +163,7 @@ class FeedRepositoryImpl @Inject constructor(
     override suspend fun remoteToggleLike(feedId: String, user: User) {
         val userId = user.id
         val isLiked = localDataSource.observeIsLiked(feedId, userId).first()
-        val likeUserDto = user.toLikeUserDto()
+        val likeUserDto = user.toUserDto()
         remoteDataSource.toggleLike(feedId, likeUserDto, isLiked)
     }
 
@@ -202,9 +201,9 @@ class FeedRepositoryImpl @Inject constructor(
         localDataSource.updateMyFeed(myFeed.copy(isCommentEnabled = !isEnabled))
     }
 
-    override fun getLikeUsers(feedId: String): Flow<PagingData<LikeUser>> {
+    override fun getLikeUsers(feedId: String): Flow<PagingData<User>> {
         return remoteDataSource.getLikeUsers(feedId).map { pagingData ->
-            pagingData.map { it.toLikeUser() }
+            pagingData.map { it.toUser() }
         }
     }
 
