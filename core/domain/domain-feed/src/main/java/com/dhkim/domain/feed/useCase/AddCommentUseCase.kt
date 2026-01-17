@@ -6,13 +6,13 @@ import com.dhkim.domain.user.useCase.GetUserUseCase
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 
-class ToggleEnableCommentUseCase @Inject constructor(
+class AddCommentUseCase @Inject constructor(
     private val feedRepository: FeedRepository,
     private val getUserUseCase: GetUserUseCase
 ) {
 
-    suspend operator fun invoke(feedId: String, isEnabled: Boolean) {
-        val userId = getUserUseCase().first()?.id ?: throw NoUserFoundException()
-        feedRepository.toggleEnableComment(feedId, userId, isEnabled)
+    suspend operator fun invoke(feedId: String, content: String) {
+        val user = getUserUseCase().first() ?: throw NoUserFoundException()
+        feedRepository.addComment(feedId, user, content)
     }
 }

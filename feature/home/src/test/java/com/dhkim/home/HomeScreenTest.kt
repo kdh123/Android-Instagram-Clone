@@ -19,9 +19,12 @@ import com.dhkim.domain.feed.model.Feed
 import com.dhkim.domain.feed.model.HiddenFeed
 import com.dhkim.domain.feed.model.LikeFeed
 import com.dhkim.domain.feed.repository.FeedRepository
+import com.dhkim.domain.feed.useCase.AddCommentUseCase
+import com.dhkim.domain.feed.useCase.GetCommentsUseCase
 import com.dhkim.domain.feed.useCase.GetFeedUploadStatusesUseCase
 import com.dhkim.domain.feed.useCase.GetFeedsUseCase
 import com.dhkim.domain.feed.useCase.GetLikeFeedsUseCase
+import com.dhkim.domain.feed.useCase.GetLikersUseCase
 import com.dhkim.domain.feed.useCase.GetMyFeedsUseCase
 import com.dhkim.domain.feed.useCase.HideFeedUseCase
 import com.dhkim.domain.feed.useCase.ToggleEnableCommentUseCase
@@ -57,6 +60,7 @@ class HomeScreenTest {
     private val userRepository = mockk<UserRepository>()
     private val getFeedsUseCase = GetFeedsUseCase(feedRepository)
     private val getUserUseCase = GetUserUseCase(userRepository)
+    private val getLikersUseCase = GetLikersUseCase(feedRepository)
     private val getFeedUploadStatusesUseCase = GetFeedUploadStatusesUseCase(feedRepository)
     private val toggleFeedLikeCountVisibilityUseCase = ToggleFeedLikeCountVisibilityUseCase(feedRepository, getUserUseCase)
     private val hideFeedUseCase = HideFeedUseCase(feedRepository, getUserUseCase)
@@ -65,6 +69,8 @@ class HomeScreenTest {
     private val toggleEnableCommentUseCase = ToggleEnableCommentUseCase(feedRepository, getUserUseCase)
     private val getMyFeedsUseCase = GetMyFeedsUseCase(feedRepository)
     private val getLikeFeedsUseCase = GetLikeFeedsUseCase(feedRepository, getUserUseCase)
+    private val getCommentUseCase = GetCommentsUseCase(feedRepository)
+    private val addCommentUseCase = AddCommentUseCase(feedRepository, getUserUseCase)
     private val connectivityChecker = mockk<ConnectivityChecker>()
 
     @get:Rule
@@ -121,8 +127,8 @@ class HomeScreenTest {
     @Test
     fun whenFeedsLoadedSuccessfully_showsFeedList() = runTest {
         coEvery { feedRepository.getAllLikedFeeds(any()) } returns flowOf(setOf(LikeFeed("feedId1", "userId1")))
-        coEvery { feedRepository.toggleEnableComment(any(), any()) } returns Unit
-        coEvery { feedRepository.toggleLikeCountVisibility(any(), any()) } returns Unit
+        coEvery { feedRepository.toggleEnableComment(any(), any(), any()) } returns Unit
+        coEvery { feedRepository.toggleLikeCountVisibility(any(), any(), any()) } returns Unit
         coEvery { feedRepository.getHiddenFeeds() } returns flowOf(setOf(HiddenFeed("feedId1", 1234567890)))
         coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf()
         coEvery { feedRepository.getMyFeeds() } returns flowOf(myFeeds)
@@ -141,6 +147,9 @@ class HomeScreenTest {
             toggleFeedLikeUseCase = toggleFeedLikeUseCase,
             toggleEnableCommentUseCase = toggleEnableCommentUseCase,
             getLikeFeedsUseCase = getLikeFeedsUseCase,
+            getLikersUseCase = getLikersUseCase,
+            getCommentsUseCase = getCommentUseCase,
+            addCommentUseCase = addCommentUseCase,
             getUserUseCase = getUserUseCase,
             connectivityChecker = connectivityChecker
         )
@@ -148,6 +157,8 @@ class HomeScreenTest {
         composeRule.setContent {
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
             val feeds = viewModel.feeds.collectAsLazyPagingItems()
+            val likers = viewModel.likers.collectAsLazyPagingItems()
+            val comments = viewModel.comments.collectAsLazyPagingItems()
             val feedState = rememberLazyListState()
             val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(
                 bottomSheetState = rememberStandardBottomSheetState(
@@ -161,6 +172,8 @@ class HomeScreenTest {
                 feedState = feedState,
                 bottomSheetScaffoldState = bottomSheetScaffoldState,
                 feeds = feeds,
+                likers = likers,
+                comments = comments,
                 onAction = viewModel::onAction,
                 onFeedLayoutChange = {}
             )
@@ -184,8 +197,8 @@ class HomeScreenTest {
                 append = LoadState.NotLoading(endOfPaginationReached = true)
             )
         )
-        coEvery { feedRepository.toggleEnableComment(any(), any()) } returns Unit
-        coEvery { feedRepository.toggleLikeCountVisibility(any(), any()) } returns Unit
+        coEvery { feedRepository.toggleEnableComment(any(), any(), any()) } returns Unit
+        coEvery { feedRepository.toggleLikeCountVisibility(any(), any(), any()) } returns Unit
         coEvery { feedRepository.getHiddenFeeds() } returns flowOf(setOf(HiddenFeed("feedId1", 1234567890)))
         coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf()
         coEvery { feedRepository.getMyFeeds() } returns flowOf(myFeeds)
@@ -205,6 +218,9 @@ class HomeScreenTest {
             toggleFeedLikeUseCase = toggleFeedLikeUseCase,
             toggleEnableCommentUseCase = toggleEnableCommentUseCase,
             getLikeFeedsUseCase = getLikeFeedsUseCase,
+            getLikersUseCase = getLikersUseCase,
+            getCommentsUseCase = getCommentUseCase,
+            addCommentUseCase = addCommentUseCase,
             getUserUseCase = getUserUseCase,
             connectivityChecker = connectivityChecker
         )
@@ -212,6 +228,8 @@ class HomeScreenTest {
         composeRule.setContent {
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
             val feeds = viewModel.feeds.collectAsLazyPagingItems()
+            val likers = viewModel.likers.collectAsLazyPagingItems()
+            val comments = viewModel.comments.collectAsLazyPagingItems()
             val feedState = rememberLazyListState()
             val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(
                 bottomSheetState = rememberStandardBottomSheetState(
@@ -225,6 +243,8 @@ class HomeScreenTest {
                 feedState = feedState,
                 bottomSheetScaffoldState = bottomSheetScaffoldState,
                 feeds = feeds,
+                likers = likers,
+                comments = comments,
                 onAction = viewModel::onAction,
                 onFeedLayoutChange = {}
             )

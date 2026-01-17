@@ -21,11 +21,11 @@ import com.dhkim.designsystem.InstagramTheme
 import com.dhkim.ui.noRippleClick
 
 @Composable
-fun MyFeedBottomSheet(
+fun MyFeedOptionBottomSheet(
     isLikeCountVisible: Boolean,
     isCommentEnabled: Boolean,
-    onLikeVisibleChange: (Boolean) -> Unit,
-    onCommentEnabledChange: (Boolean) -> Unit,
+    onLikeVisibleChange: () -> Unit,
+    onCommentEnabledChange: () -> Unit,
     onEditClick: () -> Unit,
     onDeleteClick: () -> Unit,
 ) {
@@ -39,9 +39,7 @@ fun MyFeedBottomSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(10.dp)
-                .noRippleClick {
-                    onLikeVisibleChange(!isLikeCountVisible)
-                }
+                .noRippleClick(onClick = onLikeVisibleChange)
         ) {
             val likeIcon = if (isLikeCountVisible) R.drawable.ic_cancel_like else R.drawable.ic_like
             val likeText = if (isLikeCountVisible) R.string.hide_like_count else R.string.cancel_hide_like_count
@@ -63,9 +61,7 @@ fun MyFeedBottomSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(10.dp)
-                .noRippleClick {
-                    onCommentEnabledChange(!isCommentEnabled)
-                }
+                .noRippleClick(onClick = onCommentEnabledChange)
         ) {
             val commentIcon = if (isCommentEnabled) R.drawable.ic_disable_comment else R.drawable.ic_comment
             val commentText = if (isCommentEnabled) R.string.disable_comment else R.string.cancel_disable_comment
@@ -126,13 +122,13 @@ fun MyFeedBottomSheet(
 
 @FeedBottomSheetPreviews
 @Composable
-private fun MyFeedBottomSheetPreview() {
+private fun MyFeedOptionBottomSheetPreview() {
     InstagramTheme {
         Surface(
             modifier = Modifier.fillMaxWidth(),
             color = MaterialTheme.colorScheme.background
         ) {
-            MyFeedBottomSheet(
+            MyFeedOptionBottomSheet(
                 isLikeCountVisible = true,
                 isCommentEnabled = true,
                 onLikeVisibleChange = {},
@@ -145,7 +141,7 @@ private fun MyFeedBottomSheetPreview() {
 }
 
 @Composable
-fun FollowingFeedBottomSheet(
+fun FollowingFeedOptionBottomSheet(
     isFollowing: Boolean,
     onFollowChanged: (Boolean) -> Unit,
     onNotInterestedClick: () -> Unit,
@@ -223,13 +219,13 @@ fun FollowingFeedBottomSheet(
 
 @FeedBottomSheetPreviews
 @Composable
-private fun FollowingFeedBottomSheetPreview() {
+private fun FollowingFeedOptionBottomSheetPreview() {
     InstagramTheme {
         Surface(
             modifier = Modifier.fillMaxWidth(),
             color = MaterialTheme.colorScheme.background
         ) {
-            FollowingFeedBottomSheet(
+            FollowingFeedOptionBottomSheet(
                 isFollowing = true,
                 onFollowChanged = {},
                 onNotInterestedClick = {},
@@ -241,7 +237,7 @@ private fun FollowingFeedBottomSheetPreview() {
 
 
 @Composable
-fun SuggestedFeedBottomSheet(
+fun SuggestedFeedOptionBottomSheet(
     onNotInterestedClick: () -> Unit,
     onAccountInfoClick: () -> Unit,
 ) {
@@ -293,13 +289,13 @@ fun SuggestedFeedBottomSheet(
 
 @FeedBottomSheetPreviews
 @Composable
-private fun SuggestedFeedBottomSheetPreview() {
+private fun SuggestedFeedOptionBottomSheetPreview() {
     InstagramTheme {
         Surface(
             modifier = Modifier.fillMaxWidth(),
             color = MaterialTheme.colorScheme.background
         ) {
-            SuggestedFeedBottomSheet(
+            SuggestedFeedOptionBottomSheet(
                 onNotInterestedClick = {},
                 onAccountInfoClick = {}
             )
@@ -308,7 +304,7 @@ private fun SuggestedFeedBottomSheetPreview() {
 }
 
 @Composable
-fun SponsoredFeedBottomSheet(
+fun SponsoredFeedOptionBottomSheet(
     onNotInterestedClick: () -> Unit,
     onAccountInfoClick: () -> Unit,
 ) {
@@ -360,13 +356,13 @@ fun SponsoredFeedBottomSheet(
 
 @FeedBottomSheetPreviews
 @Composable
-private fun SponsoredFeedBottomSheetPreview() {
+private fun SponsoredFeedOptionBottomSheetPreview() {
     InstagramTheme {
         Surface(
             modifier = Modifier.fillMaxWidth(),
             color = MaterialTheme.colorScheme.background
         ) {
-            SponsoredFeedBottomSheet(
+            SponsoredFeedOptionBottomSheet(
                 onNotInterestedClick = {},
                 onAccountInfoClick = {}
             )

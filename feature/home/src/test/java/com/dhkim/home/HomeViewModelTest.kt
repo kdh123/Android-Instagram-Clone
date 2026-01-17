@@ -5,12 +5,16 @@ import androidx.paging.LoadStates
 import androidx.paging.PagingData
 import androidx.paging.testing.asSnapshot
 import app.cash.turbine.test
+import com.dhkim.domain.feed.model.Comment
 import com.dhkim.domain.feed.model.Feed
 import com.dhkim.domain.feed.model.HiddenFeed
 import com.dhkim.domain.feed.repository.FeedRepository
+import com.dhkim.domain.feed.useCase.AddCommentUseCase
+import com.dhkim.domain.feed.useCase.GetCommentsUseCase
 import com.dhkim.domain.feed.useCase.GetFeedUploadStatusesUseCase
 import com.dhkim.domain.feed.useCase.GetFeedsUseCase
 import com.dhkim.domain.feed.useCase.GetLikeFeedsUseCase
+import com.dhkim.domain.feed.useCase.GetLikersUseCase
 import com.dhkim.domain.feed.useCase.GetMyFeedsUseCase
 import com.dhkim.domain.feed.useCase.HideFeedUseCase
 import com.dhkim.domain.feed.useCase.ToggleEnableCommentUseCase
@@ -45,6 +49,7 @@ class HomeViewModelTest {
     private val userRepository = mockk<UserRepository>()
     private val getFeedsUseCase = GetFeedsUseCase(feedRepository)
     private val getUserUseCase = GetUserUseCase(userRepository)
+    private val getLikersUseCase = GetLikersUseCase(feedRepository)
     private val getFeedUploadStatusesUseCase = GetFeedUploadStatusesUseCase(feedRepository)
     private val toggleFeedLikeCountVisibilityUseCase = ToggleFeedLikeCountVisibilityUseCase(feedRepository, getUserUseCase)
     private val hideFeedUseCase = HideFeedUseCase(feedRepository, getUserUseCase)
@@ -53,6 +58,8 @@ class HomeViewModelTest {
     private val toggleEnableCommentUseCase = ToggleEnableCommentUseCase(feedRepository, getUserUseCase)
     private val getMyFeedsUseCase = GetMyFeedsUseCase(feedRepository)
     private val getLikeFeedsUseCase = GetLikeFeedsUseCase(feedRepository, getUserUseCase)
+    private val getCommentUseCase = GetCommentsUseCase(feedRepository)
+    private val addCommentUseCase = AddCommentUseCase(feedRepository, getUserUseCase)
     private val connectivityChecker = mockk<ConnectivityChecker>()
 
     private lateinit var viewModel: HomeViewModel
@@ -85,6 +92,23 @@ class HomeViewModelTest {
         )
     }
 
+    private val fakeComments = List(10) {
+        Comment(
+            commentId = "commentId$it",
+            feedId = "feedId$it",
+            user = User(
+                id = "user$it",
+                name = "Tester$it",
+                email = "testEmail$it",
+                profileUrl = "testProfileUrl$it"
+            ),
+            content = "Test Comment",
+            timeAt = 123456789L,
+            replyCount = 0,
+            likeCount = 4,
+        )
+    }
+
     private val testUser = User(
         id = "testId",
         name = "testName",
@@ -99,8 +123,8 @@ class HomeViewModelTest {
 
     @Test
     fun whenFetchFeedsSucceeds_emitsSuccessfulPagingData() = runTest {
-        coEvery { feedRepository.toggleEnableComment(any(), any()) } returns Unit
-        coEvery { feedRepository.toggleLikeCountVisibility(any(), any()) } returns Unit
+        coEvery { feedRepository.toggleEnableComment(any(), any(), any()) } returns Unit
+        coEvery { feedRepository.toggleLikeCountVisibility(any(), any(), any()) } returns Unit
         coEvery { feedRepository.getHiddenFeeds() } returns flowOf(setOf(HiddenFeed("feedId1", 1234567890)))
         coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf()
         coEvery { feedRepository.getMyFeeds() } returns flowOf(myFeeds)
@@ -119,6 +143,9 @@ class HomeViewModelTest {
             toggleFeedLikeUseCase = toggleFeedLikeUseCase,
             toggleEnableCommentUseCase = toggleEnableCommentUseCase,
             getLikeFeedsUseCase = getLikeFeedsUseCase,
+            getLikersUseCase = getLikersUseCase,
+            getCommentsUseCase = getCommentUseCase,
+            addCommentUseCase = addCommentUseCase,
             getUserUseCase = getUserUseCase,
             connectivityChecker = connectivityChecker
         )
@@ -143,8 +170,8 @@ class HomeViewModelTest {
         coEvery { feedRepository.getHomeFeeds() } returns flowOf(errorPagingData)
         coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf()
         coEvery { userRepository.getUser() } returns flowOf(testUser)
-        coEvery { feedRepository.toggleEnableComment(any(), any()) } returns Unit
-        coEvery { feedRepository.toggleLikeCountVisibility(any(), any()) } returns Unit
+        coEvery { feedRepository.toggleEnableComment(any(), any(), any()) } returns Unit
+        coEvery { feedRepository.toggleLikeCountVisibility(any(), any(), any()) } returns Unit
         coEvery { feedRepository.getHiddenFeeds() } returns flowOf(setOf(HiddenFeed("feedId1", 1234567890)))
         coEvery { connectivityChecker.isNetworkAvailable() } returns flowOf(true)
 
@@ -158,12 +185,55 @@ class HomeViewModelTest {
             toggleFeedLikeUseCase = toggleFeedLikeUseCase,
             toggleEnableCommentUseCase = toggleEnableCommentUseCase,
             getLikeFeedsUseCase = getLikeFeedsUseCase,
+            getLikersUseCase = getLikersUseCase,
+            getCommentsUseCase = getCommentUseCase,
+            addCommentUseCase = addCommentUseCase,
             getUserUseCase = getUserUseCase,
             connectivityChecker = connectivityChecker
         )
         viewModel.feeds.test {
             val userId = getUserUseCase().first()?.id ?: ""
             assertEquals(flowOf(errorPagingData).asSnapshot().map { it.toFeedItem(userId) }, flowOf(awaitItem()).asSnapshot())
+        }
+    }
+
+    @Test
+    fun `댓글 목록 가져오기`() = runTest {
+        coEvery { feedRepository.toggleEnableComment(any(), any(), any()) } returns Unit
+        coEvery { feedRepository.toggleLikeCountVisibility(any(), any(), any()) } returns Unit
+        coEvery { feedRepository.getHiddenFeeds() } returns flowOf(setOf(HiddenFeed("feedId1", 1234567890)))
+        coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf()
+        coEvery { feedRepository.getMyFeeds() } returns flowOf(myFeeds)
+        coEvery { feedRepository.getHomeFeeds() } returns flowOf(PagingData.from(fakeFeeds))
+        coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf()
+        coEvery { feedRepository.getComments(any()) } returns flowOf(PagingData.from(fakeComments))
+        coEvery { userRepository.getUser() } returns flowOf(testUser)
+        coEvery { connectivityChecker.isNetworkAvailable() } returns flowOf(true)
+
+        viewModel = HomeViewModel(
+            getMyFeedsUseCase = getMyFeedsUseCase,
+            getFeedsUseCase = getFeedsUseCase,
+            getFeedUploadStatusesUseCase = getFeedUploadStatusesUseCase,
+            toggleFeedLikeCountVisibilityUseCase = toggleFeedLikeCountVisibilityUseCase,
+            hideFeedUseCase = hideFeedUseCase,
+            unhideFeedUseCase = unhideFeedUseCase,
+            toggleFeedLikeUseCase = toggleFeedLikeUseCase,
+            toggleEnableCommentUseCase = toggleEnableCommentUseCase,
+            getLikeFeedsUseCase = getLikeFeedsUseCase,
+            getLikersUseCase = getLikersUseCase,
+            getCommentsUseCase = getCommentUseCase,
+            addCommentUseCase = addCommentUseCase,
+            getUserUseCase = getUserUseCase,
+            connectivityChecker = connectivityChecker
+        )
+        viewModel.feeds.test {
+            val userId = getUserUseCase().first()?.id ?: ""
+            assertEquals(fakeFeeds.map { it.toFeedItem(userId) }, flowOf(awaitItem()).asSnapshot())
+        }
+
+        viewModel.onAction(HomeAction.ShowComments(fakeFeeds[0].toFeedItem(testUser.id)))
+        viewModel.comments.test {
+            assertEquals(fakeComments.map { it.toCommentItem() }, flowOf(awaitItem()).asSnapshot())
         }
     }
 

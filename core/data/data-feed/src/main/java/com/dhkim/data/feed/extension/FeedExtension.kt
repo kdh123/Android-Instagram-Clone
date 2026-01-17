@@ -1,18 +1,22 @@
 package com.dhkim.data.feed.extension
 
+import com.dhkim.data.feed.model.CommentDto
 import com.dhkim.data.feed.model.FeedDto
 import com.dhkim.data.feed.model.LikeFeedDto
+import com.dhkim.data.feed.model.UserDto
 import com.dhkim.database.entity.FeedUploadStatusEntity
 import com.dhkim.database.entity.HiddenFeedEntity
 import com.dhkim.database.entity.HomeFeedEntity
 import com.dhkim.database.entity.LikeEntity
 import com.dhkim.database.entity.MyFeedEntity
 import com.dhkim.database.entity.SearchFeedEntity
+import com.dhkim.domain.feed.model.Comment
 import com.dhkim.domain.feed.model.Feed
 import com.dhkim.domain.feed.model.FeedUploadStatus
 import com.dhkim.domain.feed.model.HiddenFeed
 import com.dhkim.domain.feed.model.LikeFeed
 import com.dhkim.domain.feed.model.UploadState
+import com.dhkim.domain.user.model.User
 
 fun FeedUploadStatusEntity.toFeedUploadStatus(): FeedUploadStatus {
     return FeedUploadStatus(
@@ -214,5 +218,35 @@ fun LikeFeedDto.toLikeFeed(): LikeFeed {
         userId = userId,
         likedAt = isLikeAt,
         isSynced = true
+    )
+}
+
+fun User.toUserDto(): UserDto {
+    return UserDto(
+        id = id,
+        name = name,
+        email = email,
+        profileUrl = profileUrl
+    )
+}
+
+fun UserDto.toUser(): User {
+    return User(
+        id = id,
+        name = name,
+        email = email,
+        profileUrl = profileUrl
+    )
+}
+
+fun CommentDto.toComment(): Comment {
+    return Comment(
+        commentId = commentId,
+        feedId = feedId,
+        user = userDto.toUser(),
+        content = content,
+        timeAt = timeAt,
+        replyCount = replyCount,
+        likeCount = likeCount
     )
 }

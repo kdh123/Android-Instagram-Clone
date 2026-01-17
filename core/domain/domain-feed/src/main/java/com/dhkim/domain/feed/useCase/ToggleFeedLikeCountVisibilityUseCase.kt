@@ -11,8 +11,8 @@ class ToggleFeedLikeCountVisibilityUseCase @Inject constructor(
     private val getUserUseCase: GetUserUseCase,
 ) {
 
-    suspend operator fun invoke(feedId: String) {
+    suspend operator fun invoke(feedId: String, isVisible: Boolean) {
         val user = getUserUseCase().first() ?: throw NoUserFoundException()
-        feedRepository.toggleLikeCountVisibility(feedId, user.id)
+        feedRepository.toggleLikeCountVisibility(feedId, user.id, isVisible)
     }
 }

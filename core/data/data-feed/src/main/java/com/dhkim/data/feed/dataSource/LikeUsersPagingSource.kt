@@ -2,16 +2,16 @@ package com.dhkim.data.feed.dataSource
 
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
-import com.dhkim.data.feed.model.FeedDto
+import com.dhkim.data.feed.model.UserDto
 import com.google.firebase.database.DatabaseReference
 import kotlinx.coroutines.tasks.await
 
-class FeedPagingSource(
+class LikeUsersPagingSource(
     private val query: DatabaseReference,
     private val pageSize: Int
-) : PagingSource<String, FeedDto>() {
+) : PagingSource<String, UserDto>() {
 
-    override suspend fun load(params: LoadParams<String>): LoadResult<String, FeedDto> {
+    override suspend fun load(params: LoadParams<String>): LoadResult<String, UserDto> {
         return try {
             val lastKey = params.key
 
@@ -22,18 +22,13 @@ class FeedPagingSource(
             }
 
             val snapshot = currentQuery.get().await()
-            val feeds = snapshot.children
-                .mapNotNull { it.getValue(FeedDto::class.java) }
-                .map {
-                    it.copy(
-                        imageUrls = it.imageUrls.distinct()
-                    )
-                }
+            val likeUsers = snapshot.children
+                .mapNotNull { it.getValue(UserDto::class.java) }
 
-            val nextKey = if (feeds.size < pageSize) null else feeds.last().feedId
+            val nextKey = if (likeUsers.size < pageSize) null else likeUsers.last().id
 
             LoadResult.Page(
-                data = feeds.reversed(),
+                data = likeUsers.reversed(),
                 prevKey = null,
                 nextKey = nextKey
             )
@@ -42,7 +37,7 @@ class FeedPagingSource(
         }
     }
 
-    override fun getRefreshKey(state: PagingState<String, FeedDto>): String? {
+    override fun getRefreshKey(state: PagingState<String, UserDto>): String? {
         return null
     }
 }

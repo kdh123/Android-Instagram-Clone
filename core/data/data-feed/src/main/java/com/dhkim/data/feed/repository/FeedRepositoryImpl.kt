@@ -10,19 +10,24 @@ import androidx.work.WorkManager
 import androidx.work.workDataOf
 import com.dhkim.data.feed.dataSource.FeedLocalDataSource
 import com.dhkim.data.feed.dataSource.FeedRemoteDataSource
+import com.dhkim.data.feed.extension.toComment
 import com.dhkim.data.feed.extension.toEntity
 import com.dhkim.data.feed.extension.toFeed
 import com.dhkim.data.feed.extension.toFeedUploadStatus
 import com.dhkim.data.feed.extension.toHiddenFeed
 import com.dhkim.data.feed.extension.toLikeFeed
+import com.dhkim.data.feed.extension.toUser
+import com.dhkim.data.feed.extension.toUserDto
 import com.dhkim.data.feed.extension.toMyFeedEntity
 import com.dhkim.data.feed.work.FeedLikeSyncWorker
 import com.dhkim.database.entity.LikeEntity
+import com.dhkim.domain.feed.model.Comment
 import com.dhkim.domain.feed.model.Feed
 import com.dhkim.domain.feed.model.FeedUploadStatus
 import com.dhkim.domain.feed.model.HiddenFeed
 import com.dhkim.domain.feed.model.LikeFeed
 import com.dhkim.domain.feed.repository.FeedRepository
+import com.dhkim.domain.user.model.User
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
@@ -113,10 +118,9 @@ class FeedRepositoryImpl @Inject constructor(
         localDataSource.clearHiddenFeeds()
     }
 
-    override suspend fun toggleLikeCountVisibility(feedId: String, userId: String) {
+    override suspend fun toggleLikeCountVisibility(feedId: String, userId: String, isVisible: Boolean) {
         val myFeed = localDataSource.getMyFeed(feedId).first()
         val homeFeed = localDataSource.getHomeFeed(feedId).first()
-        val isVisible = homeFeed.isLikeCountVisible
 
         remoteDataSource.toggleLikeCountVisibility(feedId, userId, isVisible = !isVisible)
         localDataSource.updateHomeFeed(homeFeed.copy(isLikeCountVisible = !isVisible))
@@ -135,7 +139,7 @@ class FeedRepositoryImpl @Inject constructor(
             localDataSource.deleteLike(feedId, userId)
             localDataSource.updateHomeFeed(
                 homeFeed.copy(
-                    likeCount = likeCount - 1,
+                    likeCount = (likeCount - 1).let { if (it < 0) 0 else it },
                     representativeLikeId = representativeLikerId,
                     representativeLikeName = representativeLikeName
                 )
@@ -155,12 +159,14 @@ class FeedRepositoryImpl @Inject constructor(
                 )
             )
         }
-        enqueueLikeWorker(feedId, userId)
+        enqueueLikeWorker(feedId)
     }
 
-    override suspend fun remoteToggleLike(feedId: String, userId: String) {
+    override suspend fun remoteToggleLike(feedId: String, user: User) {
+        val userId = user.id
         val isLiked = localDataSource.observeIsLiked(feedId, userId).first()
-        remoteDataSource.toggleLike(feedId, myUid = userId, isLiked)
+        val likeUserDto = user.toUserDto()
+        remoteDataSource.toggleLike(feedId, likeUserDto, isLiked)
     }
 
     override suspend fun syncLikeFeeds(userId: String) {
@@ -188,21 +194,33 @@ class FeedRepositoryImpl @Inject constructor(
         return localDataSource.getUnSyncedLikes().map { it.toLikeFeed() }
     }
 
-    override suspend fun toggleEnableComment(feedId: String, userId: String) {
+    override suspend fun toggleEnableComment(feedId: String, userId: String, isEnabled: Boolean) {
         val myFeed = localDataSource.getMyFeed(feedId).first()
         val homeFeed = localDataSource.getHomeFeed(feedId).first()
-        remoteDataSource.toggleEnableComment(feedId, userId, isEnabled = !myFeed.isCommentEnabled)
-        localDataSource.updateHomeFeed(homeFeed.copy(isCommentEnabled = !homeFeed.isCommentEnabled))
-        localDataSource.updateMyFeed(myFeed.copy(isCommentEnabled = !myFeed.isCommentEnabled))
+
+        remoteDataSource.toggleEnableComment(feedId, userId, isEnabled = !isEnabled)
+        localDataSource.updateHomeFeed(homeFeed.copy(isCommentEnabled = !isEnabled))
+        localDataSource.updateMyFeed(myFeed.copy(isCommentEnabled = !isEnabled))
     }
 
-    override suspend fun remoteToggleEnableComment(feedId: String, userId: String) {
-        val myFeed = localDataSource.getMyFeed(feedId).first()
-        remoteDataSource.toggleEnableComment(feedId, userId, isEnabled = !myFeed.isCommentEnabled)
+    override fun getLikeUsers(feedId: String): Flow<PagingData<User>> {
+        return remoteDataSource.getLikeUsers(feedId).map { pagingData ->
+            pagingData.map { it.toUser() }
+        }
     }
 
-    private fun enqueueLikeWorker(feedId: String, userId: String) {
-        val data = workDataOf("KEY_FEED_ID" to feedId, "KEY_USER_ID" to userId)
+    override fun getComments(feedId: String): Flow<PagingData<Comment>> {
+        return remoteDataSource.getComments(feedId).map { pagingData ->
+            pagingData.map { it.toComment() }
+        }
+    }
+
+    override suspend fun addComment(feedId: String, user: User, content: String) {
+        remoteDataSource.addComment(feedId, userDto = user.toUserDto(), content)
+    }
+
+    private fun enqueueLikeWorker(feedId: String) {
+        val data = workDataOf("KEY_FEED_ID" to feedId)
         val request = OneTimeWorkRequestBuilder<FeedLikeSyncWorker>()
             .setInputData(data)
             .setConstraints(Constraints(requiredNetworkType = NetworkType.CONNECTED))

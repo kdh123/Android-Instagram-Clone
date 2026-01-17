@@ -13,9 +13,18 @@ import kotlinx.collections.immutable.persistentSetOf
 @Immutable
 data class HomeUiState(
     val isRefreshing: Boolean = false,
+    val userProfileImageUrl: String = "",
     val myFeeds: ImmutableSet<Feed> = persistentSetOf(),
     val feedUploadStatuses: ImmutableList<FeedUploadStatus> = persistentListOf(),
     val likeFeeds: ImmutableSet<LikeFeed> = persistentSetOf(),
+    val targetFeedForLikers: FeedItem? = null,
+    val targetFeedForComments: FeedItem? = null,
     val menuVisibleFeed: FeedItem? = null,
     val isNetworkAvailable: Boolean = true
-)
+) {
+    val shouldShowLikersBottomSheet: Boolean
+        get() = targetFeedForLikers != null
+
+    val shouldShowCommentsBottomSheet: Boolean
+        get() = targetFeedForComments != null
+}

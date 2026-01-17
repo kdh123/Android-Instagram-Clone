@@ -38,7 +38,7 @@ import kotlinx.collections.immutable.persistentListOf
 private fun FeedHeader(
     feed: FeedItem,
     onProfileClick: () -> Unit,
-    onMoreClick: (FeedItem) -> Unit,
+    onMoreClick: () -> Unit,
     content: @Composable FeedHeaderScope.() -> Unit,
 ) {
     val scope = remember(feed) { DefaultFeedHeaderScope(feed) }
@@ -78,7 +78,7 @@ private fun FeedHeader(
                 modifier = Modifier
                     .padding(horizontal = 10.dp)
                     .size(24.dp)
-                    .noRippleClick { onMoreClick(feed) }
+                    .noRippleClick(onClick = onMoreClick)
             )
         }
     }
@@ -88,7 +88,7 @@ private fun FeedHeader(
 fun MyFeedHeader(
     feedItem: FeedItem,
     onProfileClick: () -> Unit,
-    onMoreClick: (FeedItem) -> Unit
+    onMoreClick: () -> Unit
 ) {
     FeedHeader(
         feed = feedItem,
@@ -141,7 +141,7 @@ private fun MyHeaderPreview() {
 fun FollowingFeedHeader(
     feedItem: FeedItem,
     onProfileClick: () -> Unit,
-    onMoreClick: (FeedItem) -> Unit
+    onMoreClick: () -> Unit
 ) {
     FeedHeader(
         feed = feedItem,
@@ -193,7 +193,7 @@ private fun FollowingHeaderPreview() {
 fun SuggestedFeedHeader(
     feedItem: FeedItem,
     onProfileClick: () -> Unit,
-    onMoreClick: (FeedItem) -> Unit
+    onMoreClick: () -> Unit
 ) {
     FeedHeader(
         feed = feedItem,
@@ -270,7 +270,7 @@ private fun SuggestedHeaderPreview() {
 fun SponsoredFeedHeader(
     feedItem: FeedItem,
     onProfileClick: () -> Unit,
-    onMoreClick: (FeedItem) -> Unit
+    onMoreClick: () -> Unit
 ) {
     FeedHeader(
         feed = feedItem,

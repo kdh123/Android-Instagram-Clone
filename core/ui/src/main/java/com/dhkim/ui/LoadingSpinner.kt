@@ -21,8 +21,7 @@ import androidx.compose.ui.unit.dp
 fun LoadingSpinner(
     color: Color = Color.LightGray,
     strokeWidth: Dp = 3.dp,
-    modifier: Modifier = Modifier
-        .size(40.dp),
+    modifier: Modifier = Modifier,
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "loading")
     val angle by infiniteTransition.animateFloat(
@@ -35,7 +34,10 @@ fun LoadingSpinner(
         label = "angle"
     )
 
-    Canvas(modifier = modifier) {
+    Canvas(
+        modifier = modifier
+            .size(40.dp)
+    ) {
         drawCircle(
             color = color.copy(alpha = 0.2f),
             style = Stroke(width = strokeWidth.toPx())

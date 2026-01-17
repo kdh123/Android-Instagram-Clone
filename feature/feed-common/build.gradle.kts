@@ -41,6 +41,7 @@ dependencies {
 
     implementation(libs.bundles.androidx.compose.main)
     implementation(libs.bundles.androidx.compose.side)
+    implementation(libs.bundles.androidx.paging3)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.core.ktx)
     implementation(libs.hilt)

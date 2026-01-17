@@ -6,8 +6,10 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import com.dhkim.common.retryWithDelay
+import com.dhkim.data.feed.model.CommentDto
 import com.dhkim.data.feed.model.HiddenFeedDto
 import com.dhkim.data.feed.model.LikeFeedDto
+import com.dhkim.data.feed.model.UserDto
 import com.dhkim.data.feed.model.toDto
 import com.dhkim.database.AppDatabase
 import com.dhkim.database.entity.HomeFeedEntity
@@ -33,6 +35,7 @@ class FeedRemoteDataSource @Inject constructor(
     private val likeRef = firebaseDatabase.getReference("likes")
     private val userRef = firebaseDatabase.getReference("users")
     private val hiddenFeedRef = firebaseDatabase.getReference("hidden_feeds")
+    private val commentRef = firebaseDatabase.getReference("comments")
     private val storageRef = storage.reference
 
     fun getHomeFeed(): Flow<PagingData<HomeFeedEntity>> = Pager(
@@ -93,10 +96,11 @@ class FeedRemoteDataSource @Inject constructor(
         feedRef.updateChildren(feedUpdates).await()
     }
 
-    suspend fun toggleLike(feedId: String, myUid: String, isLiked: Boolean): Boolean {
+    suspend fun toggleLike(feedId: String, userDto: UserDto, isLiked: Boolean): Boolean {
+        val userId = userDto.id
         val likeUpdates = hashMapOf<String, Any?>(
-            "/likes_by_feed/$feedId/$myUid" to if (isLiked) System.currentTimeMillis() else null,
-            "/likes_by_user/$myUid/$feedId" to if (isLiked) System.currentTimeMillis() else null
+            "/likes_by_feed/$feedId/$userId" to if (isLiked) userDto else null,
+            "/likes_by_user/$userId/$feedId" to if (isLiked) System.currentTimeMillis() else null
         )
 
         likeRef.updateChildren(likeUpdates).await()
@@ -115,24 +119,24 @@ class FeedRemoteDataSource @Inject constructor(
             hashMapOf<String, Any?>(
                 "feeds_by_feed_id/$feedId/representativeLikerId" to nextLikerId,
                 "feeds_by_feed_id/$feedId/representativeLikerName" to nextLikerName,
-                "feeds_by_user/$myUid/$feedId/representativeLikerId" to nextLikerId,
-                "feeds_by_user/$myUid/$feedId/representativeLikerName" to nextLikerName
+                "feeds_by_user/$userId/$feedId/representativeLikerId" to nextLikerId,
+                "feeds_by_user/$userId/$feedId/representativeLikerName" to nextLikerName
             )
         } else {
             hashMapOf<String, Any?>(
                 "feeds_by_feed_id/$feedId/representativeLikerId" to null,
                 "feeds_by_feed_id/$feedId/representativeLikerName" to null,
-                "feeds_by_user/$myUid/$feedId/representativeLikerId" to null,
-                "feeds_by_user/$myUid/$feedId/representativeLikerName" to null
+                "feeds_by_user/$userId/$feedId/representativeLikerId" to null,
+                "feeds_by_user/$userId/$feedId/representativeLikerName" to null
             )
         }
 
         feedRef.updateChildren(feedsUpdates).await()
 
         return if (isLiked) {
-            incrementLikeCount(feedId, myUid).first()
+            incrementLikeCount(feedId, userId).first()
         } else {
-            decrementLikeCount(feedId, myUid).first()
+            decrementLikeCount(feedId, userId).first()
         }
     }
 
@@ -225,5 +229,31 @@ class FeedRemoteDataSource @Inject constructor(
         )
 
         feedRef.updateChildren(feedUpdates).await()
+    }
+
+    fun getLikeUsers(feedId: String): Flow<PagingData<UserDto>> {
+        val query = likeRef.child("likes_by_feed").child(feedId)
+        return Pager(
+            config = PagingConfig(pageSize = 20),
+            pagingSourceFactory = { LikeUsersPagingSource(query, 20) }
+        ).flow
+    }
+
+    fun getComments(feedId: String): Flow<PagingData<CommentDto>> {
+        val query = commentRef.child(feedId)
+        return Pager(
+            config = PagingConfig(pageSize = 20),
+            pagingSourceFactory = { CommentPagingSource(query, 20) }
+        ).flow
+    }
+
+    suspend fun addComment(feedId: String, userDto: UserDto, content: String) {
+        val commentDto = CommentDto(
+            feedId = feedId,
+            userDto = userDto,
+            content = content
+        )
+
+        commentRef.child(feedId).setValue(commentDto).await()
     }
 }

@@ -6,11 +6,16 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -20,11 +25,13 @@ import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.BottomSheetScaffoldState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberBottomSheetScaffoldState
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -49,13 +56,18 @@ import com.dhkim.domain.feed.model.Feed
 import com.dhkim.domain.feed.model.FeedUploadStatus
 import com.dhkim.domain.feed.model.LikeFeed
 import com.dhkim.domain.feed.model.UploadState
+import com.dhkim.feed.common.CommentItem
+import com.dhkim.feed.common.FeedCommentBottomSheet
 import com.dhkim.feed.common.FeedContent
 import com.dhkim.feed.common.FeedItem
 import com.dhkim.feed.common.FeedItemType
-import com.dhkim.feed.common.FollowingFeedBottomSheet
-import com.dhkim.feed.common.MyFeedBottomSheet
-import com.dhkim.feed.common.SponsoredFeedBottomSheet
-import com.dhkim.feed.common.SuggestedFeedBottomSheet
+import com.dhkim.feed.common.FeedLikerBottomSheet
+import com.dhkim.feed.common.FollowingFeedOptionBottomSheet
+import com.dhkim.feed.common.MyFeedOptionBottomSheet
+import com.dhkim.feed.common.SponsoredFeedOptionBottomSheet
+import com.dhkim.feed.common.SuggestedFeedOptionBottomSheet
+import com.dhkim.feed.common.Timestamp
+import com.dhkim.feed.common.UserItem
 import com.dhkim.feed.common.toFeedItem
 import com.dhkim.ui.shimmerEffect
 import com.skydoves.landscapist.ImageOptions
@@ -72,12 +84,17 @@ fun HomeScreen(
     feedState: LazyListState,
     bottomSheetScaffoldState: BottomSheetScaffoldState,
     feeds: LazyPagingItems<FeedItem>,
+    likers: LazyPagingItems<UserItem>,
+    comments: LazyPagingItems<CommentItem>,
     onAction: (HomeAction) -> Unit,
     onFeedLayoutChange: (Boolean) -> Unit,
 ) {
     val feedUploadStatuses = uiState.feedUploadStatuses
     val likeFeeds = uiState.likeFeeds
     val menuVisibleFeed = uiState.menuVisibleFeed
+    val commentBottomSheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true
+    )
     val bottomSheetState = bottomSheetScaffoldState.bottomSheetState
     val scope = rememberCoroutineScope()
     val onNotInterestedClick: () -> Unit = remember(menuVisibleFeed) {
@@ -102,18 +119,18 @@ fun HomeScreen(
 
             when (menuVisibleFeed.type) {
                 is FeedItemType.Mine -> {
-                    MyFeedBottomSheet(
+                    MyFeedOptionBottomSheet(
                         isLikeCountVisible = menuVisibleFeed.isLikeCountVisible,
                         isCommentEnabled = menuVisibleFeed.isCommentEnabled,
-                        onLikeVisibleChange = { onAction(HomeAction.ToggleLikeCountVisibility(isVisible = it)) },
-                        onCommentEnabledChange = { onAction(HomeAction.ToggleEnableComment(isEnabled = it)) },
+                        onLikeVisibleChange = { onAction(HomeAction.ToggleLikeCountVisibility) },
+                        onCommentEnabledChange = { onAction(HomeAction.ToggleEnableComment) },
                         onEditClick = {},
                         onDeleteClick = {}
                     )
                 }
 
                 is FeedItemType.Following -> {
-                    FollowingFeedBottomSheet(
+                    FollowingFeedOptionBottomSheet(
                         isFollowing = true,
                         onFollowChanged = {},
                         onNotInterestedClick = onNotInterestedClick,
@@ -122,14 +139,14 @@ fun HomeScreen(
                 }
 
                 is FeedItemType.Suggested -> {
-                    SuggestedFeedBottomSheet(
+                    SuggestedFeedOptionBottomSheet(
                         onNotInterestedClick = onNotInterestedClick,
                         onAccountInfoClick = {}
                     )
                 }
 
                 is FeedItemType.Sponsored -> {
-                    SponsoredFeedBottomSheet(
+                    SponsoredFeedOptionBottomSheet(
                         onNotInterestedClick = onNotInterestedClick,
                         onAccountInfoClick = {}
                     )
@@ -191,9 +208,11 @@ fun HomeScreen(
                                 FeedContent(
                                     feedItem = feedItem,
                                     onLikeClick = { onAction(HomeAction.ToggleLike(feedItem.feedId)) },
+                                    onLikersClick = { onAction(HomeAction.ShowLikers(feedItem)) },
+                                    onCommentClick = { onAction(HomeAction.ShowComments(feedItem)) },
                                     onProfileClick = { },
-                                    onMoreClick = { feed ->
-                                        onAction(HomeAction.ShowFeedMenu(feed))
+                                    onMoreClick = {
+                                        onAction(HomeAction.ShowFeedMenu(feedItem))
                                         scope.launch {
                                             bottomSheetState.expand()
                                         }
@@ -203,6 +222,44 @@ fun HomeScreen(
                         }
                     }
                 }
+            }
+        }
+    }
+
+    when {
+        uiState.shouldShowLikersBottomSheet -> {
+            ModalBottomSheet(
+                containerColor = InstagramTheme.colors.background,
+                onDismissRequest = { onAction(HomeAction.DismissBottomSheet) },
+                modifier = Modifier
+                    .padding(
+                        bottom = WindowInsets.navigationBars
+                            .asPaddingValues()
+                            .calculateBottomPadding()
+                    )
+            ) {
+                FeedLikerBottomSheet(
+                    users = likers
+                )
+            }
+        }
+        uiState.shouldShowCommentsBottomSheet -> {
+            ModalBottomSheet(
+                containerColor = InstagramTheme.colors.background,
+                sheetState = commentBottomSheetState,
+                onDismissRequest = { onAction(HomeAction.DismissBottomSheet) },
+                modifier = Modifier
+                    .padding(
+                        top = WindowInsets.statusBars
+                            .asPaddingValues()
+                            .calculateTopPadding()
+                    )
+                    .fillMaxHeight()
+            ) {
+                FeedCommentBottomSheet(
+                    userProfileImageUrl = uiState.userProfileImageUrl,
+                    comments = comments
+                )
             }
         }
     }
@@ -312,6 +369,40 @@ private fun HomeScreenPreview() {
         }
     }.toImmutableList()
 
+    val users = mutableListOf<UserItem>().apply {
+        repeat(10) {
+            add(
+                UserItem(
+                    id = "userId$it",
+                    name = "Tester$it",
+                    profileImageUrl = "",
+                    isFollowing = false
+                )
+            )
+        }
+    }
+    val mockUsersFlow = flowOf(PagingData.from(users))
+    val likers = mockUsersFlow.collectAsLazyPagingItems()
+
+    val commentItems = mutableListOf<CommentItem>().apply {
+        repeat(10) {
+            add(
+                CommentItem(
+                    commentId = "id$it",
+                    userId = "userId$it",
+                    userName = "Tester$it",
+                    userProfileImageUrl = "",
+                    content = "Test Comment $it",
+                    timeAt = Timestamp.JustNow,
+                    replyCount = if (it % 2 == 0) 3 else 0,
+                    likeCount = if (it % 2 == 0) 10 else 3
+                )
+            )
+        }
+    }
+    val mockCommentsFlow = flowOf(PagingData.from(commentItems))
+    val comments = mockCommentsFlow.collectAsLazyPagingItems()
+
     val uiState = HomeUiState(
         feedUploadStatuses = feedUploadStatuses,
         likeFeeds = persistentSetOf(LikeFeed("1", "user1")),
@@ -336,6 +427,8 @@ private fun HomeScreenPreview() {
                 feedState = rememberLazyListState(),
                 bottomSheetScaffoldState = bottomSheetScaffoldState,
                 feeds = mockFeeds,
+                likers = likers,
+                comments = comments,
                 onAction = {},
                 onFeedLayoutChange = {},
             )
