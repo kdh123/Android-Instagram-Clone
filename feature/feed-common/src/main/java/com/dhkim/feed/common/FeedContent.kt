@@ -66,10 +66,11 @@ import kotlinx.coroutines.delay
 @Composable
 fun FeedContent(
     feedItem: FeedItem,
-    onLikeClick: (FeedItem) -> Unit,
+    onLikeClick: () -> Unit,
     onLikersClick: () -> Unit,
+    onCommentClick: () -> Unit,
     onProfileClick: () -> Unit,
-    onMoreClick: (FeedItem) -> Unit
+    onMoreClick: () -> Unit
 ) {
     when (feedItem.type) {
         is FeedItemType.Mine,
@@ -79,6 +80,7 @@ fun FeedContent(
                 feedItem = feedItem,
                 onLikeClick = onLikeClick,
                 onLikersClick = onLikersClick,
+                onCommentClick = onCommentClick,
                 onProfileClick = onProfileClick,
                 onMoreClick = onMoreClick
             )
@@ -89,6 +91,7 @@ fun FeedContent(
                 feedItem = feedItem,
                 onLikeClick = onLikeClick,
                 onLikersClick = onLikersClick,
+                onCommentClick = onCommentClick,
                 onProfileClick = onProfileClick,
                 onMoreClick = onMoreClick
             )
@@ -99,10 +102,11 @@ fun FeedContent(
 @Composable
 fun CommonFeedContent(
     feedItem: FeedItem,
-    onLikeClick: (FeedItem) -> Unit,
+    onLikeClick: () -> Unit,
     onLikersClick: () -> Unit,
+    onCommentClick: () -> Unit,
     onProfileClick: () -> Unit,
-    onMoreClick: (FeedItem) -> Unit
+    onMoreClick: () -> Unit
 ) {
     FeedContents(
         feedItem = feedItem,
@@ -112,8 +116,8 @@ fun CommonFeedContent(
         FeedImagePager()
         Spacer(modifier = Modifier.height(8.dp))
         FeedItemActions(
-            onLikeClick = { onLikeClick(feedItem) },
-            onCommentClick = { },
+            onLikeClick = onLikeClick,
+            onCommentClick = onCommentClick,
             onShareClick = { }
         )
         FeedLikeSummaryText(
@@ -129,10 +133,11 @@ fun CommonFeedContent(
 @Composable
 fun SponsoredFeedContent(
     feedItem: FeedItem,
-    onLikeClick: (FeedItem) -> Unit,
+    onLikeClick: () -> Unit,
     onLikersClick: () -> Unit,
+    onCommentClick: () -> Unit,
     onProfileClick: () -> Unit,
-    onMoreClick: (FeedItem) -> Unit
+    onMoreClick: () -> Unit
 ) {
     FeedContents(
         feedItem = feedItem,
@@ -142,8 +147,8 @@ fun SponsoredFeedContent(
         SponsoredFeedImage()
         Spacer(modifier = Modifier.height(8.dp))
         FeedItemActions(
-            onLikeClick = { onLikeClick(feedItem) },
-            onCommentClick = { },
+            onLikeClick = onLikeClick,
+            onCommentClick = onCommentClick,
             onShareClick = { }
         )
         FeedLikeSummaryText(
@@ -159,7 +164,7 @@ fun SponsoredFeedContent(
 fun FeedContents(
     feedItem: FeedItem,
     onProfileClick: () -> Unit,
-    onMoreClick: (FeedItem) -> Unit,
+    onMoreClick: () -> Unit,
     content: @Composable FeedContentScope.() -> Unit
 ) {
     val scope = remember(feedItem) { DefaultFeedContentScope(feedItem) }
@@ -316,7 +321,6 @@ fun FeedContentScope.FeedItemActions(
                     text = "$commentCount",
                     style = InstagramTheme.typography.bodyMedium,
                     modifier = Modifier
-
                 )
             }
         }
@@ -542,7 +546,7 @@ fun PageIndicator(
 fun FeedHeader(
     feedItem: FeedItem,
     onProfileClick: () -> Unit,
-    onMoreClick: (FeedItem) -> Unit
+    onMoreClick: () -> Unit
 ) {
     when (feedItem.type) {
         is FeedItemType.Mine -> {
@@ -593,6 +597,7 @@ private fun FeedContentPreview(
                 feedItem = feedItem,
                 onLikeClick = {},
                 onLikersClick = {},
+                onCommentClick = {},
                 onProfileClick = {},
                 onMoreClick = {}
             )

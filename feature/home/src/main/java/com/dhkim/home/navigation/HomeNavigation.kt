@@ -39,6 +39,7 @@ fun NavGraphBuilder.home() {
         val uiState by viewModel.uiState.collectAsStateWithLifecycle()
         val feeds = viewModel.feeds.collectAsLazyPagingItems()
         val likers = viewModel.likers.collectAsLazyPagingItems()
+        val comments = viewModel.comments.collectAsLazyPagingItems()
         val feedState = rememberLazyListState()
         var isFeedLayoutChanged by remember { mutableStateOf(false) }
         var showNoticeMessage: String? by remember { mutableStateOf(null) }
@@ -91,6 +92,7 @@ fun NavGraphBuilder.home() {
             bottomSheetScaffoldState = bottomSheetScaffoldState,
             feeds = feeds,
             likers = likers,
+            comments = comments,
             onAction = viewModel::onAction,
             onFeedLayoutChange = { isFeedLayoutChanged = it }
         )

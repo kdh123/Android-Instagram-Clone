@@ -18,6 +18,12 @@
     <string name="feed_refresh_failed">피드를 새로 고칠 수 없음</string>
     <string name="like">좋아요</string>
     <string name="search">검색</string>
+    <string name="comment">댓글</string>
+    <string name="reply">답글 달기</string>
+    <string name="view_replies">답글 %d개 더 보기</string>
+    <string name="add_comment_placeholder">대화 참여하기…</string>
+    <string name="no_comments_yet">아직 댓글이 없습니다</string>
+    <string name="be_the_first_to_comment">댓글을 남겨보세요</string>
 
     <string name="time_just_now">방금 전</string>
     <string name="time_minutes_ago">%d분 전</string>

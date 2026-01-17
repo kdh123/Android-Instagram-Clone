@@ -15,4 +15,6 @@ sealed interface HomeAction {
     data object OnFeedCompleted : HomeAction
     data object DismissBottomSheet : HomeAction
     data class ShowLikers(val feedItem: FeedItem) : HomeAction
+    data class ShowComments(val feedItem: FeedItem) : HomeAction
+    data class AddComment(val feedId: String, val content: String) : HomeAction
 }

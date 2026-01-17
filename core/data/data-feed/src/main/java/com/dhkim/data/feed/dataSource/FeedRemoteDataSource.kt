@@ -6,6 +6,7 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import com.dhkim.common.retryWithDelay
+import com.dhkim.data.feed.model.CommentDto
 import com.dhkim.data.feed.model.HiddenFeedDto
 import com.dhkim.data.feed.model.LikeFeedDto
 import com.dhkim.data.feed.model.UserDto
@@ -34,6 +35,7 @@ class FeedRemoteDataSource @Inject constructor(
     private val likeRef = firebaseDatabase.getReference("likes")
     private val userRef = firebaseDatabase.getReference("users")
     private val hiddenFeedRef = firebaseDatabase.getReference("hidden_feeds")
+    private val commentRef = firebaseDatabase.getReference("comments")
     private val storageRef = storage.reference
 
     fun getHomeFeed(): Flow<PagingData<HomeFeedEntity>> = Pager(
@@ -235,5 +237,23 @@ class FeedRemoteDataSource @Inject constructor(
             config = PagingConfig(pageSize = 20),
             pagingSourceFactory = { LikeUsersPagingSource(query, 20) }
         ).flow
+    }
+
+    fun getComments(feedId: String): Flow<PagingData<CommentDto>> {
+        val query = commentRef.child(feedId)
+        return Pager(
+            config = PagingConfig(pageSize = 20),
+            pagingSourceFactory = { CommentPagingSource(query, 20) }
+        ).flow
+    }
+
+    suspend fun addComment(feedId: String, userDto: UserDto, content: String) {
+        val commentDto = CommentDto(
+            feedId = feedId,
+            userDto = userDto,
+            content = content
+        )
+
+        commentRef.child(feedId).setValue(commentDto).await()
     }
 }

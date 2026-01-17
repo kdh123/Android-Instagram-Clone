@@ -10,6 +10,7 @@ import androidx.work.WorkManager
 import androidx.work.workDataOf
 import com.dhkim.data.feed.dataSource.FeedLocalDataSource
 import com.dhkim.data.feed.dataSource.FeedRemoteDataSource
+import com.dhkim.data.feed.extension.toComment
 import com.dhkim.data.feed.extension.toEntity
 import com.dhkim.data.feed.extension.toFeed
 import com.dhkim.data.feed.extension.toFeedUploadStatus
@@ -20,6 +21,7 @@ import com.dhkim.data.feed.extension.toUserDto
 import com.dhkim.data.feed.extension.toMyFeedEntity
 import com.dhkim.data.feed.work.FeedLikeSyncWorker
 import com.dhkim.database.entity.LikeEntity
+import com.dhkim.domain.feed.model.Comment
 import com.dhkim.domain.feed.model.Feed
 import com.dhkim.domain.feed.model.FeedUploadStatus
 import com.dhkim.domain.feed.model.HiddenFeed
@@ -205,6 +207,16 @@ class FeedRepositoryImpl @Inject constructor(
         return remoteDataSource.getLikeUsers(feedId).map { pagingData ->
             pagingData.map { it.toUser() }
         }
+    }
+
+    override fun getComments(feedId: String): Flow<PagingData<Comment>> {
+        return remoteDataSource.getComments(feedId).map { pagingData ->
+            pagingData.map { it.toComment() }
+        }
+    }
+
+    override suspend fun addComment(feedId: String, user: User, content: String) {
+        remoteDataSource.addComment(feedId, userDto = user.toUserDto(), content)
     }
 
     private fun enqueueLikeWorker(feedId: String) {

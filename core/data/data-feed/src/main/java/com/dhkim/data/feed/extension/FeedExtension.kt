@@ -1,5 +1,6 @@
 package com.dhkim.data.feed.extension
 
+import com.dhkim.data.feed.model.CommentDto
 import com.dhkim.data.feed.model.FeedDto
 import com.dhkim.data.feed.model.LikeFeedDto
 import com.dhkim.data.feed.model.UserDto
@@ -9,6 +10,7 @@ import com.dhkim.database.entity.HomeFeedEntity
 import com.dhkim.database.entity.LikeEntity
 import com.dhkim.database.entity.MyFeedEntity
 import com.dhkim.database.entity.SearchFeedEntity
+import com.dhkim.domain.feed.model.Comment
 import com.dhkim.domain.feed.model.Feed
 import com.dhkim.domain.feed.model.FeedUploadStatus
 import com.dhkim.domain.feed.model.HiddenFeed
@@ -234,5 +236,17 @@ fun UserDto.toUser(): User {
         name = name,
         email = email,
         profileUrl = profileUrl
+    )
+}
+
+fun CommentDto.toComment(): Comment {
+    return Comment(
+        commentId = commentId,
+        feedId = feedId,
+        user = userDto.toUser(),
+        content = content,
+        timeAt = timeAt,
+        replyCount = replyCount,
+        likeCount = likeCount
     )
 }

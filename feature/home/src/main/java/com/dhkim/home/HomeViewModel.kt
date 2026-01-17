@@ -8,6 +8,8 @@ import androidx.paging.map
 import com.dhkim.common.RestartableStateFlow
 import com.dhkim.common.handle
 import com.dhkim.common.restartableStateIn
+import com.dhkim.domain.feed.useCase.AddCommentUseCase
+import com.dhkim.domain.feed.useCase.GetCommentsUseCase
 import com.dhkim.domain.feed.useCase.GetFeedUploadStatusesUseCase
 import com.dhkim.domain.feed.useCase.GetFeedsUseCase
 import com.dhkim.domain.feed.useCase.GetLikeFeedsUseCase
@@ -15,9 +17,9 @@ import com.dhkim.domain.feed.useCase.GetLikersUseCase
 import com.dhkim.domain.feed.useCase.GetMyFeedsUseCase
 import com.dhkim.domain.feed.useCase.HideFeedUseCase
 import com.dhkim.domain.feed.useCase.ToggleEnableCommentUseCase
+import com.dhkim.domain.feed.useCase.ToggleFeedLikeCountVisibilityUseCase
 import com.dhkim.domain.feed.useCase.ToggleFeedLikeUseCase
 import com.dhkim.domain.feed.useCase.UnhideFeedUseCase
-import com.dhkim.domain.feed.useCase.ToggleFeedLikeCountVisibilityUseCase
 import com.dhkim.domain.user.exception.NoUserFoundException
 import com.dhkim.domain.user.useCase.GetUserUseCase
 import com.dhkim.feed.common.FeedItem
@@ -55,6 +57,8 @@ class HomeViewModel @Inject constructor(
     private val toggleEnableCommentUseCase: ToggleEnableCommentUseCase,
     private val getLikeFeedsUseCase: GetLikeFeedsUseCase,
     private val getLikersUseCase: GetLikersUseCase,
+    private val getCommentsUseCase: GetCommentsUseCase,
+    private val addCommentUseCase: AddCommentUseCase,
     private val getUserUseCase: GetUserUseCase,
     private val connectivityChecker: ConnectivityChecker
 ) : ViewModel() {
@@ -82,6 +86,17 @@ class HomeViewModel @Inject constructor(
         }
     }.cachedIn(viewModelScope)
 
+    private val targetFeedForComments: MutableStateFlow<FeedItem?> = MutableStateFlow(null)
+    val comments = targetFeedForComments.flatMapLatest { feedItem ->
+        if (feedItem != null) {
+            getCommentsUseCase(feedItem.feedId).map { pagingData ->
+                pagingData.map { it.toCommentItem() }
+            }
+        } else {
+            flowOf(PagingData.empty())
+        }
+    }.cachedIn(viewModelScope)
+
     private val menuVisibleFeed: MutableStateFlow<FeedItem?> = MutableStateFlow(null)
     private val isRefreshing = MutableStateFlow(false)
 
@@ -103,6 +118,10 @@ class HomeViewModel @Inject constructor(
             )
         }.combine(targetFeedForLikers) { uiState, targetFeedForLikers ->
             uiState.copy(targetFeedForLikers = targetFeedForLikers)
+        }.combine(targetFeedForComments) { uiState, targetFeedForComments ->
+            uiState.copy(targetFeedForComments = targetFeedForComments)
+        }.combine(getUserUseCase()) { uiState, user ->
+            uiState.copy(userProfileImageUrl = user?.profileUrl ?: "")
         }
     }.restartableStateIn(
         scope = viewModelScope,
@@ -158,7 +177,30 @@ class HomeViewModel @Inject constructor(
             is HomeAction.ShowLikers -> {
                 showLikers(action.feedItem)
             }
+
+            is HomeAction.ShowComments -> {
+                showComments(action.feedItem)
+            }
+
+            is HomeAction.AddComment -> {
+                addComment(action.feedId, action.content)
+            }
         }
+    }
+
+    private fun showComments(feedItem: FeedItem) {
+        targetFeedForComments.update { feedItem }
+    }
+
+    private fun addComment(feedId: String, content: String) {
+        viewModelScope.handle(
+            block = {
+                addCommentUseCase(feedId, content)
+            },
+            onError = {
+
+            }
+        )
     }
 
     private fun showLikers(feedItem: FeedItem) {
@@ -167,6 +209,7 @@ class HomeViewModel @Inject constructor(
 
     private fun dismissBottomSheet() {
         targetFeedForLikers.update { null }
+        targetFeedForComments.update { null }
     }
 
     private fun toggleEnableComment() {
