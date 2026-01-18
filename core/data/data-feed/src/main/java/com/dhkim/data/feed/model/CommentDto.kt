@@ -6,7 +6,7 @@ import com.google.firebase.database.IgnoreExtraProperties
 data class CommentDto(
     val commentId: String = "comment_id_${System.currentTimeMillis()}",
     val feedId: String = "",
-    val userDto: UserDto = UserDto(),
+    val user: UserDto = UserDto(),
     val content: String = "",
     val timeAt: Long = System.currentTimeMillis(),
     val replyCount: Int = 0,

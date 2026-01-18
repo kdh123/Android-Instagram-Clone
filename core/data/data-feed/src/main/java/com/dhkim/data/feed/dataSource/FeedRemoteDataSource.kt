@@ -247,13 +247,58 @@ class FeedRemoteDataSource @Inject constructor(
         ).flow
     }
 
-    suspend fun addComment(feedId: String, userDto: UserDto, content: String) {
+    suspend fun addComment(feedId: String, userDto: UserDto, content: String): CommentDto {
         val commentDto = CommentDto(
             feedId = feedId,
-            userDto = userDto,
+            user = userDto,
             content = content
         )
 
-        commentRef.child(feedId).setValue(commentDto).await()
+        incrementCommentCount(feedId).first()
+        commentRef.child(feedId).child(commentDto.commentId).setValue(commentDto).await()
+
+        return commentDto
+    }
+
+    private fun incrementCommentCount(feedId: String): Flow<Boolean> {
+        return callbackFlow {
+            feedRef.child("feeds_by_feed_id").child(feedId).child("commentCount")
+                .get().addOnSuccessListener { snapshot ->
+                    val currentValue = snapshot.getValue(Int::class.java) ?: 0
+                    val nextValue = currentValue + 1
+                    val updates = hashMapOf<String, Any?>(
+                        "feeds_by_feed_id/$feedId/commentCount" to nextValue,
+                    )
+
+                    feedRef.updateChildren(updates).addOnCompleteListener { task ->
+                        trySend(task.isSuccessful)
+                    }
+                }.addOnFailureListener {
+                    val a = it.message
+                    trySend(false)
+                }
+            awaitClose()
+        }
+    }
+
+    private fun decrementCommentCount(feedId: String): Flow<Boolean> {
+        return callbackFlow {
+            feedRef.child("feeds_by_feed_id").child(feedId).child("commentCount")
+                .get().addOnSuccessListener { snapshot ->
+                    val currentValue = snapshot.getValue(Int::class.java) ?: 0
+                    val newValue = if (currentValue > 0) currentValue - 1 else 0
+                    val updates = hashMapOf<String, Any?>(
+                        "feeds_by_feed_id/$feedId/commentCount" to newValue,
+                    )
+
+                    feedRef.updateChildren(updates).addOnCompleteListener { task ->
+                        trySend(task.isSuccessful)
+                    }
+                }.addOnFailureListener {
+                    trySend(false)
+                }
+
+            awaitClose()
+        }
     }
 }

@@ -16,7 +16,7 @@ interface FeedDao {
     fun getHomeFeeds(): PagingSource<Int, HomeFeedEntity>
 
     @Query("SELECT * FROM home_feeds WHERE feedId = :feedId")
-    fun getHomeFeed(feedId: String): Flow<HomeFeedEntity>
+    fun getHomeFeed(feedId: String): Flow<HomeFeedEntity?>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertHomeFeeds(feeds: List<HomeFeedEntity>)

@@ -25,11 +25,12 @@ class FeedLocalDataSource @Inject constructor(
         return myFeedDao.getMyFeeds()
     }
 
-    fun getMyFeed(feedId: String): Flow<MyFeedEntity> {
+    fun getMyFeed(feedId: String): Flow<MyFeedEntity?> {
         return myFeedDao.getMyFeed(feedId)
     }
 
-    suspend fun updateMyFeed(feed: MyFeedEntity) {
+    suspend fun updateMyFeed(feed: MyFeedEntity?) {
+        if (feed == null) return
         myFeedDao.updateMyFeed(feed)
     }
 
@@ -45,11 +46,12 @@ class FeedLocalDataSource @Inject constructor(
         myFeedDao.clearMyFeeds()
     }
 
-    fun getHomeFeed(feedId: String): Flow<HomeFeedEntity> {
+    fun getHomeFeed(feedId: String): Flow<HomeFeedEntity?> {
         return feedDao.getHomeFeed(feedId)
     }
 
-    suspend fun updateHomeFeed(feed: HomeFeedEntity) {
+    suspend fun updateHomeFeed(feed: HomeFeedEntity?) {
+        if (feed == null) return
         feedDao.updateHomeFeed(feed)
     }
 

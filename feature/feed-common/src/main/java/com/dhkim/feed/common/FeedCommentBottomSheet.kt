@@ -59,7 +59,8 @@ import kotlinx.coroutines.flow.flowOf
 @Composable
 fun FeedCommentBottomSheet(
     userProfileImageUrl: String,
-    comments: LazyPagingItems<CommentItem>
+    comments: LazyPagingItems<CommentItem>,
+    addComment: (String) -> Unit
 ) {
     val context = LocalContext.current
     Box(
@@ -230,7 +231,7 @@ fun FeedCommentBottomSheet(
         }
         CommentTextFiled(
             userProfileImageUrl = userProfileImageUrl,
-            addComment = {},
+            addComment = addComment,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
         )
@@ -306,6 +307,7 @@ private fun CommentTextFiled(
                                 .background(color = InstagramTheme.colors.primary)
                                 .noRippleClick(onClick = {
                                     addComment(comment)
+                                    comment = ""
                                 })
                         ) {
                             Icon(
@@ -352,7 +354,8 @@ private fun FeedCommentBottomSheetPreview() {
         ) {
             FeedCommentBottomSheet(
                 userProfileImageUrl = "userProfileImageUrl",
-                comments = comments
+                comments = comments,
+                addComment = {}
             )
         }
     }

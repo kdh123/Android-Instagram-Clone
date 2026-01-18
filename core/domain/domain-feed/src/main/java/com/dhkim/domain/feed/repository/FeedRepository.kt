@@ -44,5 +44,5 @@ interface FeedRepository {
     fun getLikeUsers(feedId: String): Flow<PagingData<User>>
 
     fun getComments(feedId: String): Flow<PagingData<Comment>>
-    suspend fun addComment(feedId: String, user: User, content: String)
+    suspend fun addComment(feedId: String, user: User, content: String): Comment
 }

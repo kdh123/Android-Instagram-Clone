@@ -8,6 +8,7 @@ import androidx.paging.map
 import com.dhkim.common.RestartableStateFlow
 import com.dhkim.common.handle
 import com.dhkim.common.restartableStateIn
+import com.dhkim.domain.feed.model.Comment
 import com.dhkim.domain.feed.useCase.AddCommentUseCase
 import com.dhkim.domain.feed.useCase.GetCommentsUseCase
 import com.dhkim.domain.feed.useCase.GetFeedUploadStatusesUseCase
@@ -87,7 +88,13 @@ class HomeViewModel @Inject constructor(
     }.cachedIn(viewModelScope)
 
     private val targetFeedForComments: MutableStateFlow<FeedItem?> = MutableStateFlow(null)
-    val comments = targetFeedForComments.flatMapLatest { feedItem ->
+    private val recentAddedComment: MutableStateFlow<Comment?> = MutableStateFlow(null)
+    val comments = combine(
+        targetFeedForComments,
+        recentAddedComment
+    ) { feedItem, comment ->
+        feedItem to comment
+    }.flatMapLatest { (feedItem, recentAddedComment) ->
         if (feedItem != null) {
             getCommentsUseCase(feedItem.feedId).map { pagingData ->
                 pagingData.map { it.toCommentItem() }
@@ -183,7 +190,7 @@ class HomeViewModel @Inject constructor(
             }
 
             is HomeAction.AddComment -> {
-                addComment(action.feedId, action.content)
+                addComment(action.comment)
             }
         }
     }
@@ -192,13 +199,15 @@ class HomeViewModel @Inject constructor(
         targetFeedForComments.update { feedItem }
     }
 
-    private fun addComment(feedId: String, content: String) {
+    private fun addComment(comment: String) {
         viewModelScope.handle(
             block = {
-                addCommentUseCase(feedId, content)
+                val feedId = targetFeedForComments.value?.feedId ?: return@handle
+                val addedComment = addCommentUseCase(feedId, comment)
+                recentAddedComment.update { addedComment }
             },
             onError = {
-
+                _sideEffect.send(HomeSideEffect.ShowRefreshFeedsFailNotice)
             }
         )
     }
@@ -210,6 +219,7 @@ class HomeViewModel @Inject constructor(
     private fun dismissBottomSheet() {
         targetFeedForLikers.update { null }
         targetFeedForComments.update { null }
+        recentAddedComment.update { null }
     }
 
     private fun toggleEnableComment() {

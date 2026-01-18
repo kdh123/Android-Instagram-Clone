@@ -1,5 +1,6 @@
 package com.dhkim.domain.feed.useCase
 
+import com.dhkim.domain.feed.model.Comment
 import com.dhkim.domain.feed.repository.FeedRepository
 import com.dhkim.domain.user.exception.NoUserFoundException
 import com.dhkim.domain.user.useCase.GetUserUseCase
@@ -11,8 +12,8 @@ class AddCommentUseCase @Inject constructor(
     private val getUserUseCase: GetUserUseCase
 ) {
 
-    suspend operator fun invoke(feedId: String, content: String) {
+    suspend operator fun invoke(feedId: String, content: String): Comment {
         val user = getUserUseCase().first() ?: throw NoUserFoundException()
-        feedRepository.addComment(feedId, user, content)
+        return feedRepository.addComment(feedId, user, content)
     }
 }

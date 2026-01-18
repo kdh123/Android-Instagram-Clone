@@ -258,7 +258,10 @@ fun HomeScreen(
             ) {
                 FeedCommentBottomSheet(
                     userProfileImageUrl = uiState.userProfileImageUrl,
-                    comments = comments
+                    comments = comments,
+                    addComment = { comment ->
+                        onAction(HomeAction.AddComment(comment))
+                    }
                 )
             }
         }

@@ -243,7 +243,7 @@ fun CommentDto.toComment(): Comment {
     return Comment(
         commentId = commentId,
         feedId = feedId,
-        user = userDto.toUser(),
+        user = user.toUser(),
         content = content,
         timeAt = timeAt,
         replyCount = replyCount,
