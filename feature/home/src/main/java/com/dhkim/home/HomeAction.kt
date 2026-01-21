@@ -18,6 +18,7 @@ sealed interface HomeAction {
     data class ShowLikers(val feedItem: FeedItem) : HomeAction
     data class ShowComments(val feedItem: FeedItem) : HomeAction
     data class AddComment(val comment: String) : HomeAction
+    data class DeleteComment(val comment: CommentItem) : HomeAction
     data class ShowReplies(val comment: CommentItem) : HomeAction
     data class ReplyComment(val comment: CommentItem, val content: String) : HomeAction
 }

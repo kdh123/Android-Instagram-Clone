@@ -5,30 +5,21 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberStandardBottomSheetState
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertHasClickAction
-import androidx.compose.ui.test.click
-import androidx.compose.ui.test.hasContentDescription
-import androidx.compose.ui.test.hasParent
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextInput
-import androidx.compose.ui.test.performTouchInput
-import androidx.compose.ui.test.printToLog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.LoadState
 import androidx.paging.LoadStates
 import androidx.paging.PagingData
 import androidx.paging.compose.collectAsLazyPagingItems
-import androidx.test.espresso.action.ViewActions.click
 import com.dhkim.domain.feed.model.Comment
 import com.dhkim.domain.feed.model.Feed
 import com.dhkim.domain.feed.model.HiddenFeed
@@ -36,6 +27,7 @@ import com.dhkim.domain.feed.model.LikeFeed
 import com.dhkim.domain.feed.model.Reply
 import com.dhkim.domain.feed.repository.FeedRepository
 import com.dhkim.domain.feed.useCase.AddCommentUseCase
+import com.dhkim.domain.feed.useCase.DeleteCommentUseCase
 import com.dhkim.domain.feed.useCase.GetCommentsUseCase
 import com.dhkim.domain.feed.useCase.GetFeedUploadStatusesUseCase
 import com.dhkim.domain.feed.useCase.GetFeedsUseCase
@@ -46,13 +38,12 @@ import com.dhkim.domain.feed.useCase.GetRepliesUseCase
 import com.dhkim.domain.feed.useCase.HideFeedUseCase
 import com.dhkim.domain.feed.useCase.ReplyCommentUseCase
 import com.dhkim.domain.feed.useCase.ToggleEnableCommentUseCase
+import com.dhkim.domain.feed.useCase.ToggleFeedLikeCountVisibilityUseCase
 import com.dhkim.domain.feed.useCase.ToggleFeedLikeUseCase
 import com.dhkim.domain.feed.useCase.UnhideFeedUseCase
-import com.dhkim.domain.feed.useCase.ToggleFeedLikeCountVisibilityUseCase
 import com.dhkim.domain.user.model.User
 import com.dhkim.domain.user.repository.UserRepository
 import com.dhkim.domain.user.useCase.GetUserUseCase
-import com.dhkim.feed.common.toFeedItem
 import com.dhkim.network.ConnectivityChecker
 import io.mockk.coEvery
 import io.mockk.every
@@ -72,7 +63,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import kotlin.collections.plus
 
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalTestApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -94,6 +84,7 @@ class HomeScreenTest {
     private val getLikeFeedsUseCase = GetLikeFeedsUseCase(feedRepository, getUserUseCase)
     private val getCommentUseCase = GetCommentsUseCase(feedRepository)
     private val addCommentUseCase = AddCommentUseCase(feedRepository, getUserUseCase)
+    private val deleteCommentUseCase = DeleteCommentUseCase(feedRepository)
     private val getReliesUseCase = GetRepliesUseCase(feedRepository)
     private val replyCommentUseCase = ReplyCommentUseCase(feedRepository, getUserUseCase)
     private val connectivityChecker = mockk<ConnectivityChecker>()
@@ -171,6 +162,7 @@ class HomeScreenTest {
             getLikersUseCase = getLikersUseCase,
             getCommentsUseCase = getCommentUseCase,
             addCommentUseCase = addCommentUseCase,
+            deleteCommentUseCase = deleteCommentUseCase,
             getUserUseCase = getUserUseCase,
             getRepliesUseCase = getReliesUseCase,
             replyCommentUseCase = replyCommentUseCase,

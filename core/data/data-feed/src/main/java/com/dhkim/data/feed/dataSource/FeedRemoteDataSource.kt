@@ -265,6 +265,12 @@ class FeedRemoteDataSource @Inject constructor(
         return commentDto
     }
 
+    suspend fun deleteComment(feedId: String, commentId: String) {
+        commentRef.child(feedId).child(commentId).setValue(null).await()
+        replyRef.child(commentId).setValue(null).await()
+        decrementCommentCount(feedId).first()
+    }
+
     private fun incrementCommentCount(feedId: String): Flow<Boolean> {
         return callbackFlow {
             feedRef.child("feeds_by_feed_id").child(feedId).child("commentCount")

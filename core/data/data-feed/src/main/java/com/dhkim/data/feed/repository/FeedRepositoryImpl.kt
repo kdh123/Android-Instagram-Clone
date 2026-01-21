@@ -228,6 +228,10 @@ class FeedRepositoryImpl @Inject constructor(
         return addedComment
     }
 
+    override suspend fun deleteComment(feedId: String, commentId: String) {
+        remoteDataSource.deleteComment(feedId, commentId)
+    }
+
     override fun getReplies(commentId: String): Flow<List<Reply>> {
         return remoteDataSource.getReplies(commentId).map { replies ->
             replies.map { it.toReply() }

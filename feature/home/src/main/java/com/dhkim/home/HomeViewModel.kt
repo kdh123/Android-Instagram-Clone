@@ -8,9 +8,9 @@ import androidx.paging.map
 import com.dhkim.common.RestartableStateFlow
 import com.dhkim.common.handle
 import com.dhkim.common.restartableStateIn
-import com.dhkim.domain.feed.model.Comment
 import com.dhkim.domain.feed.model.Reply
 import com.dhkim.domain.feed.useCase.AddCommentUseCase
+import com.dhkim.domain.feed.useCase.DeleteCommentUseCase
 import com.dhkim.domain.feed.useCase.GetCommentsUseCase
 import com.dhkim.domain.feed.useCase.GetFeedUploadStatusesUseCase
 import com.dhkim.domain.feed.useCase.GetFeedsUseCase
@@ -69,6 +69,7 @@ class HomeViewModel @Inject constructor(
     private val getLikersUseCase: GetLikersUseCase,
     private val getCommentsUseCase: GetCommentsUseCase,
     private val addCommentUseCase: AddCommentUseCase,
+    private val deleteCommentUseCase: DeleteCommentUseCase,
     private val getRepliesUseCase: GetRepliesUseCase,
     private val replyCommentUseCase: ReplyCommentUseCase,
     private val getUserUseCase: GetUserUseCase,
@@ -102,13 +103,13 @@ class HomeViewModel @Inject constructor(
     private val recentAddedReply: MutableStateFlow<Reply?> = MutableStateFlow(null)
 
     private val targetFeedForComments: MutableStateFlow<FeedItem?> = MutableStateFlow(null)
-    private val recentAddedComment: MutableStateFlow<Comment?> = MutableStateFlow(null)
+    private val refreshCommentTrigger: MutableStateFlow<Int> = MutableStateFlow(0)
     val comments = combine(
         targetFeedForComments,
-        recentAddedComment,
-    ) { feedItem, comment ->
-        feedItem to comment
-    }.flatMapLatest { (feedItem, recentAddedComment) ->
+        refreshCommentTrigger,
+    ) { feedItem, _ ->
+        feedItem
+    }.flatMapLatest { feedItem ->
         if (feedItem != null) {
             getCommentsUseCase(feedItem.feedId).map { pagingData ->
                 pagingData.map { it.toCommentItem() }
@@ -215,6 +216,10 @@ class HomeViewModel @Inject constructor(
                 addComment(action.comment)
             }
 
+            is HomeAction.DeleteComment -> {
+                deleteComment(action.comment)
+            }
+
             is HomeAction.ShowReplies -> {
                 showReplies(action.comment)
             }
@@ -223,6 +228,19 @@ class HomeViewModel @Inject constructor(
                 replyComment(action.comment, action.content)
             }
         }
+    }
+
+    private fun deleteComment(comment: CommentItem) {
+        viewModelScope.handle(
+            block = {
+                val feedId = targetFeedForComments.value?.feedId ?: return@handle
+                deleteCommentUseCase(feedId, comment.commentId)
+                refreshCommentTrigger.update { it + 1 }
+            },
+            onError = {
+                _sideEffect.send(HomeSideEffect.ShowRefreshFeedsFailNotice)
+            }
+        )
     }
 
     private fun observeServerReplies() {
@@ -275,7 +293,6 @@ class HomeViewModel @Inject constructor(
                     recentAddedReplies = (targetGroup.recentAddedReplies + newReply.toReplyItem()).toImmutableList()
                 )
                 currentList.updateItem(targetIndex, updatedGroup)
-
             } else {
                 // Case 2: Group does not exist (first reply or server delay)
                 val newGroup = ReplyGroup(
@@ -314,8 +331,8 @@ class HomeViewModel @Inject constructor(
         viewModelScope.handle(
             block = {
                 val feedId = targetFeedForComments.value?.feedId ?: return@handle
-                val addedComment = addCommentUseCase(feedId, comment)
-                recentAddedComment.update { addedComment }
+                addCommentUseCase(feedId, comment)
+                refreshCommentTrigger.update { it + 1 }
             },
             onError = {
                 _sideEffect.send(HomeSideEffect.ShowRefreshFeedsFailNotice)
@@ -330,7 +347,6 @@ class HomeViewModel @Inject constructor(
     private fun dismissBottomSheet() {
         targetFeedForLikers.update { null }
         targetFeedForComments.update { null }
-        recentAddedComment.update { null }
         targetCommentForReply.update { null }
         recentAddedReply.update { null }
         _replies.update { persistentListOf() }

@@ -11,6 +11,7 @@ import com.dhkim.domain.feed.model.HiddenFeed
 import com.dhkim.domain.feed.model.Reply
 import com.dhkim.domain.feed.repository.FeedRepository
 import com.dhkim.domain.feed.useCase.AddCommentUseCase
+import com.dhkim.domain.feed.useCase.DeleteCommentUseCase
 import com.dhkim.domain.feed.useCase.GetCommentsUseCase
 import com.dhkim.domain.feed.useCase.GetFeedUploadStatusesUseCase
 import com.dhkim.domain.feed.useCase.GetFeedsUseCase
@@ -70,6 +71,7 @@ class HomeViewModelTest {
     private val getLikeFeedsUseCase = GetLikeFeedsUseCase(feedRepository, getUserUseCase)
     private val getCommentUseCase = GetCommentsUseCase(feedRepository)
     private val addCommentUseCase = AddCommentUseCase(feedRepository, getUserUseCase)
+    private val deleteCommentUseCase = DeleteCommentUseCase(feedRepository)
     private val getReliesUseCase = GetRepliesUseCase(feedRepository)
     private val replyCommentUseCase = ReplyCommentUseCase(feedRepository, getUserUseCase)
     private val connectivityChecker = mockk<ConnectivityChecker>()
@@ -144,6 +146,7 @@ class HomeViewModelTest {
             getLikersUseCase = getLikersUseCase,
             getCommentsUseCase = getCommentUseCase,
             addCommentUseCase = addCommentUseCase,
+            deleteCommentUseCase = deleteCommentUseCase,
             getRepliesUseCase = getReliesUseCase,
             replyCommentUseCase = replyCommentUseCase,
             getUserUseCase = getUserUseCase,
@@ -310,6 +313,68 @@ class HomeViewModelTest {
                     )
                 )
             )
+        }
+    }
+
+    @Test
+    fun whenCommentDeleted_removesCommentFromList() = runTest {
+        val comments = MutableStateFlow(fakeComments)
+
+        every {
+            feedRepository.getComments(any())
+        } answers {
+            flowOf(PagingData.from(comments.value))
+        }
+
+        coEvery {
+            feedRepository.addComment(any(), any(), any())
+        } answers {
+            val feedId = firstArg<String>()
+            val user = secondArg<User>()
+            val content = thirdArg<String>()
+            val comment = Comment(
+                commentId = "commentId_0",
+                feedId = feedId,
+                user = user,
+                content = content,
+                timeAt = 123456789L,
+                replyCount = 0,
+                likeCount = 0
+            )
+            comments.update { it + comment }
+            comment
+        }
+
+        coEvery {
+            feedRepository.deleteComment(any(), any())
+        } answers {
+            val commentId = secondArg<String>()
+            val updateComments = comments.value.filter { it.commentId != commentId }
+            comments.update { updateComments }
+        }
+
+        coEvery { feedRepository.toggleEnableComment(any(), any(), any()) } returns Unit
+        coEvery { feedRepository.toggleLikeCountVisibility(any(), any(), any()) } returns Unit
+        coEvery { feedRepository.getHiddenFeeds() } returns flowOf(setOf(HiddenFeed("feedId1", 1234567890)))
+        coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf(emptyList())
+        coEvery { feedRepository.getMyFeeds() } returns flowOf(myFeeds)
+        coEvery { feedRepository.getHomeFeeds() } returns flowOf(PagingData.from(fakeFeeds))
+        coEvery { userRepository.getUser() } returns flowOf(testUser)
+        coEvery { connectivityChecker.isNetworkAvailable() } returns flowOf(true)
+
+        viewModel.feeds.test {
+            val userId = getUserUseCase().first()?.id ?: ""
+            assertEquals(fakeFeeds.map { it.toFeedItem(userId) }, flowOf(awaitItem()).asSnapshot())
+        }
+
+        viewModel.onAction(HomeAction.ShowComments(fakeFeeds[0].toFeedItem(testUser.id)))
+        viewModel.comments.test {
+            assertEquals(fakeComments.map { it.toCommentItem() }, flowOf(awaitItem()).asSnapshot())
+        }
+
+        viewModel.onAction(HomeAction.DeleteComment(fakeComments[0].toCommentItem()))
+        viewModel.comments.test {
+            assertEquals(flowOf(awaitItem()).asSnapshot().size, 9)
         }
     }
     
