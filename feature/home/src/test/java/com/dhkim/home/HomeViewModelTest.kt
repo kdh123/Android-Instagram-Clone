@@ -297,7 +297,16 @@ class HomeViewModelTest {
                                 timeAt = 123456789L.toRelativeTime(),
                                 likeCount = 0
                             )
-                        )
+                        ),
+                        recentAddedReplies = persistentListOf(
+                            ReplyItem(
+                                replyId = "replyId",
+                                user = testUser.toUserItem(),
+                                content = "hello",
+                                timeAt = 123456789L.toRelativeTime(),
+                                likeCount = 0
+                            )
+                        ),
                     )
                 )
             )
