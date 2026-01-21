@@ -9,12 +9,16 @@ import com.dhkim.common.retryWithDelay
 import com.dhkim.data.feed.model.CommentDto
 import com.dhkim.data.feed.model.HiddenFeedDto
 import com.dhkim.data.feed.model.LikeFeedDto
+import com.dhkim.data.feed.model.ReplyDto
 import com.dhkim.data.feed.model.UserDto
 import com.dhkim.data.feed.model.toDto
 import com.dhkim.database.AppDatabase
 import com.dhkim.database.entity.HomeFeedEntity
 import com.dhkim.domain.feed.model.Feed
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -36,6 +40,7 @@ class FeedRemoteDataSource @Inject constructor(
     private val userRef = firebaseDatabase.getReference("users")
     private val hiddenFeedRef = firebaseDatabase.getReference("hidden_feeds")
     private val commentRef = firebaseDatabase.getReference("comments")
+    private val replyRef = firebaseDatabase.getReference("replies")
     private val storageRef = storage.reference
 
     fun getHomeFeed(): Flow<PagingData<HomeFeedEntity>> = Pager(
@@ -247,13 +252,124 @@ class FeedRemoteDataSource @Inject constructor(
         ).flow
     }
 
-    suspend fun addComment(feedId: String, userDto: UserDto, content: String) {
+    suspend fun addComment(feedId: String, userDto: UserDto, content: String): CommentDto {
         val commentDto = CommentDto(
             feedId = feedId,
-            userDto = userDto,
+            user = userDto,
             content = content
         )
 
-        commentRef.child(feedId).setValue(commentDto).await()
+        incrementCommentCount(feedId).first()
+        commentRef.child(feedId).child(commentDto.commentId).setValue(commentDto).await()
+
+        return commentDto
+    }
+
+    suspend fun deleteComment(feedId: String, commentId: String) {
+        commentRef.child(feedId).child(commentId).setValue(null).await()
+        replyRef.child(commentId).setValue(null).await()
+        decrementCommentCount(feedId).first()
+    }
+
+    private fun incrementCommentCount(feedId: String): Flow<Boolean> {
+        return callbackFlow {
+            feedRef.child("feeds_by_feed_id").child(feedId).child("commentCount")
+                .get().addOnSuccessListener { snapshot ->
+                    val currentValue = snapshot.getValue(Int::class.java) ?: 0
+                    val nextValue = currentValue + 1
+                    val updates = hashMapOf<String, Any?>(
+                        "feeds_by_feed_id/$feedId/commentCount" to nextValue,
+                    )
+
+                    feedRef.updateChildren(updates).addOnCompleteListener { task ->
+                        trySend(task.isSuccessful)
+                    }
+                }.addOnFailureListener {
+                    trySend(false)
+                }
+            awaitClose()
+        }
+    }
+
+    private fun decrementCommentCount(feedId: String): Flow<Boolean> {
+        return callbackFlow {
+            feedRef.child("feeds_by_feed_id").child(feedId).child("commentCount")
+                .get().addOnSuccessListener { snapshot ->
+                    val currentValue = snapshot.getValue(Int::class.java) ?: 0
+                    val newValue = if (currentValue > 0) currentValue - 1 else 0
+                    val updates = hashMapOf<String, Any?>(
+                        "feeds_by_feed_id/$feedId/commentCount" to newValue,
+                    )
+
+                    feedRef.updateChildren(updates).addOnCompleteListener { task ->
+                        trySend(task.isSuccessful)
+                    }
+                }.addOnFailureListener {
+                    trySend(false)
+                }
+
+            awaitClose()
+        }
+    }
+
+    fun getReplies(commentId: String): Flow<List<ReplyDto>> {
+        return callbackFlow {
+            replyRef.child(commentId)
+                .orderByKey()
+                .limitToLast(10)
+                .addValueEventListener(object : ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
+                        val replies = snapshot.children.mapNotNull { it.getValue(ReplyDto::class.java) }
+                        trySend(replies)
+                    }
+
+                    override fun onCancelled(error: DatabaseError) {
+                        trySend(listOf())
+                    }
+                })
+            awaitClose()
+        }
+    }
+
+    suspend fun replyComment(
+        feedId: String,
+        commentId: String,
+        user: UserDto,
+        comment: String
+    ): ReplyDto {
+        val reply = ReplyDto(
+            replyId = "reply_id_${System.currentTimeMillis()}",
+            commentId = commentId,
+            user = user,
+            content = comment,
+            timeAt = System.currentTimeMillis(),
+            likeCount = 0
+        )
+
+        replyRef.child(reply.commentId).child(reply.replyId).setValue(reply).await()
+        incrementReplyCount(feedId, commentId).first()
+        incrementCommentCount(feedId).first()
+
+        return reply
+    }
+
+    private fun incrementReplyCount(feedId: String, commentId: String): Flow<Boolean> {
+        return callbackFlow {
+            commentRef.child(feedId).child(commentId).child("replyCount")
+                .get().addOnSuccessListener { snapshot ->
+                    val currentValue = snapshot.getValue(Int::class.java) ?: 0
+                    val nextValue = currentValue + 1
+                    val updates = hashMapOf<String, Any?>(
+                        "$feedId/$commentId/replyCount" to nextValue,
+                    )
+
+                    commentRef.updateChildren(updates).addOnCompleteListener { task ->
+                        trySend(task.isSuccessful)
+                    }
+                }.addOnFailureListener {
+                    trySend(false)
+                }
+            awaitClose()
+        }
     }
 }

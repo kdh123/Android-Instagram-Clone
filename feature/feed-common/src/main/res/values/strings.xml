@@ -24,6 +24,7 @@
     <string name="add_comment_placeholder">대화 참여하기…</string>
     <string name="no_comments_yet">아직 댓글이 없습니다</string>
     <string name="be_the_first_to_comment">댓글을 남겨보세요</string>
+    <string name="reply_posting">%s님에게 답글 남기는 중...</string>
 
     <string name="time_just_now">방금 전</string>
     <string name="time_minutes_ago">%d분 전</string>

@@ -1,8 +1,10 @@
 package com.dhkim.home
 
 import com.dhkim.domain.feed.model.Comment
+import com.dhkim.domain.feed.model.Reply
 import com.dhkim.domain.user.model.User
 import com.dhkim.feed.common.CommentItem
+import com.dhkim.feed.common.ReplyItem
 import com.dhkim.feed.common.UserItem
 import com.dhkim.feed.common.toRelativeTime
 
@@ -24,6 +26,16 @@ fun Comment.toCommentItem(): CommentItem {
         content = content,
         timeAt = timeAt.toRelativeTime(),
         replyCount = replyCount,
+        likeCount = likeCount
+    )
+}
+
+fun Reply.toReplyItem(): ReplyItem {
+    return ReplyItem(
+        replyId = replyId,
+        user = user.toUserItem(),
+        content = content,
+        timeAt = timeAt.toRelativeTime(),
         likeCount = likeCount
     )
 }

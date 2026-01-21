@@ -3,12 +3,11 @@ package com.dhkim.data.feed.model
 import com.google.firebase.database.IgnoreExtraProperties
 
 @IgnoreExtraProperties
-data class CommentDto(
-    val commentId: String = "comment_id_${System.currentTimeMillis()}",
-    val feedId: String = "",
+data class ReplyDto(
+    val replyId: String = "reply_id_${System.currentTimeMillis()}",
+    val commentId: String = "",
     val user: UserDto = UserDto(),
     val content: String = "",
     val timeAt: Long = System.currentTimeMillis(),
-    val replyCount: Int = 0,
     val likeCount: Int = 0
 )

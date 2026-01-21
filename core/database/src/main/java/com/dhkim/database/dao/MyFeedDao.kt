@@ -18,7 +18,7 @@ interface MyFeedDao {
     fun getMyFeeds(): Flow<List<MyFeedEntity>>
 
     @Query("SELECT * FROM my_feeds WHERE feedId = :feedId")
-    fun getMyFeed(feedId: String): Flow<MyFeedEntity>
+    fun getMyFeed(feedId: String): Flow<MyFeedEntity?>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMyFeeds(feeds: List<MyFeedEntity>)

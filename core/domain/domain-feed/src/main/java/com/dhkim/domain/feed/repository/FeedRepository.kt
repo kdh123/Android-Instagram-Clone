@@ -6,6 +6,7 @@ import com.dhkim.domain.feed.model.Feed
 import com.dhkim.domain.feed.model.FeedUploadStatus
 import com.dhkim.domain.feed.model.HiddenFeed
 import com.dhkim.domain.feed.model.LikeFeed
+import com.dhkim.domain.feed.model.Reply
 import com.dhkim.domain.user.model.User
 import kotlinx.coroutines.flow.Flow
 import java.io.File
@@ -44,5 +45,8 @@ interface FeedRepository {
     fun getLikeUsers(feedId: String): Flow<PagingData<User>>
 
     fun getComments(feedId: String): Flow<PagingData<Comment>>
-    suspend fun addComment(feedId: String, user: User, content: String)
+    suspend fun addComment(feedId: String, user: User, comment: String): Comment
+    suspend fun deleteComment(feedId: String, commentId: String)
+    fun getReplies(commentId: String): Flow<List<Reply>>
+    suspend fun replyComment(feedId: String, commentId: String, user: User, comment: String): Reply
 }

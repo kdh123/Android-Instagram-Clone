@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,6 +45,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
@@ -308,13 +310,15 @@ fun FeedContentScope.FeedItemActions(
         if (feedItem.isCommentEnabled) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .testTag("comment_icon_${feedItem.feedId}")
+                    .noRippleClick(onClick = onCommentClick)
             ) {
                 Icon(
                     painter = painterResource(R.drawable.ic_comment),
                     contentDescription = "Comment",
                     modifier = Modifier
                         .padding(end = 4.dp)
-                        .noRippleClick(onClick = onCommentClick)
                 )
 
                 Text(

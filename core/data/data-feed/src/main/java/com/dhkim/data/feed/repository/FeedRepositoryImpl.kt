@@ -19,6 +19,7 @@ import com.dhkim.data.feed.extension.toLikeFeed
 import com.dhkim.data.feed.extension.toUser
 import com.dhkim.data.feed.extension.toUserDto
 import com.dhkim.data.feed.extension.toMyFeedEntity
+import com.dhkim.data.feed.extension.toReply
 import com.dhkim.data.feed.work.FeedLikeSyncWorker
 import com.dhkim.database.entity.LikeEntity
 import com.dhkim.domain.feed.model.Comment
@@ -26,6 +27,7 @@ import com.dhkim.domain.feed.model.Feed
 import com.dhkim.domain.feed.model.FeedUploadStatus
 import com.dhkim.domain.feed.model.HiddenFeed
 import com.dhkim.domain.feed.model.LikeFeed
+import com.dhkim.domain.feed.model.Reply
 import com.dhkim.domain.feed.repository.FeedRepository
 import com.dhkim.domain.user.model.User
 import kotlinx.coroutines.flow.Flow
@@ -123,12 +125,14 @@ class FeedRepositoryImpl @Inject constructor(
         val homeFeed = localDataSource.getHomeFeed(feedId).first()
 
         remoteDataSource.toggleLikeCountVisibility(feedId, userId, isVisible = !isVisible)
-        localDataSource.updateHomeFeed(homeFeed.copy(isLikeCountVisible = !isVisible))
-        localDataSource.updateMyFeed(myFeed.copy(isLikeCountVisible = !isVisible))
+        localDataSource.updateHomeFeed(homeFeed?.copy(isLikeCountVisible = !isVisible))
+        localDataSource.updateMyFeed(myFeed?.copy(isLikeCountVisible = !isVisible))
     }
 
     override suspend fun toggleLike(feedId: String, userId: String, userName: String, isLiked: Boolean) {
-        val homeFeed = localDataSource.getHomeFeed(feedId).first()
+        enqueueLikeWorker(feedId)
+
+        val homeFeed = localDataSource.getHomeFeed(feedId).first() ?: return
         val likeCount = homeFeed.likeCount
         if (isLiked) {
             val (representativeLikerId, representativeLikeName) = if (likeCount <= 1) {
@@ -159,7 +163,6 @@ class FeedRepositoryImpl @Inject constructor(
                 )
             )
         }
-        enqueueLikeWorker(feedId)
     }
 
     override suspend fun remoteToggleLike(feedId: String, user: User) {
@@ -199,8 +202,8 @@ class FeedRepositoryImpl @Inject constructor(
         val homeFeed = localDataSource.getHomeFeed(feedId).first()
 
         remoteDataSource.toggleEnableComment(feedId, userId, isEnabled = !isEnabled)
-        localDataSource.updateHomeFeed(homeFeed.copy(isCommentEnabled = !isEnabled))
-        localDataSource.updateMyFeed(myFeed.copy(isCommentEnabled = !isEnabled))
+        localDataSource.updateHomeFeed(homeFeed?.copy(isCommentEnabled = !isEnabled))
+        localDataSource.updateMyFeed(myFeed?.copy(isCommentEnabled = !isEnabled))
     }
 
     override fun getLikeUsers(feedId: String): Flow<PagingData<User>> {
@@ -215,8 +218,33 @@ class FeedRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun addComment(feedId: String, user: User, content: String) {
-        remoteDataSource.addComment(feedId, userDto = user.toUserDto(), content)
+    override suspend fun addComment(feedId: String, user: User, comment: String): Comment {
+        val addedComment = remoteDataSource.addComment(feedId, user.toUserDto(), comment).toComment()
+        val currentHomeFeed = localDataSource.getHomeFeed(feedId).first()
+        if (currentHomeFeed != null) {
+            val commentCount = currentHomeFeed.commentCount
+            localDataSource.updateHomeFeed(currentHomeFeed.copy(commentCount = commentCount + 1))
+        }
+        return addedComment
+    }
+
+    override suspend fun deleteComment(feedId: String, commentId: String) {
+        remoteDataSource.deleteComment(feedId, commentId)
+    }
+
+    override fun getReplies(commentId: String): Flow<List<Reply>> {
+        return remoteDataSource.getReplies(commentId).map { replies ->
+            replies.map { it.toReply() }
+        }
+    }
+
+    override suspend fun replyComment(
+        feedId: String,
+        commentId: String,
+        user: User,
+        comment: String
+    ): Reply {
+        return remoteDataSource.replyComment(feedId, commentId, user.toUserDto(), comment).toReply()
     }
 
     private fun enqueueLikeWorker(feedId: String) {
