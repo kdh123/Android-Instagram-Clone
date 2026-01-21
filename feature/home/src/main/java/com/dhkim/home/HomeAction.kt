@@ -1,5 +1,6 @@
 package com.dhkim.home
 
+import com.dhkim.feed.common.CommentItem
 import com.dhkim.feed.common.FeedItem
 
 sealed interface HomeAction {
@@ -17,4 +18,6 @@ sealed interface HomeAction {
     data class ShowLikers(val feedItem: FeedItem) : HomeAction
     data class ShowComments(val feedItem: FeedItem) : HomeAction
     data class AddComment(val comment: String) : HomeAction
+    data class ShowReplies(val comment: CommentItem) : HomeAction
+    data class ReplyComment(val comment: CommentItem, val content: String) : HomeAction
 }

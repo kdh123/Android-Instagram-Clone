@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -39,6 +40,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -54,15 +56,25 @@ import com.dhkim.designsystem.InstagramTheme
 import com.dhkim.ui.LoadingSpinner
 import com.dhkim.ui.noRippleClick
 import com.skydoves.landscapist.glide.GlideImage
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.flow.flowOf
+
+@JvmInline
+value class Comment(val value: String)
 
 @Composable
 fun FeedCommentBottomSheet(
     userProfileImageUrl: String,
     comments: LazyPagingItems<CommentItem>,
-    addComment: (String) -> Unit
+    replies: ImmutableList<ReplyGroup>,
+    addComment: (String) -> Unit,
+    addReply: (CommentItem, Comment) -> Unit,
+    showReplies: (CommentItem) -> Unit
 ) {
     val context = LocalContext.current
+    var replyToComment: CommentItem? by rememberSaveable { mutableStateOf(null) }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -140,101 +152,280 @@ fun FeedCommentBottomSheet(
 
                     else -> {
                         val comment = comments[index - 2] ?: return@items
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 10.dp)
-                        ) {
-                            GlideImage(
-                                imageModel = { comment.userProfileImageUrl },
-                                previewPlaceholder = painterResource(R.drawable.ic_dummy_background),
-                                modifier = Modifier
-                                    .clip(CircleShape)
-                                    .size(42.dp)
-                            )
+                        val wholeReplies = replies.firstOrNull { it.commentId == comment.commentId }?.replies ?: persistentListOf()
+                        val recentAddedReplies = replies.firstOrNull { it.commentId == comment.commentId }?.recentAddedReplies ?: persistentListOf()
 
-                            Column(
-                                verticalArrangement = Arrangement.spacedBy(4.dp),
-                                modifier = Modifier
-                                    .width(0.dp)
-                                    .weight(1f)
-                                    .padding(start = 8.dp)
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                ) {
-                                    Text(
-                                        text = comment.userName,
-                                        style = InstagramTheme.typography.bodySmall,
-                                        modifier = Modifier
-                                            .padding(end = 4.dp)
-                                    )
-
-                                    val timeAt = when (comment.timeAt) {
-                                        is Timestamp.JustNow -> stringResource(R.string.time_just_now)
-                                        is Timestamp.MinutesAgo -> context.getString(R.string.time_minutes_ago, comment.timeAt.minutes)
-                                        is Timestamp.HoursAgo -> context.getString(R.string.time_hours_ago, comment.timeAt.hours)
-                                        is Timestamp.DaysAgo -> context.getString(R.string.time_days_ago, comment.timeAt.days)
-                                        is Timestamp.Date -> comment.timeAt.date
-                                    }
-
-                                    Text(
-                                        text = timeAt,
-                                        style = InstagramTheme.typography.bodySmallGray,
-                                    )
-                                }
-
-                                Text(
-                                    text = comment.content,
-                                    style = InstagramTheme.typography.bodyMedium
-                                )
-
-                                Text(
-                                    text = stringResource(R.string.reply),
-                                    style = InstagramTheme.typography.bodySmallGray
-                                )
-
-                                if (comment.replyCount > 0) {
-                                    Text(
-                                        text = context.getString(R.string.view_replies, comment.replyCount),
-                                        style = InstagramTheme.typography.bodySmallGray,
-                                        modifier = Modifier
-                                            .padding(start = 18.dp)
-                                    )
-                                }
-                            }
-
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier
-                                    .noRippleClick { }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.FavoriteBorder,
-                                    contentDescription = "Like",
-                                    tint = Color.Gray,
-                                    modifier = Modifier
-                                        .padding(bottom = 4.dp)
-                                        .size(16.dp)
-                                )
-                                Text(
-                                    text = "${comment.replyCount}",
-                                    style = InstagramTheme.typography.bodySmallGray
-                                )
-                            }
-                        }
+                        CommentRow(
+                            comment = comment,
+                            wholeReplies = wholeReplies,
+                            recentAddedReplies = recentAddedReplies,
+                            onReplyClick = { replyToComment = comment },
+                            showReplies = { showReplies(comment) }
+                        )
                     }
                 }
             }
         }
-        CommentTextFiled(
-            userProfileImageUrl = userProfileImageUrl,
-            addComment = addComment,
+        Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
+        ) {
+            if (replyToComment != null) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(color = InstagramTheme.colors.secondary)
+                        .padding(8.dp)
+                        .testTag("reply_to_username")
+                ) {
+                    Text(
+                        text = context.getString(R.string.reply_posting, replyToComment!!.userName),
+                        style = InstagramTheme.typography.bodyMedium,
+                        color = InstagramTheme.colors.onSecondary,
+                        textAlign = TextAlign.Start,
+                        modifier = Modifier
+                            .width(0.dp)
+                            .weight(1f)
+                    )
+
+                    Icon(
+                        imageVector = Icons.Outlined.Close,
+                        contentDescription = "Close",
+                        tint = InstagramTheme.colors.onSecondary,
+                        modifier = Modifier
+                            .noRippleClick {
+                                replyToComment = null
+                            }
+                    )
+                }
+            }
+
+            CommentTextFiled(
+                userProfileImageUrl = userProfileImageUrl,
+                addComment = { content ->
+                    if (replyToComment == null) {
+                        addComment(content)
+                    } else {
+                        addReply(replyToComment!!, Comment(content))
+                        replyToComment = null
+                    }
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun CommentRow(
+    comment: CommentItem,
+    wholeReplies: ImmutableList<ReplyItem>,
+    recentAddedReplies: ImmutableList<ReplyItem>,
+    onReplyClick: () -> Unit,
+    showReplies: () -> Unit,
+) {
+    val context = LocalContext.current
+    var shouldShowReplies by rememberSaveable { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp)
+                .testTag("comment_item_${comment.commentId}")
+        ) {
+            GlideImage(
+                imageModel = { comment.userProfileImageUrl },
+                previewPlaceholder = painterResource(R.drawable.ic_dummy_background),
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .size(42.dp)
+            )
+
+            Column(
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier
+                    .width(0.dp)
+                    .weight(1f)
+                    .padding(start = 8.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                ) {
+                    Text(
+                        text = comment.userName,
+                        style = InstagramTheme.typography.bodySmall,
+                        modifier = Modifier
+                            .padding(end = 4.dp)
+                    )
+
+                    val timeAt = when (comment.timeAt) {
+                        is Timestamp.JustNow -> stringResource(R.string.time_just_now)
+                        is Timestamp.MinutesAgo -> context.getString(R.string.time_minutes_ago, comment.timeAt.minutes)
+                        is Timestamp.HoursAgo -> context.getString(R.string.time_hours_ago, comment.timeAt.hours)
+                        is Timestamp.DaysAgo -> context.getString(R.string.time_days_ago, comment.timeAt.days)
+                        is Timestamp.Date -> comment.timeAt.date
+                    }
+
+                    Text(
+                        text = timeAt,
+                        style = InstagramTheme.typography.bodySmallGray,
+                    )
+                }
+
+                Text(
+                    text = comment.content,
+                    style = InstagramTheme.typography.bodyMedium
+                )
+
+                Text(
+                    text = stringResource(R.string.reply),
+                    style = InstagramTheme.typography.bodySmallGray,
+                    modifier = Modifier
+                        .noRippleClick(onClick = onReplyClick)
+                        .testTag("reply_button_${comment.commentId}")
+                )
+            }
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .noRippleClick { }
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.FavoriteBorder,
+                    contentDescription = "Like",
+                    tint = Color.Gray,
+                    modifier = Modifier
+                        .padding(bottom = 4.dp)
+                        .size(16.dp)
+                )
+                Text(
+                    text = "${comment.likeCount}",
+                    style = InstagramTheme.typography.bodySmallGray
+                )
+            }
+        }
+
+        if (recentAddedReplies.isNotEmpty() && !shouldShowReplies) {
+            Replies(replies = recentAddedReplies)
+        }
+
+        if (comment.replyCount > 0) {
+            if (shouldShowReplies) {
+                Replies(replies = wholeReplies)
+            } else {
+                Text(
+                    text = context.getString(R.string.view_replies, comment.replyCount),
+                    style = InstagramTheme.typography.bodySmallGray,
+                    modifier = Modifier
+                        .padding(start = 60.dp)
+                        .noRippleClick {
+                            shouldShowReplies = true
+                            showReplies()
+                        }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun Replies(
+    replies: ImmutableList<ReplyItem>
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 12.dp, start = 60.dp)
+    ) {
+        replies.forEach { item ->
+            ReplyRow(reply = item)
+        }
+    }
+}
+
+@Composable
+fun ReplyRow(
+    reply: ReplyItem,
+) {
+    val context = LocalContext.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp)
+            .testTag("reply_item_${reply.replyId}")
+    ) {
+        GlideImage(
+            imageModel = { reply.user.profileImageUrl },
+            previewPlaceholder = painterResource(R.drawable.ic_dummy_background),
+            modifier = Modifier
+                .clip(CircleShape)
+                .size(42.dp)
         )
+
+        Column(
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier
+                .width(0.dp)
+                .weight(1f)
+                .padding(start = 8.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+            ) {
+                Text(
+                    text = reply.user.name,
+                    style = InstagramTheme.typography.bodySmall,
+                    modifier = Modifier
+                        .padding(end = 4.dp)
+                )
+
+                val timeAt = when (reply.timeAt) {
+                    is Timestamp.JustNow -> stringResource(R.string.time_just_now)
+                    is Timestamp.MinutesAgo -> context.getString(R.string.time_minutes_ago, reply.timeAt.minutes)
+                    is Timestamp.HoursAgo -> context.getString(R.string.time_hours_ago, reply.timeAt.hours)
+                    is Timestamp.DaysAgo -> context.getString(R.string.time_days_ago, reply.timeAt.days)
+                    is Timestamp.Date -> reply.timeAt.date
+                }
+
+                Text(
+                    text = timeAt,
+                    style = InstagramTheme.typography.bodySmallGray,
+                )
+            }
+
+            Text(
+                text = reply.content,
+                style = InstagramTheme.typography.bodyMedium
+            )
+        }
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .padding(end = 10.dp)
+                .noRippleClick { }
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.FavoriteBorder,
+                contentDescription = "Like",
+                tint = Color.Gray,
+                modifier = Modifier
+                    .padding(bottom = 4.dp)
+                    .size(16.dp)
+            )
+            Text(
+                text = "${reply.likeCount}",
+                style = InstagramTheme.typography.bodySmallGray
+            )
+        }
     }
 }
 
@@ -267,7 +458,8 @@ private fun CommentTextFiled(
             onValueChange = { comment = it },
             modifier = Modifier
                 .weight(1f)
-                .height(36.dp),
+                .height(36.dp)
+                .testTag("comment_text_field"),
             textStyle = InstagramTheme.typography.bodyMedium.copy(
                 textAlign = TextAlign.Start,
                 color = InstagramTheme.colors.onBackground,
@@ -309,6 +501,7 @@ private fun CommentTextFiled(
                                     addComment(comment)
                                     comment = ""
                                 })
+                                .testTag("add_comment_button")
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Default.Send,
@@ -355,7 +548,10 @@ private fun FeedCommentBottomSheetPreview() {
             FeedCommentBottomSheet(
                 userProfileImageUrl = "userProfileImageUrl",
                 comments = comments,
-                addComment = {}
+                replies = persistentListOf(),
+                addComment = {},
+                addReply = { _, _ -> },
+                showReplies = {}
             )
         }
     }

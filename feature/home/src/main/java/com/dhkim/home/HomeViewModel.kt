@@ -9,6 +9,7 @@ import com.dhkim.common.RestartableStateFlow
 import com.dhkim.common.handle
 import com.dhkim.common.restartableStateIn
 import com.dhkim.domain.feed.model.Comment
+import com.dhkim.domain.feed.model.Reply
 import com.dhkim.domain.feed.useCase.AddCommentUseCase
 import com.dhkim.domain.feed.useCase.GetCommentsUseCase
 import com.dhkim.domain.feed.useCase.GetFeedUploadStatusesUseCase
@@ -16,17 +17,23 @@ import com.dhkim.domain.feed.useCase.GetFeedsUseCase
 import com.dhkim.domain.feed.useCase.GetLikeFeedsUseCase
 import com.dhkim.domain.feed.useCase.GetLikersUseCase
 import com.dhkim.domain.feed.useCase.GetMyFeedsUseCase
+import com.dhkim.domain.feed.useCase.GetRepliesUseCase
 import com.dhkim.domain.feed.useCase.HideFeedUseCase
+import com.dhkim.domain.feed.useCase.ReplyCommentUseCase
 import com.dhkim.domain.feed.useCase.ToggleEnableCommentUseCase
 import com.dhkim.domain.feed.useCase.ToggleFeedLikeCountVisibilityUseCase
 import com.dhkim.domain.feed.useCase.ToggleFeedLikeUseCase
 import com.dhkim.domain.feed.useCase.UnhideFeedUseCase
 import com.dhkim.domain.user.exception.NoUserFoundException
 import com.dhkim.domain.user.useCase.GetUserUseCase
+import com.dhkim.feed.common.CommentItem
 import com.dhkim.feed.common.FeedItem
+import com.dhkim.feed.common.ReplyGroup
 import com.dhkim.feed.common.toFeedItem
 import com.dhkim.network.ConnectivityChecker
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toImmutableSet
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -34,8 +41,10 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -60,6 +69,8 @@ class HomeViewModel @Inject constructor(
     private val getLikersUseCase: GetLikersUseCase,
     private val getCommentsUseCase: GetCommentsUseCase,
     private val addCommentUseCase: AddCommentUseCase,
+    private val getRepliesUseCase: GetRepliesUseCase,
+    private val replyCommentUseCase: ReplyCommentUseCase,
     private val getUserUseCase: GetUserUseCase,
     private val connectivityChecker: ConnectivityChecker
 ) : ViewModel() {
@@ -87,11 +98,14 @@ class HomeViewModel @Inject constructor(
         }
     }.cachedIn(viewModelScope)
 
+    private val targetCommentForReply: MutableStateFlow<CommentItem?> = MutableStateFlow(null)
+    private val recentAddedReply: MutableStateFlow<Reply?> = MutableStateFlow(null)
+
     private val targetFeedForComments: MutableStateFlow<FeedItem?> = MutableStateFlow(null)
     private val recentAddedComment: MutableStateFlow<Comment?> = MutableStateFlow(null)
     val comments = combine(
         targetFeedForComments,
-        recentAddedComment
+        recentAddedComment,
     ) { feedItem, comment ->
         feedItem to comment
     }.flatMapLatest { (feedItem, recentAddedComment) ->
@@ -136,8 +150,16 @@ class HomeViewModel @Inject constructor(
         initialValue = HomeUiState()
     )
 
+    private val _replies = MutableStateFlow<ImmutableList<ReplyGroup>>(persistentListOf())
+    val replies = _replies.asStateFlow()
+
     private val _sideEffect = Channel<HomeSideEffect>(Channel.BUFFERED)
     val sideEffect = _sideEffect.receiveAsFlow()
+
+    init {
+        observeServerReplies()
+        observeLocalReplyUpdates()
+    }
 
     fun onAction(action: HomeAction) {
         when (action) {
@@ -192,7 +214,96 @@ class HomeViewModel @Inject constructor(
             is HomeAction.AddComment -> {
                 addComment(action.comment)
             }
+
+            is HomeAction.ShowReplies -> {
+                showReplies(action.comment)
+            }
+
+            is HomeAction.ReplyComment -> {
+                replyComment(action.comment, action.content)
+            }
         }
+    }
+
+    private fun observeServerReplies() {
+        viewModelScope.launch {
+            targetCommentForReply
+                .filterNotNull()
+                .flatMapLatest { comment -> getRepliesUseCase(comment.commentId) }
+                .collect { serverReplies ->
+                    if (serverReplies.isNotEmpty()) {
+                        updateRepliesFromServer(serverReplies)
+                    }
+                }
+        }
+    }
+
+    private fun observeLocalReplyUpdates() {
+        viewModelScope.launch {
+            recentAddedReply
+                .filterNotNull()
+                .collect { newReply ->
+                    addLocalReplyToGroup(newReply)
+                }
+        }
+    }
+
+    private fun updateRepliesFromServer(serverReplies: List<Reply>) {
+        _replies.update { currentList ->
+            val commentId = serverReplies.first().commentId
+            val existingGroup = currentList.find { it.commentId == commentId }
+
+            val newGroup = ReplyGroup(
+                commentId = commentId,
+                replies = serverReplies.map { it.toReplyItem() }.toImmutableList(),
+                recentAddedReplies = existingGroup?.recentAddedReplies ?: persistentListOf()
+            )
+
+            currentList.upsert(newGroup)
+        }
+    }
+
+    private fun addLocalReplyToGroup(newReply: Reply) {
+        _replies.update { currentList ->
+            val targetIndex = currentList.indexOfFirst { it.commentId == newReply.commentId }
+            if (targetIndex != -1) {
+                // Case 1: Group already exists
+                val targetGroup = currentList[targetIndex]
+                if (targetGroup.hasLocalReply(newReply.replyId)) return@update currentList
+
+                val updatedGroup = targetGroup.copy(
+                    recentAddedReplies = (targetGroup.recentAddedReplies + newReply.toReplyItem()).toImmutableList()
+                )
+                currentList.updateItem(targetIndex, updatedGroup)
+
+            } else {
+                // Case 2: Group does not exist (first reply or server delay)
+                val newGroup = ReplyGroup(
+                    commentId = newReply.commentId,
+                    replies = persistentListOf(), // 서버 데이터는 아직 없으므로 빈 리스트
+                    recentAddedReplies = persistentListOf(newReply.toReplyItem()) // 내 답글만 넣음
+                )
+                (currentList + persistentListOf(newGroup)).toImmutableList()
+            }
+        }
+    }
+
+    private fun showReplies(comment: CommentItem) {
+        targetCommentForReply.update { comment }
+    }
+
+    private fun replyComment(comment: CommentItem, content: String) {
+        viewModelScope.handle(
+            block = {
+                targetCommentForReply.update { comment }
+                val feedId = targetFeedForComments.value?.feedId ?: return@handle
+                val reply = replyCommentUseCase(feedId, comment.commentId, content)
+                recentAddedReply.update { reply }
+            },
+            onError = {
+                _sideEffect.send(HomeSideEffect.ShowRefreshFeedsFailNotice)
+            }
+        )
     }
 
     private fun showComments(feedItem: FeedItem) {
@@ -220,6 +331,9 @@ class HomeViewModel @Inject constructor(
         targetFeedForLikers.update { null }
         targetFeedForComments.update { null }
         recentAddedComment.update { null }
+        targetCommentForReply.update { null }
+        recentAddedReply.update { null }
+        _replies.update { persistentListOf() }
     }
 
     private fun toggleEnableComment() {
@@ -259,7 +373,7 @@ class HomeViewModel @Inject constructor(
                 toggleFeedLikeUseCase(feedId, isLiked)
             },
             onError = {
-
+                _sideEffect.send(HomeSideEffect.ShowRefreshFeedsFailNotice)
             }
         )
     }
@@ -306,5 +420,26 @@ class HomeViewModel @Inject constructor(
                 _sideEffect.send(HomeSideEffect.ShowToast(it.message ?: "Unknown Error"))
             }
         )
+    }
+
+    private fun ImmutableList<ReplyGroup>.upsert(item: ReplyGroup): ImmutableList<ReplyGroup> {
+        val currentList = toMutableList()
+        val index = indexOfFirst { it.commentId == item.commentId }
+        if (index >= 0) {
+            currentList[index] = item
+        } else {
+            currentList.add(item)
+        }
+        return currentList.toImmutableList()
+    }
+
+    private fun ImmutableList<ReplyGroup>.updateItem(index: Int, item: ReplyGroup): ImmutableList<ReplyGroup> {
+        val currentList = toMutableList()
+        currentList[index] = item
+        return currentList.toImmutableList()
+    }
+
+    private fun ReplyGroup.hasLocalReply(replyId: String): Boolean {
+        return recentAddedReplies.any { it.replyId == replyId }
     }
 }

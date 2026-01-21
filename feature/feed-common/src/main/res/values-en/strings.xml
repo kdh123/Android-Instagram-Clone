@@ -25,6 +25,7 @@
     <string name="add_comment_placeholder">Add a comment…</string>
     <string name="no_comments_yet">No comments yet</string>
     <string name="be_the_first_to_comment">Be the first to comment</string>
+    <string name="reply_posting">Posting a reply to %s...</string>
 
     <string name="time_just_now">Just now</string>
     <string name="time_minutes_ago">%d minutes ago</string>

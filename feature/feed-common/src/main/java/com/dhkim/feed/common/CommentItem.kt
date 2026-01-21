@@ -11,5 +11,5 @@ data class CommentItem(
     val content: String,
     val timeAt: Timestamp,
     val replyCount: Int,
-    val likeCount: Int
+    val likeCount: Int,
 )

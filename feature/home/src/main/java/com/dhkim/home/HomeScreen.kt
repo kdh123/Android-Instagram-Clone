@@ -64,6 +64,7 @@ import com.dhkim.feed.common.FeedItemType
 import com.dhkim.feed.common.FeedLikerBottomSheet
 import com.dhkim.feed.common.FollowingFeedOptionBottomSheet
 import com.dhkim.feed.common.MyFeedOptionBottomSheet
+import com.dhkim.feed.common.ReplyGroup
 import com.dhkim.feed.common.SponsoredFeedOptionBottomSheet
 import com.dhkim.feed.common.SuggestedFeedOptionBottomSheet
 import com.dhkim.feed.common.Timestamp
@@ -72,6 +73,8 @@ import com.dhkim.feed.common.toFeedItem
 import com.dhkim.ui.shimmerEffect
 import com.skydoves.landscapist.ImageOptions
 import com.skydoves.landscapist.glide.GlideImage
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.flowOf
@@ -86,6 +89,7 @@ fun HomeScreen(
     feeds: LazyPagingItems<FeedItem>,
     likers: LazyPagingItems<UserItem>,
     comments: LazyPagingItems<CommentItem>,
+    replies: ImmutableList<ReplyGroup>,
     onAction: (HomeAction) -> Unit,
     onFeedLayoutChange: (Boolean) -> Unit,
 ) {
@@ -243,6 +247,7 @@ fun HomeScreen(
                 )
             }
         }
+
         uiState.shouldShowCommentsBottomSheet -> {
             ModalBottomSheet(
                 containerColor = InstagramTheme.colors.background,
@@ -259,8 +264,15 @@ fun HomeScreen(
                 FeedCommentBottomSheet(
                     userProfileImageUrl = uiState.userProfileImageUrl,
                     comments = comments,
+                    replies = replies,
                     addComment = { comment ->
                         onAction(HomeAction.AddComment(comment))
+                    },
+                    addReply = { commentItem, content ->
+                        onAction(HomeAction.ReplyComment(comment = commentItem, content = content.value))
+                    },
+                    showReplies = { comment ->
+                        onAction(HomeAction.ShowReplies(comment))
                     }
                 )
             }
@@ -432,6 +444,7 @@ private fun HomeScreenPreview() {
                 feeds = mockFeeds,
                 likers = likers,
                 comments = comments,
+                replies = persistentListOf(),
                 onAction = {},
                 onFeedLayoutChange = {},
             )
