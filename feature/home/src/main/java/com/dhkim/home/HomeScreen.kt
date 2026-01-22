@@ -96,6 +96,7 @@ fun HomeScreen(
     val feedUploadStatuses = uiState.feedUploadStatuses
     val likeFeeds = uiState.likeFeeds
     val menuVisibleFeed = uiState.menuVisibleFeed
+    val commentListState = rememberLazyListState()
     val commentBottomSheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true
     )
@@ -262,6 +263,7 @@ fun HomeScreen(
                     .fillMaxHeight()
             ) {
                 FeedCommentBottomSheet(
+                    lazyListState = commentListState,
                     userProfileImageUrl = uiState.userProfileImageUrl,
                     comments = comments,
                     replies = replies,
