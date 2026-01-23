@@ -12,7 +12,11 @@ import androidx.compose.foundation.gestures.calculateCentroid
 import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -23,7 +27,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.positionChanged
+import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntSize
 
 suspend fun PointerInputScope.detectTransformGesturesWithEnd(
@@ -117,4 +124,19 @@ fun Modifier.shimmerEffect(): Modifier = composed {
         .onGloballyPositioned {
             size = it.size
         }
+}
+
+fun Modifier.advancedImePadding() = composed {
+    var consumePadding by remember { mutableIntStateOf(0) } // mutableStateOf(0) 대신 최적화된 IntState 추천
+
+    onGloballyPositioned { coordinates ->
+        val rootCoordinate = coordinates.findRootCoordinates()
+        val rootHeight = rootCoordinate.size.height.toFloat()
+        val myBottom = coordinates.positionInWindow().y + coordinates.size.height
+        consumePadding = (rootHeight - myBottom).toInt().coerceAtLeast(0)
+    }
+        .consumeWindowInsets(
+            PaddingValues(bottom = with(LocalDensity.current) { consumePadding.toDp() })
+        )
+        .imePadding()
 }

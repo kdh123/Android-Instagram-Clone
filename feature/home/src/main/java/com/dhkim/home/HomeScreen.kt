@@ -2,20 +2,23 @@ package com.dhkim.home
 
 import android.content.res.Configuration
 import android.graphics.BitmapFactory
-import androidx.compose.foundation.gestures.detectTapGestures
+import android.view.MotionEvent
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -25,22 +28,23 @@ import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.BottomSheetScaffoldState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberBottomSheetScaffoldState
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -80,7 +84,7 @@ import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun HomeScreen(
     uiState: HomeUiState,
@@ -97,9 +101,6 @@ fun HomeScreen(
     val likeFeeds = uiState.likeFeeds
     val menuVisibleFeed = uiState.menuVisibleFeed
     val commentListState = rememberLazyListState()
-    val commentBottomSheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true
-    )
     val bottomSheetState = bottomSheetScaffoldState.bottomSheetState
     val scope = rememberCoroutineScope()
     val onNotInterestedClick: () -> Unit = remember(menuVisibleFeed) {
@@ -112,61 +113,106 @@ fun HomeScreen(
             }
         }
     }
+    val focusManager = LocalFocusManager.current
+    val isKeyboardVisible = WindowInsets.isImeVisible
+
+    BackHandler {
+        if (isKeyboardVisible) {
+            focusManager.clearFocus()
+        } else {
+            scope.launch {
+                bottomSheetState.hide()
+            }
+        }
+    }
 
     BottomSheetScaffold(
         sheetPeekHeight = 0.dp,
         sheetContainerColor = InstagramTheme.colors.background,
         scaffoldState = bottomSheetScaffoldState,
-        sheetDragHandle = { if (menuVisibleFeed == null) null else BottomSheetDefaults.DragHandle() },
+        sheetDragHandle = { if (uiState.showBottomSheet == null) null else BottomSheetDefaults.DragHandle() },
         sheetSwipeEnabled = bottomSheetScaffoldState.bottomSheetState.currentValue != SheetValue.Hidden,
         sheetContent = {
-            if (menuVisibleFeed == null) return@BottomSheetScaffold
+            when (uiState.showBottomSheet) {
+                HomeBottomSheet.MENU -> {
+                    when (menuVisibleFeed!!.type) {
+                        is FeedItemType.Mine -> {
+                            MyFeedOptionBottomSheet(
+                                isLikeCountVisible = menuVisibleFeed.isLikeCountVisible,
+                                isCommentEnabled = menuVisibleFeed.isCommentEnabled,
+                                onLikeVisibleChange = { onAction(HomeAction.ToggleLikeCountVisibility) },
+                                onCommentEnabledChange = { onAction(HomeAction.ToggleEnableComment) },
+                                onEditClick = {},
+                                onDeleteClick = {}
+                            )
+                        }
 
-            when (menuVisibleFeed.type) {
-                is FeedItemType.Mine -> {
-                    MyFeedOptionBottomSheet(
-                        isLikeCountVisible = menuVisibleFeed.isLikeCountVisible,
-                        isCommentEnabled = menuVisibleFeed.isCommentEnabled,
-                        onLikeVisibleChange = { onAction(HomeAction.ToggleLikeCountVisibility) },
-                        onCommentEnabledChange = { onAction(HomeAction.ToggleEnableComment) },
-                        onEditClick = {},
-                        onDeleteClick = {}
+                        is FeedItemType.Following -> {
+                            FollowingFeedOptionBottomSheet(
+                                isFollowing = true,
+                                onFollowChanged = {},
+                                onNotInterestedClick = onNotInterestedClick,
+                                onAccountInfoClick = {}
+                            )
+                        }
+
+                        is FeedItemType.Suggested -> {
+                            SuggestedFeedOptionBottomSheet(
+                                onNotInterestedClick = onNotInterestedClick,
+                                onAccountInfoClick = {}
+                            )
+                        }
+
+                        is FeedItemType.Sponsored -> {
+                            SponsoredFeedOptionBottomSheet(
+                                onNotInterestedClick = onNotInterestedClick,
+                                onAccountInfoClick = {}
+                            )
+                        }
+                    }
+                }
+
+                HomeBottomSheet.LIKERS -> {
+                    FeedLikerBottomSheet(
+                        users = likers
                     )
                 }
 
-                is FeedItemType.Following -> {
-                    FollowingFeedOptionBottomSheet(
-                        isFollowing = true,
-                        onFollowChanged = {},
-                        onNotInterestedClick = onNotInterestedClick,
-                        onAccountInfoClick = {}
+                HomeBottomSheet.COMMENTS -> {
+                    FeedCommentBottomSheet(
+                        lazyListState = commentListState,
+                        userProfileImageUrl = uiState.userProfileImageUrl,
+                        comments = comments,
+                        replies = replies,
+                        addComment = { comment ->
+                            onAction(HomeAction.AddComment(comment))
+                        },
+                        addReply = { commentItem, content ->
+                            onAction(HomeAction.ReplyComment(comment = commentItem, content = content.value))
+                        },
+                        showReplies = { comment ->
+                            onAction(HomeAction.ShowReplies(comment))
+                        }
                     )
                 }
 
-                is FeedItemType.Suggested -> {
-                    SuggestedFeedOptionBottomSheet(
-                        onNotInterestedClick = onNotInterestedClick,
-                        onAccountInfoClick = {}
-                    )
-                }
-
-                is FeedItemType.Sponsored -> {
-                    SponsoredFeedOptionBottomSheet(
-                        onNotInterestedClick = onNotInterestedClick,
-                        onAccountInfoClick = {}
-                    )
-                }
+                null -> Unit
             }
         }
     ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .pointerInput(Unit) {
-                    detectTapGestures {
+                .pointerInteropFilter { event ->
+                    val isSheetVisible = bottomSheetScaffoldState.bottomSheetState.currentValue == SheetValue.Expanded
+                    if (!isSheetVisible) return@pointerInteropFilter false
+                    if (event.action == MotionEvent.ACTION_DOWN) {
                         scope.launch {
                             bottomSheetScaffoldState.bottomSheetState.hide()
                         }
+                        true
+                    } else {
+                        false
                     }
                 }
         ) {
@@ -213,8 +259,18 @@ fun HomeScreen(
                                 FeedContent(
                                     feedItem = feedItem,
                                     onLikeClick = { onAction(HomeAction.ToggleLike(feedItem.feedId)) },
-                                    onLikersClick = { onAction(HomeAction.ShowLikers(feedItem)) },
-                                    onCommentClick = { onAction(HomeAction.ShowComments(feedItem)) },
+                                    onLikersClick = {
+                                        onAction(HomeAction.ShowLikers(feedItem))
+                                        scope.launch {
+                                            bottomSheetState.expand()
+                                        }
+                                    },
+                                    onCommentClick = {
+                                        onAction(HomeAction.ShowComments(feedItem))
+                                        scope.launch {
+                                            bottomSheetState.expand()
+                                        }
+                                    },
                                     onProfileClick = { },
                                     onMoreClick = {
                                         onAction(HomeAction.ShowFeedMenu(feedItem))
@@ -228,54 +284,16 @@ fun HomeScreen(
                     }
                 }
             }
-        }
-    }
 
-    when {
-        uiState.shouldShowLikersBottomSheet -> {
-            ModalBottomSheet(
-                containerColor = InstagramTheme.colors.background,
-                onDismissRequest = { onAction(HomeAction.DismissBottomSheet) },
-                modifier = Modifier
-                    .padding(
-                        bottom = WindowInsets.navigationBars
-                            .asPaddingValues()
-                            .calculateBottomPadding()
-                    )
+            AnimatedVisibility(
+                visible = uiState.showBottomSheet != null,
+                enter = fadeIn(),
+                exit = fadeOut()
             ) {
-                FeedLikerBottomSheet(
-                    users = likers
-                )
-            }
-        }
-
-        uiState.shouldShowCommentsBottomSheet -> {
-            ModalBottomSheet(
-                containerColor = InstagramTheme.colors.background,
-                sheetState = commentBottomSheetState,
-                onDismissRequest = { onAction(HomeAction.DismissBottomSheet) },
-                modifier = Modifier
-                    .padding(
-                        top = WindowInsets.statusBars
-                            .asPaddingValues()
-                            .calculateTopPadding()
-                    )
-                    .fillMaxHeight()
-            ) {
-                FeedCommentBottomSheet(
-                    lazyListState = commentListState,
-                    userProfileImageUrl = uiState.userProfileImageUrl,
-                    comments = comments,
-                    replies = replies,
-                    addComment = { comment ->
-                        onAction(HomeAction.AddComment(comment))
-                    },
-                    addReply = { commentItem, content ->
-                        onAction(HomeAction.ReplyComment(comment = commentItem, content = content.value))
-                    },
-                    showReplies = { comment ->
-                        onAction(HomeAction.ShowReplies(comment))
-                    }
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(color = Color.Black.copy(alpha = 0.6f))
                 )
             }
         }

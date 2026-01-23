@@ -180,10 +180,6 @@ class HomeViewModel @Inject constructor(
                 showFeedMenu(action.feed)
             }
 
-            HomeAction.DismissFeedMenu -> {
-                dismissFeedMenu()
-            }
-
             is HomeAction.ToggleLike -> {
                 toggleLike(action.feedId)
             }
@@ -345,6 +341,7 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun dismissBottomSheet() {
+        menuVisibleFeed.update { null }
         targetFeedForLikers.update { null }
         targetFeedForComments.update { null }
         targetCommentForReply.update { null }
@@ -392,10 +389,6 @@ class HomeViewModel @Inject constructor(
                 _sideEffect.send(HomeSideEffect.ShowRefreshFeedsFailNotice)
             }
         )
-    }
-
-    private fun dismissFeedMenu() {
-        menuVisibleFeed.update { null }
     }
 
     private fun showFeedMenu(feed: FeedItem) {

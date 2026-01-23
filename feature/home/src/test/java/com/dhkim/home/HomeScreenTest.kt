@@ -365,7 +365,7 @@ class HomeScreenTest {
         commentIcon.performSemanticsAction(SemanticsActions.OnClick)
 
         composeRule.waitUntilAtLeastOneExists(
-            hasTestTag("comment_item_commentId0"),
+            hasText("Test Comment"),
             300
         )
 
@@ -376,7 +376,7 @@ class HomeScreenTest {
         composeRule.onNodeWithTag("add_comment_button").performSemanticsAction(SemanticsActions.OnClick)
 
         composeRule.waitUntilAtLeastOneExists(
-            hasTestTag("reply_item_replyId"),
+            hasText("hello"),
             300
         )
     }

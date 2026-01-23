@@ -3,6 +3,8 @@ package com.dhkim.feed.common
 import android.content.res.Configuration
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -45,24 +47,24 @@ fun FeedLikerBottomSheet(
 ) {
     LazyColumn(
         verticalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(10.dp),
         modifier = Modifier
             .fillMaxWidth()
     ) {
         items(
-            count = users.itemCount + 3,
+            count = users.itemCount + 2,
             key = { index ->
-                if (index < 3) {
+                if (index < 2) {
                     "$index"
                 } else {
-                    users.itemKey { it.id }.invoke(index - 3)
+                    users.itemKey { it.id }.invoke(index - 2)
                 }
             },
             contentType = { index ->
                 when (index) {
                     0 -> "title"
                     1 -> "search"
-                    2 -> "loading"
-                    else -> users.itemContentType { "user_item" }.invoke(index - 3)
+                    else -> users.itemContentType { "user_item" }.invoke(index - 2)
                 }
             }
         ) { index ->
@@ -77,28 +79,32 @@ fun FeedLikerBottomSheet(
                 }
 
                 1 -> {
-                    InstagramSearchBar(
-                        searchQuery = "검색",
-                        onSearchQueryChange = {}
-                    )
-                }
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                    ) {
+                        InstagramSearchBar(
+                            searchQuery = "검색",
+                            onSearchQueryChange = {}
+                        )
 
-                2 -> {
-                    if (users.loadState.refresh is LoadState.Loading) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                        ) {
-                            LoadingSpinner(
+                        if (users.loadState.refresh is LoadState.Loading) {
+                            Box(
                                 modifier = Modifier
-                                    .align(Alignment.Center)
-                            )
+                                    .fillMaxWidth()
+                            ) {
+                                LoadingSpinner(
+                                    modifier = Modifier
+                                        .align(Alignment.Center)
+                                )
+                            }
                         }
                     }
                 }
 
                 else -> {
-                    val user = users[index - 3] ?: return@items
+                    val user = users[index - 2] ?: return@items
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
@@ -136,7 +142,7 @@ fun InstagramSearchBar(
         onValueChange = onSearchQueryChange,
         modifier = modifier
             .fillMaxWidth()
-            .padding(10.dp),
+            .padding(start = 10.dp, end = 10.dp, top = 10.dp),
         placeholder = {
             Text(
                 text = stringResource(R.string.search),

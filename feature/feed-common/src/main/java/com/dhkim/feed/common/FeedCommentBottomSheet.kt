@@ -4,8 +4,10 @@ import android.content.res.Configuration
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
@@ -13,9 +15,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -29,6 +35,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -50,7 +57,9 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -66,6 +75,7 @@ import androidx.paging.compose.itemContentType
 import androidx.paging.compose.itemKey
 import com.dhkim.designsystem.InstagramTheme
 import com.dhkim.ui.LoadingSpinner
+import com.dhkim.ui.advancedImePadding
 import com.dhkim.ui.noRippleClick
 import com.dhkim.ui.pxToDp
 import com.skydoves.landscapist.glide.GlideImage
@@ -116,6 +126,8 @@ fun FeedCommentBottomSheet(
             }
         }
     }
+    var focusedComment by remember { mutableStateOf<CommentItem?>(null) }
+    var commentYOffset by remember { mutableStateOf(0f) }
 
     Box(
         modifier = Modifier
@@ -205,21 +217,33 @@ fun FeedCommentBottomSheet(
                         val comment = comments[index - 2] ?: return@items
                         val wholeReplies = replies.firstOrNull { it.commentId == comment.commentId }?.replies ?: persistentListOf()
                         val recentAddedReplies = replies.firstOrNull { it.commentId == comment.commentId }?.recentAddedReplies ?: persistentListOf()
+                        val windowInsets = WindowInsets.navigationBars.asPaddingValues()
+                        val statusBarHeight = with(LocalDensity.current) { windowInsets.calculateBottomPadding().toPx() }
+                        val bottomNavigationBarHeight = with(LocalDensity.current) { 80.dp.toPx() }
 
                         CommentRow(
                             comment = comment,
                             wholeReplies = wholeReplies,
                             recentAddedReplies = recentAddedReplies,
                             onReplyClick = { replyToComment = comment },
-                            showReplies = { showReplies(comment) }
+                            showReplies = { showReplies(comment) },
+                            onLongClick = { focusedComment = comment },
+                            modifier = Modifier
+                                .onGloballyPositioned {
+                                    if (focusedComment != null && focusedComment!!.commentId == comment.commentId) {
+                                        commentYOffset = it.positionInWindow().y - statusBarHeight - bottomNavigationBarHeight
+                                    }
+                                }
                         )
                     }
                 }
             }
         }
+
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
+                .advancedImePadding()
                 .onGloballyPositioned {
                     commentTextFiledHeight = it.size.height
                 }
@@ -266,9 +290,29 @@ fun FeedCommentBottomSheet(
                 }
             )
         }
+
+        if (focusedComment != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(color = Color.Black.copy(alpha = 0.7f))
+                    .noRippleClick { focusedComment = null }
+            ) {
+                Box(
+                    modifier = Modifier
+                        .offset(y = with(LocalDensity.current) { commentYOffset.toDp() })
+                ) {
+                    FocusedCommentRow(
+                        comment = focusedComment!!,
+                        onClick = { focusedComment = null }
+                    )
+                }
+            }
+        }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun CommentRow(
     comment: CommentItem,
@@ -276,13 +320,19 @@ fun CommentRow(
     recentAddedReplies: ImmutableList<ReplyItem>,
     onReplyClick: () -> Unit,
     showReplies: () -> Unit,
+    onLongClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     var shouldShowReplies by rememberSaveable { mutableStateOf(false) }
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
+            .combinedClickable(
+                onClick = {},
+                onLongClick = onLongClick
+            )
     ) {
         Row(
             modifier = Modifier
@@ -382,6 +432,127 @@ fun CommentRow(
                             shouldShowReplies = true
                             showReplies()
                         }
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun FocusedCommentRow(
+    comment: CommentItem,
+    onClick: () -> Unit
+) {
+    val context = LocalContext.current
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(18.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(color = InstagramTheme.colors.secondary)
+                .padding(vertical = 10.dp)
+                .noRippleClick(onClick = onClick)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 10.dp)
+            ) {
+                GlideImage(
+                    imageModel = { comment.userProfileImageUrl },
+                    previewPlaceholder = painterResource(R.drawable.ic_dummy_background),
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .size(42.dp)
+                )
+
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier
+                        .width(0.dp)
+                        .weight(1f)
+                        .padding(start = 8.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                    ) {
+                        Text(
+                            text = comment.userName,
+                            style = InstagramTheme.typography.bodySmall,
+                            modifier = Modifier
+                                .padding(end = 4.dp)
+                        )
+
+                        val timeAt = when (comment.timeAt) {
+                            is Timestamp.JustNow -> stringResource(R.string.time_just_now)
+                            is Timestamp.MinutesAgo -> context.getString(R.string.time_minutes_ago, comment.timeAt.minutes)
+                            is Timestamp.HoursAgo -> context.getString(R.string.time_hours_ago, comment.timeAt.hours)
+                            is Timestamp.DaysAgo -> context.getString(R.string.time_days_ago, comment.timeAt.days)
+                            is Timestamp.Date -> comment.timeAt.date
+                        }
+
+                        Text(
+                            text = timeAt,
+                            style = InstagramTheme.typography.bodySmallGray,
+                        )
+                    }
+
+                    Text(
+                        text = comment.content,
+                        style = InstagramTheme.typography.bodyMedium
+                    )
+                }
+
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .noRippleClick { }
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.FavoriteBorder,
+                        contentDescription = "Like",
+                        tint = Color.Gray,
+                        modifier = Modifier
+                            .padding(bottom = 4.dp)
+                            .size(16.dp)
+                    )
+                    Text(
+                        text = "${comment.likeCount}",
+                        style = InstagramTheme.typography.bodySmallGray
+                    )
+                }
+            }
+        }
+
+        Card(
+            shape = RoundedCornerShape(24.dp),
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .fillMaxWidth()
+                .background(color = InstagramTheme.colors.secondary)
+                .padding(10.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_delete),
+                    tint = InstagramTheme.colors.error,
+                    contentDescription = "deleteComment",
+                    modifier = Modifier
+                        .padding(end = 4.dp)
+                )
+                Text(
+                    text = stringResource(R.string.delete),
+                    style = InstagramTheme.typography.bodyMedium,
+                    color = InstagramTheme.colors.error
                 )
             }
         }
@@ -607,6 +778,33 @@ private fun FeedCommentBottomSheetPreview() {
                 addComment = {},
                 addReply = { _, _ -> },
                 showReplies = {}
+            )
+        }
+    }
+}
+
+@FeedCommentBottomSheetPreviews
+@Composable
+private fun FocusedCommentPreview() {
+    InstagramTheme {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            color = MaterialTheme.colorScheme.background
+        ) {
+            FocusedCommentRow(
+                comment = CommentItem(
+                    commentId = "id",
+                    userId = "userId",
+                    userName = "Tester",
+                    userProfileImageUrl = "",
+                    content = "Test Comment",
+                    timeAt = Timestamp.JustNow,
+                    replyCount = 3,
+                    likeCount = 10
+                ),
+                onClick = {}
             )
         }
     }

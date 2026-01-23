@@ -82,7 +82,7 @@ fun NavGraphBuilder.home() {
             snapshotFlow { bottomSheetScaffoldState.bottomSheetState.currentValue }
                 .collect { currentValue ->
                     if (currentValue == SheetValue.Hidden || currentValue == SheetValue.PartiallyExpanded) {
-                        viewModel.onAction(HomeAction.DismissFeedMenu)
+                        viewModel.onAction(HomeAction.DismissBottomSheet)
                     }
                 }
         }
