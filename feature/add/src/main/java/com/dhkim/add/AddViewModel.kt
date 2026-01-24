@@ -232,7 +232,11 @@ class AddViewModel @Inject constructor(
 
                     // Select: Add a new image to the list and update focus
                     else -> {
-                        addNewImageToSelection(selectedImageUri)
+                        if (currentSelectedImages.size < 10) {
+                            addNewImageToSelection(selectedImageUri)
+                        } else {
+                            _sideEffect.send(AddSideEffect.ShowImagesLimitedNotice)
+                        }
                     }
                 }
             }

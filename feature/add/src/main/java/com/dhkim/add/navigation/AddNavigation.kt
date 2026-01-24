@@ -3,6 +3,9 @@ package com.dhkim.add.navigation
 import android.widget.Toast
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
@@ -15,7 +18,10 @@ import com.dhkim.add.AddSideEffect
 import com.dhkim.add.AddState
 import com.dhkim.add.AddViewModel
 import com.dhkim.add.FeedUploadScreen
+import com.dhkim.add.R
+import com.dhkim.ui.NoticeMessage
 import com.dhkim.ui.sharedViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 
 const val ADD_ROUTE = "add_route"
@@ -32,6 +38,7 @@ fun NavGraphBuilder.addImage(
         val viewModel = entry.sharedViewModel<AddViewModel>(navController)
         val galleryImages = viewModel.galleryImages.collectAsLazyPagingItems()
         val selectImageMode by viewModel.selectImageState.collectAsStateWithLifecycle()
+        var showNoticeMessage: String? by remember { mutableStateOf(null) }
 
         LaunchedEffect(Unit) {
             viewModel.sideEffect
@@ -53,6 +60,12 @@ fun NavGraphBuilder.addImage(
                         AddSideEffect.NavigateToFeedUpload -> {
                             navController.navigateToFeedUpload()
                         }
+
+                        AddSideEffect.ShowImagesLimitedNotice -> {
+                            showNoticeMessage = context.getString(R.string.max_photo_limit_info)
+                            delay(3_000)
+                            showNoticeMessage = null
+                        }
                     }
                 }
         }
@@ -65,6 +78,10 @@ fun NavGraphBuilder.addImage(
             navigateToFeedUpload = navController::navigateToFeedUpload,
             onBack = onBack
         )
+
+        if (showNoticeMessage != null) {
+            NoticeMessage(message = showNoticeMessage!!)
+        }
     }
 }
 
@@ -85,12 +102,13 @@ fun NavGraphBuilder.feedUpload(
                             Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show()
                         }
 
-                        is AddSideEffect.ScrollToItem -> Unit
                         AddSideEffect.NavigateToHome -> {
                             navigateToHome()
                         }
 
-                        AddSideEffect.NavigateToFeedUpload -> Unit
+                        is AddSideEffect.ScrollToItem,
+                        AddSideEffect.NavigateToFeedUpload,
+                        AddSideEffect.ShowImagesLimitedNotice -> Unit
                     }
                 }
         }

@@ -6,4 +6,5 @@
     <string name="cancel">cancel</string>
     <string name="share">share</string>
     <string name="add_caption">Write a caption......</string>
+    <string name="max_photo_limit_info">You can include up to 10 photos.</string>
 </resources>
