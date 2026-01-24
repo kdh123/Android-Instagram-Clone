@@ -11,6 +11,7 @@ import com.dhkim.common.restartableStateIn
 import com.dhkim.domain.feed.model.Reply
 import com.dhkim.domain.feed.useCase.AddCommentUseCase
 import com.dhkim.domain.feed.useCase.DeleteCommentUseCase
+import com.dhkim.domain.feed.useCase.DeleteReplyUseCase
 import com.dhkim.domain.feed.useCase.GetCommentsUseCase
 import com.dhkim.domain.feed.useCase.GetFeedUploadStatusesUseCase
 import com.dhkim.domain.feed.useCase.GetFeedsUseCase
@@ -72,6 +73,7 @@ class HomeViewModel @Inject constructor(
     private val deleteCommentUseCase: DeleteCommentUseCase,
     private val getRepliesUseCase: GetRepliesUseCase,
     private val replyCommentUseCase: ReplyCommentUseCase,
+    private val deleteReplyUseCase: DeleteReplyUseCase,
     private val getUserUseCase: GetUserUseCase,
     private val connectivityChecker: ConnectivityChecker
 ) : ViewModel() {
@@ -101,6 +103,7 @@ class HomeViewModel @Inject constructor(
 
     private val targetCommentForReply: MutableStateFlow<CommentItem?> = MutableStateFlow(null)
     private val recentAddedReply: MutableStateFlow<Reply?> = MutableStateFlow(null)
+    private val recentDeletedReply: MutableStateFlow<Reply?> = MutableStateFlow(null)
 
     private val targetFeedForComments: MutableStateFlow<FeedItem?> = MutableStateFlow(null)
     private val refreshCommentTrigger: MutableStateFlow<Int> = MutableStateFlow(0)
@@ -223,7 +226,25 @@ class HomeViewModel @Inject constructor(
             is HomeAction.ReplyComment -> {
                 replyComment(action.comment, action.content)
             }
+
+            is HomeAction.DeleteReply -> {
+                deleteReply(action.comment, action.replyId)
+            }
         }
+    }
+
+    private fun deleteReply(comment: CommentItem, replyId: String) {
+        viewModelScope.handle(
+            block = {
+                targetCommentForReply.update { comment }
+                val feedId = targetFeedForComments.value?.feedId ?: return@handle
+                val deletedReply = deleteReplyUseCase(feedId, replyId)
+                recentDeletedReply.update { deletedReply }
+            },
+            onError = {
+                _sideEffect.send(HomeSideEffect.ShowRefreshFeedsFailNotice)
+            }
+        )
     }
 
     private fun deleteComment(comment: CommentItem) {
@@ -257,7 +278,15 @@ class HomeViewModel @Inject constructor(
             recentAddedReply
                 .filterNotNull()
                 .collect { newReply ->
-                    addLocalReplyToGroup(newReply)
+                    addRecentAddedReply(newReply)
+                }
+        }
+
+        viewModelScope.launch {
+            recentDeletedReply
+                .filterNotNull()
+                .collect { deletedReply ->
+                    removeReplyFromList(deletedReply)
                 }
         }
     }
@@ -277,7 +306,7 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private fun addLocalReplyToGroup(newReply: Reply) {
+    private fun addRecentAddedReply(newReply: Reply) {
         _replies.update { currentList ->
             val targetIndex = currentList.indexOfFirst { it.commentId == newReply.commentId }
             if (targetIndex != -1) {
@@ -297,6 +326,27 @@ class HomeViewModel @Inject constructor(
                     recentAddedReplies = persistentListOf(newReply.toReplyItem()) // 내 답글만 넣음
                 )
                 (currentList + persistentListOf(newGroup)).toImmutableList()
+            }
+        }
+    }
+
+    private fun removeReplyFromList(deletedReply: Reply) {
+        _replies.update { currentList ->
+            val targetIndex = currentList.indexOfFirst { it.commentId == deletedReply.commentId }
+            if (targetIndex == -1) return@update currentList
+
+            val targetGroup = currentList[targetIndex]
+            val updatedServerReplies = targetGroup.replies.filter { it.replyId != deletedReply.replyId }.toImmutableList()
+            val updatedRecentReplies = targetGroup.recentAddedReplies.filter { it.replyId != deletedReply.replyId }.toImmutableList()
+
+            if (updatedServerReplies.isEmpty() && updatedRecentReplies.isEmpty()) {
+                currentList.filterIndexed { index, _ -> index != targetIndex }.toImmutableList()
+            } else {
+                val updatedGroup = targetGroup.copy(
+                    replies = updatedServerReplies,
+                    recentAddedReplies = updatedRecentReplies
+                )
+                currentList.updateItem(targetIndex, updatedGroup)
             }
         }
     }

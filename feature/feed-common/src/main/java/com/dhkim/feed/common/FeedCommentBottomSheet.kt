@@ -251,6 +251,7 @@ fun FeedCommentBottomSheet(
         ) {
             if (replyToComment != null) {
                 Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(color = InstagramTheme.colors.secondary)

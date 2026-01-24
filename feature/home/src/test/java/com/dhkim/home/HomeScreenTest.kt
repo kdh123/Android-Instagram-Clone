@@ -29,6 +29,7 @@ import com.dhkim.domain.feed.model.Reply
 import com.dhkim.domain.feed.repository.FeedRepository
 import com.dhkim.domain.feed.useCase.AddCommentUseCase
 import com.dhkim.domain.feed.useCase.DeleteCommentUseCase
+import com.dhkim.domain.feed.useCase.DeleteReplyUseCase
 import com.dhkim.domain.feed.useCase.GetCommentsUseCase
 import com.dhkim.domain.feed.useCase.GetFeedUploadStatusesUseCase
 import com.dhkim.domain.feed.useCase.GetFeedsUseCase
@@ -88,6 +89,7 @@ class HomeScreenTest {
     private val deleteCommentUseCase = DeleteCommentUseCase(feedRepository)
     private val getReliesUseCase = GetRepliesUseCase(feedRepository)
     private val replyCommentUseCase = ReplyCommentUseCase(feedRepository, getUserUseCase)
+    private val deleteReplyUseCase = DeleteReplyUseCase(feedRepository)
     private val connectivityChecker = mockk<ConnectivityChecker>()
 
     @get:Rule
@@ -167,6 +169,7 @@ class HomeScreenTest {
             getUserUseCase = getUserUseCase,
             getRepliesUseCase = getReliesUseCase,
             replyCommentUseCase = replyCommentUseCase,
+            deleteReplyUseCase = deleteReplyUseCase,
             connectivityChecker = connectivityChecker
         )
     }

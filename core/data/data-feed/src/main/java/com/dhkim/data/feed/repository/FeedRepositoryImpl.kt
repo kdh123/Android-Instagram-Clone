@@ -251,6 +251,10 @@ class FeedRepositoryImpl @Inject constructor(
         return remoteDataSource.replyComment(feedId, commentId, user.toUserDto(), comment).toReply()
     }
 
+    override suspend fun deleteReply(feedId: String, replyId: String): Reply {
+        TODO()
+    }
+
     private fun enqueueLikeWorker(feedId: String) {
         val data = workDataOf("KEY_FEED_ID" to feedId)
         val request = OneTimeWorkRequestBuilder<FeedLikeSyncWorker>()

@@ -20,4 +20,5 @@ sealed interface HomeAction {
     data class DeleteComment(val comment: CommentItem) : HomeAction
     data class ShowReplies(val comment: CommentItem) : HomeAction
     data class ReplyComment(val comment: CommentItem, val content: String) : HomeAction
+    data class DeleteReply(val comment: CommentItem, val replyId: String) : HomeAction
 }
