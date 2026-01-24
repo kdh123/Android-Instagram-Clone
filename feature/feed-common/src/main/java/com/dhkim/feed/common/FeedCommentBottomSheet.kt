@@ -15,12 +15,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -42,6 +39,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -57,7 +55,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -78,6 +76,7 @@ import com.dhkim.ui.LoadingSpinner
 import com.dhkim.ui.advancedImePadding
 import com.dhkim.ui.noRippleClick
 import com.dhkim.ui.pxToDp
+import com.skydoves.cloudy.cloudy
 import com.skydoves.landscapist.glide.GlideImage
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
@@ -128,190 +127,201 @@ fun FeedCommentBottomSheet(
         }
     }
     var focusedComment by remember { mutableStateOf<CommentItem?>(null) }
-    var commentYOffset by remember { mutableStateOf(0f) }
+    var commentYOffset by remember { mutableFloatStateOf(0f) }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-    ) {
-        LazyColumn(
-            state = lazyListState,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+    Box {
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = commentTextFiledHeight.pxToDp())
-                .pointerInput(Unit) {
-                    awaitEachGesture {
-                        awaitFirstDown(requireUnconsumed = false)
-                        isDragStartedAtTop = !lazyListState.canScrollBackward
-                    }
-                }
-                .nestedScroll(nestedScrollConnection)
-        ) {
-            items(
-                count = comments.itemCount + 2,
-                key = { index ->
-                    if (index < 2) {
-                        "$index"
+                .fillMaxSize()
+                .run {
+                    if (focusedComment != null) {
+                        cloudy(30)
                     } else {
-                        comments.itemKey { it.commentId }.invoke(index - 2)
-                    }
-                },
-                contentType = { index ->
-                    when (index) {
-                        0 -> "title"
-                        1 -> "loading"
-                        else -> comments.itemContentType { "comment_item" }.invoke(index - 2)
+                        this
                     }
                 }
-            ) { index ->
-                when (index) {
-                    0 -> {
-                        Text(
-                            text = stringResource(R.string.comment),
-                            textAlign = TextAlign.Center,
-                            style = InstagramTheme.typography.bodyMedium,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                        )
+        ) {
+            LazyColumn(
+                state = lazyListState,
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = commentTextFiledHeight.pxToDp())
+                    .pointerInput(Unit) {
+                        awaitEachGesture {
+                            awaitFirstDown(requireUnconsumed = false)
+                            isDragStartedAtTop = !lazyListState.canScrollBackward
+                        }
                     }
+                    .nestedScroll(nestedScrollConnection)
+            ) {
+                items(
+                    count = comments.itemCount + 2,
+                    key = { index ->
+                        if (index < 2) {
+                            "$index"
+                        } else {
+                            comments.itemKey { it.commentId }.invoke(index - 2)
+                        }
+                    },
+                    contentType = { index ->
+                        when (index) {
+                            0 -> "title"
+                            1 -> "loading"
+                            else -> comments.itemContentType { "comment_item" }.invoke(index - 2)
+                        }
+                    }
+                ) { index ->
+                    when (index) {
+                        0 -> {
+                            Text(
+                                text = stringResource(R.string.comment),
+                                textAlign = TextAlign.Center,
+                                style = InstagramTheme.typography.bodyMedium,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                            )
+                        }
 
-                    1 -> {
-                        when {
-                            comments.loadState.refresh is LoadState.Loading -> {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                ) {
-                                    LoadingSpinner(
+                        1 -> {
+                            when {
+                                comments.loadState.refresh is LoadState.Loading -> {
+                                    Box(
                                         modifier = Modifier
-                                            .align(Alignment.Center)
-                                    )
+                                            .fillMaxWidth()
+                                    ) {
+                                        LoadingSpinner(
+                                            modifier = Modifier
+                                                .align(Alignment.Center)
+                                        )
+                                    }
                                 }
-                            }
 
-                            comments.loadState.refresh is LoadState.NotLoading && comments.itemCount <= 0 -> {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                ) {
-                                    Text(
-                                        text = stringResource(R.string.no_comments_yet),
-                                        style = InstagramTheme.typography.headlineLarge,
+                                comments.loadState.refresh is LoadState.NotLoading && comments.itemCount <= 0 -> {
+                                    Column(
                                         modifier = Modifier
-                                            .padding(bottom = 8.dp)
-                                            .align(Alignment.CenterHorizontally)
-                                    )
+                                            .fillMaxWidth()
+                                    ) {
+                                        Text(
+                                            text = stringResource(R.string.no_comments_yet),
+                                            style = InstagramTheme.typography.headlineLarge,
+                                            modifier = Modifier
+                                                .padding(bottom = 8.dp)
+                                                .align(Alignment.CenterHorizontally)
+                                        )
 
-                                    Text(
-                                        text = stringResource(R.string.be_the_first_to_comment),
-                                        style = InstagramTheme.typography.bodyMedium,
-                                        modifier = Modifier
-                                            .align(Alignment.CenterHorizontally)
-                                    )
+                                        Text(
+                                            text = stringResource(R.string.be_the_first_to_comment),
+                                            style = InstagramTheme.typography.bodyMedium,
+                                            modifier = Modifier
+                                                .align(Alignment.CenterHorizontally)
+                                        )
+                                    }
                                 }
                             }
                         }
-                    }
 
-                    else -> {
-                        val comment = comments[index - 2] ?: return@items
-                        val wholeReplies = replies.firstOrNull { it.commentId == comment.commentId }?.replies ?: persistentListOf()
-                        val recentAddedReplies = replies.firstOrNull { it.commentId == comment.commentId }?.recentAddedReplies ?: persistentListOf()
-                        val windowInsets = WindowInsets.navigationBars.asPaddingValues()
-                        val statusBarHeight = with(LocalDensity.current) { windowInsets.calculateBottomPadding().toPx() }
-                        val bottomNavigationBarHeight = with(LocalDensity.current) { 80.dp.toPx() }
+                        else -> {
+                            val comment = comments[index - 2] ?: return@items
+                            val wholeReplies = replies.firstOrNull { it.commentId == comment.commentId }?.replies ?: persistentListOf()
+                            val recentAddedReplies =
+                                replies.firstOrNull { it.commentId == comment.commentId }?.recentAddedReplies ?: persistentListOf()
 
-                        CommentRow(
-                            comment = comment,
-                            wholeReplies = wholeReplies,
-                            recentAddedReplies = recentAddedReplies,
-                            onReplyClick = { replyToComment = comment },
-                            showReplies = { showReplies(comment) },
-                            onLongClick = { focusedComment = comment },
-                            modifier = Modifier
-                                .onGloballyPositioned {
-                                    if (focusedComment != null && focusedComment!!.commentId == comment.commentId) {
-                                        commentYOffset = it.positionInWindow().y - statusBarHeight - bottomNavigationBarHeight
+                            CommentRow(
+                                comment = comment,
+                                wholeReplies = wholeReplies,
+                                recentAddedReplies = recentAddedReplies,
+                                onReplyClick = { replyToComment = comment },
+                                showReplies = { showReplies(comment) },
+                                onLongClick = { focusedComment = comment },
+                                modifier = Modifier
+                                    .onGloballyPositioned {
+                                        if (focusedComment != null && focusedComment!!.commentId == comment.commentId) {
+                                            commentYOffset = it.positionInParent().y
+                                        }
                                     }
+                            )
+                        }
+                    }
+                }
+            }
+
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .advancedImePadding()
+                    .onGloballyPositioned {
+                        commentTextFiledHeight = it.size.height
+                    }
+            ) {
+                if (replyToComment != null) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(color = InstagramTheme.colors.secondary)
+                            .padding(8.dp)
+                            .testTag("reply_to_username")
+                    ) {
+                        Text(
+                            text = context.getString(R.string.reply_posting, replyToComment!!.userName),
+                            style = InstagramTheme.typography.bodyMedium,
+                            color = InstagramTheme.colors.onSecondary,
+                            textAlign = TextAlign.Start,
+                            modifier = Modifier
+                                .width(0.dp)
+                                .weight(1f)
+                        )
+
+                        Icon(
+                            imageVector = Icons.Outlined.Close,
+                            contentDescription = "Close",
+                            tint = InstagramTheme.colors.onSecondary,
+                            modifier = Modifier
+                                .noRippleClick {
+                                    replyToComment = null
                                 }
                         )
                     }
                 }
-            }
-        }
 
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .advancedImePadding()
-                .onGloballyPositioned {
-                    commentTextFiledHeight = it.size.height
-                }
-        ) {
-            if (replyToComment != null) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(color = InstagramTheme.colors.secondary)
-                        .padding(8.dp)
-                        .testTag("reply_to_username")
-                ) {
-                    Text(
-                        text = context.getString(R.string.reply_posting, replyToComment!!.userName),
-                        style = InstagramTheme.typography.bodyMedium,
-                        color = InstagramTheme.colors.onSecondary,
-                        textAlign = TextAlign.Start,
-                        modifier = Modifier
-                            .width(0.dp)
-                            .weight(1f)
-                    )
-
-                    Icon(
-                        imageVector = Icons.Outlined.Close,
-                        contentDescription = "Close",
-                        tint = InstagramTheme.colors.onSecondary,
-                        modifier = Modifier
-                            .noRippleClick {
-                                replyToComment = null
-                            }
-                    )
-                }
-            }
-
-            CommentTextFiled(
-                userProfileImageUrl = userProfileImageUrl,
-                addComment = { content ->
-                    if (replyToComment == null) {
-                        addComment(content)
-                    } else {
-                        addReply(replyToComment!!, Comment(content))
-                        replyToComment = null
+                CommentTextFiled(
+                    userProfileImageUrl = userProfileImageUrl,
+                    addComment = { content ->
+                        if (replyToComment == null) {
+                            addComment(content)
+                        } else {
+                            addReply(replyToComment!!, Comment(content))
+                            replyToComment = null
+                        }
                     }
-                }
-            )
+                )
+            }
         }
 
         if (focusedComment != null) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(color = Color.Black.copy(alpha = 0.7f))
-                    .noRippleClick { focusedComment = null }
+                    .noRippleClick {
+                        focusedComment = null
+                        commentYOffset = 0f
+                    }
             ) {
-                Box(
-                    modifier = Modifier
-                        .offset(y = with(LocalDensity.current) { commentYOffset.toDp() })
-                ) {
-                    FocusedCommentRow(
-                        comment = focusedComment!!,
-                        deleteComment = {
-                            deleteComment(focusedComment!!)
-                            focusedComment = null
-                        },
-                        onDismiss = { focusedComment = null }
-                    )
+                if (commentYOffset != 0f) {
+                    Box(
+                        modifier = Modifier
+                            .offset(y = with(LocalDensity.current) { commentYOffset.toDp() })
+                    ) {
+                        FocusedCommentRow(
+                            comment = focusedComment!!,
+                            deleteComment = {
+                                deleteComment(focusedComment!!)
+                                focusedComment = null
+                            },
+                            onDismiss = { focusedComment = null }
+                        )
+                    }
                 }
             }
         }
