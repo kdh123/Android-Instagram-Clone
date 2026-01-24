@@ -229,7 +229,11 @@ class FeedRepositoryImpl @Inject constructor(
     }
 
     override suspend fun deleteComment(feedId: String, commentId: String) {
-        remoteDataSource.deleteComment(feedId, commentId)
+        val remainingReplyCount = remoteDataSource.deleteComment(feedId, commentId).value
+        val currentHomeFeed = localDataSource.getHomeFeed(feedId).first()
+        if (currentHomeFeed != null) {
+            localDataSource.updateHomeFeed(currentHomeFeed.copy(commentCount = remainingReplyCount))
+        }
     }
 
     override fun getReplies(commentId: String): Flow<List<Reply>> {

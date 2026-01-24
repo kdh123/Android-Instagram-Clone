@@ -93,8 +93,9 @@ fun FeedCommentBottomSheet(
     comments: LazyPagingItems<CommentItem>,
     replies: ImmutableList<ReplyGroup>,
     addComment: (String) -> Unit,
+    deleteComment: (CommentItem) -> Unit,
     addReply: (CommentItem, Comment) -> Unit,
-    showReplies: (CommentItem) -> Unit
+    showReplies: (CommentItem) -> Unit,
 ) {
     val context = LocalContext.current
     var replyToComment: CommentItem? by rememberSaveable { mutableStateOf(null) }
@@ -304,7 +305,11 @@ fun FeedCommentBottomSheet(
                 ) {
                     FocusedCommentRow(
                         comment = focusedComment!!,
-                        onClick = { focusedComment = null }
+                        deleteComment = {
+                            deleteComment(focusedComment!!)
+                            focusedComment = null
+                        },
+                        onDismiss = { focusedComment = null }
                     )
                 }
             }
@@ -333,12 +338,12 @@ fun CommentRow(
                 onClick = {},
                 onLongClick = onLongClick
             )
+            .testTag("comment_item_${comment.commentId}")
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 10.dp)
-                .testTag("comment_item_${comment.commentId}")
         ) {
             GlideImage(
                 imageModel = { comment.userProfileImageUrl },
@@ -442,7 +447,8 @@ fun CommentRow(
 @Composable
 fun FocusedCommentRow(
     comment: CommentItem,
-    onClick: () -> Unit
+    deleteComment: () -> Unit,
+    onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
 
@@ -454,7 +460,7 @@ fun FocusedCommentRow(
                 .fillMaxWidth()
                 .background(color = InstagramTheme.colors.secondary)
                 .padding(vertical = 10.dp)
-                .noRippleClick(onClick = onClick)
+                .noRippleClick(onClick = onDismiss)
         ) {
             Row(
                 modifier = Modifier
@@ -536,6 +542,8 @@ fun FocusedCommentRow(
                 .fillMaxWidth()
                 .background(color = InstagramTheme.colors.secondary)
                 .padding(10.dp)
+                .noRippleClick(onClick = deleteComment)
+                .testTag("delete_comment_button_${comment.commentId}")
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -776,6 +784,7 @@ private fun FeedCommentBottomSheetPreview() {
                 comments = comments,
                 replies = persistentListOf(),
                 addComment = {},
+                deleteComment = {},
                 addReply = { _, _ -> },
                 showReplies = {}
             )
@@ -804,7 +813,8 @@ private fun FocusedCommentPreview() {
                     replyCount = 3,
                     likeCount = 10
                 ),
-                onClick = {}
+                deleteComment = {},
+                onDismiss = {}
             )
         }
     }
