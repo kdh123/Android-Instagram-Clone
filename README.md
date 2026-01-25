@@ -1,4 +1,5 @@
 ## 🛠 Core Features & Technical Challenges
+🇰🇷 **[Read this in Korean](./README_ko.md)**
 
 <table table-layout="fixed">
   <tr>
