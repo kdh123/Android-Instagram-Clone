@@ -2,23 +2,33 @@
 🇰🇷 **[Read this in Korean](./README_ko.md)**
 
 <table table-layout="fixed">
+
   <tr>
     <td align="center"><b>Light Mode UI</b></td>
     <td align="center"><b>Dark Mode UI</b></td>
-    <td align="center"><b>Core Interactions</b></td>
   </tr>
   <tr>
     <td align="center">
-      <img src="https://github.com/user-attachments/assets/bf864a37-1277-45f2-ac3a-dc02781c8c65" width="250"><br>
+      <img src="https://github.com/user-attachments/assets/bf864a37-1277-45f2-ac3a-dc02781c8c65" width="350"><br>
       <sub>Feed list in Light Mode</sub>
     </td>
     <td align="center">
-      <img src="https://github.com/user-attachments/assets/a3a84877-c5c5-453d-af4d-88460703bd3e" width="250"><br>
+      <img src="https://github.com/user-attachments/assets/a3a84877-c5c5-453d-af4d-88460703bd3e" width="350"><br>
       <sub>Feed list in Dark Mode</sub>
     </td>
+  </tr>
+  <tr>
+    <td align="center"><b>Core Interactions</b></td>
+    <td align="center"><b>Comment Management</b></td>
+  </tr>
+  <tr>
     <td align="center">
-      <img src="https://github.com/user-attachments/assets/c466309f-ccab-4153-b766-bd9317dc0339" width="250"><br>
+      <img src="https://github.com/user-attachments/assets/c466309f-ccab-4153-b766-bd9317dc0339" width="350"><br>
       <sub>Likes, Comments, and Replies</sub>
+    </td>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/4b4c5366-6778-46a6-9b6e-e4f41bbf76e6" width="350"><br>
+      <sub>Deleting comments</sub>
     </td>
   </tr>
 </table>
