@@ -7,7 +7,7 @@ This branch (`feature/login`) implements a secure and seamless user authenticati
 ## 📺 Preview
 | First Login | Already Logged In |
 |-------------|------------------|
-| <img src="https://github.com/user-attachments/assets/47f9a3f5-1f06-4fe4-bc4e-5531e37b0043" width="250"/> | <img src="https://github.com/user-attachments/assets/fb8e4f2e-1d89-4034-b81c-df4bae41718e" width="250"/> |
+| <img src="https://github.com/user-attachments/assets/0c3068b7-2120-4b32-bf12-83e3a9e77878" width="250"/> | <img src="https://github.com/user-attachments/assets/fac6d41a-cb5d-470a-9826-b98d4c926392" width="250"/> |
 | *First-time Google login flow* | *Auto-login with existing session* |
 
 
