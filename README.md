@@ -4,6 +4,9 @@ This module implements a sophisticated feed upload mechanism designed to maximiz
 
 > **Inspired by [Instagram's Feed Upload UX](https://www.youtube.com/watch?v=V27XkmVPqYQ)**
 > (1:23: The strategy of starting the upload as soon as a photo is taken/selected to minimize latency while the user writes a caption.)
+<img src="https://github.com/user-attachments/assets/c9845707-b927-4169-9cb3-b78e725b3853" width="350">
+
+<br clear="left"/>
 
 ---
 
