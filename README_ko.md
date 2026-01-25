@@ -4,20 +4,29 @@
   <tr>
     <td align="center"><b>라이트 모드 UI</b></td>
     <td align="center"><b>다크 모드 UI</b></td>
-    <td align="center"><b>핵심 인터랙션</b></td>
   </tr>
   <tr>
     <td align="center">
-      <img src="https://github.com/user-attachments/assets/bf864a37-1277-45f2-ac3a-dc02781c8c65" width="250"><br>
+      <img src="https://github.com/user-attachments/assets/bf864a37-1277-45f2-ac3a-dc02781c8c65" width="350"><br>
       <sub>라이트 모드 피드 리스트</sub>
     </td>
     <td align="center">
-      <img src="https://github.com/user-attachments/assets/a3a84877-c5c5-453d-af4d-88460703bd3e" width="250"><br>
+      <img src="https://github.com/user-attachments/assets/a3a84877-c5c5-453d-af4d-88460703bd3e" width="350"><br>
       <sub>다크 모드 피드 리스트</sub>
     </td>
+  </tr>
+  <tr>
+    <td align="center"><b>핵심 인터랙션</b></td>
+    <td align="center"><b>댓글 관리</b></td>
+  </tr>
+  <tr>
     <td align="center">
-      <img src="https://github.com/user-attachments/assets/c466309f-ccab-4153-b766-bd9317dc0339" width="250"><br>
-      <sub>좋아요, 댓글 및 답글 기능 시연</sub>
+      <img src="https://github.com/user-attachments/assets/c466309f-ccab-4153-b766-bd9317dc0339" width="350"><br>
+      <sub>좋아요, 댓글 및 답글 기능</sub>
+    </td>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/4b4c5366-6778-46a6-9b6e-e4f41bbf76e6" width="350"><br>
+      <sub>MVI 액션을 통한 댓글 삭제 구현</sub>
     </td>
   </tr>
 </table>
