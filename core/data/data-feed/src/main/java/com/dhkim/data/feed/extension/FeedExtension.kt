@@ -120,6 +120,26 @@ fun Feed.toMyFeedEntity(): MyFeedEntity {
     )
 }
 
+fun Feed.toHomeEntity(): HomeFeedEntity {
+    return HomeFeedEntity(
+        feedId = feedId,
+        type = type,
+        userId = userId,
+        userName = userName,
+        userProfileImage = userProfileImage,
+        imageUrls = imageUrls,
+        caption = caption,
+        timestamp = timestamp,
+        likeCount = likeCount,
+        representativeLikeId = representativeLikerId,
+        representativeLikeName = representativeLikerName,
+        commentCount = commentCount,
+        adUrl = adUrl,
+        isLikeCountVisible = isLikeCountVisible,
+        isCommentEnabled = isCommentEnabled
+    )
+}
+
 fun FeedDto.toHomeEntity(): HomeFeedEntity {
     return HomeFeedEntity(
         feedId = feedId,

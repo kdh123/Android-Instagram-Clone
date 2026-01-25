@@ -15,6 +15,7 @@ import com.dhkim.data.feed.extension.toEntity
 import com.dhkim.data.feed.extension.toFeed
 import com.dhkim.data.feed.extension.toFeedUploadStatus
 import com.dhkim.data.feed.extension.toHiddenFeed
+import com.dhkim.data.feed.extension.toHomeEntity
 import com.dhkim.data.feed.extension.toLikeFeed
 import com.dhkim.data.feed.extension.toUser
 import com.dhkim.data.feed.extension.toUserDto
@@ -58,6 +59,7 @@ class FeedRepositoryImpl @Inject constructor(
     override fun uploadFeed(feed: Feed, userId: String): Flow<Unit> {
         return flow {
             remoteDataSource.uploadFeed(feed, userId).first()
+            localDataSource.updateHomeFeed(feed.toHomeEntity())
             localDataSource.updateMyFeed(feed.toMyFeedEntity())
             emit(Unit)
         }
