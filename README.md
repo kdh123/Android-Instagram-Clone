@@ -1,4 +1,5 @@
 # 📸 Advanced Feed Upload Strategy (feature/feed-add)
+🇰🇷 **[Read this in Korean](./README_ko.md)**
 
 This module implements a sophisticated feed upload mechanism designed to maximize perceived speed and ensure reliability, benchmarking Instagram's actual production strategy.
 
