@@ -1,4 +1,6 @@
 # 📱 Instagram Clone (Android)
+🇰🇷 **[Read this in Korean](./README_ko.md)**
+
 > **🚀 Status: Work In Progress (Active Development)** > This project is being developed step-by-step and is updated frequently. New features and architectural improvements are added continuously.
 ---
 > **An Instagram clone project built with Jetpack Compose and Clean Architecture.**
