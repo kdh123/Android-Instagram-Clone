@@ -15,6 +15,7 @@ import com.dhkim.data.feed.extension.toEntity
 import com.dhkim.data.feed.extension.toFeed
 import com.dhkim.data.feed.extension.toFeedUploadStatus
 import com.dhkim.data.feed.extension.toHiddenFeed
+import com.dhkim.data.feed.extension.toHomeEntity
 import com.dhkim.data.feed.extension.toLikeFeed
 import com.dhkim.data.feed.extension.toUser
 import com.dhkim.data.feed.extension.toUserDto
@@ -58,6 +59,7 @@ class FeedRepositoryImpl @Inject constructor(
     override fun uploadFeed(feed: Feed, userId: String): Flow<Unit> {
         return flow {
             remoteDataSource.uploadFeed(feed, userId).first()
+            localDataSource.updateHomeFeed(feed.toHomeEntity())
             localDataSource.updateMyFeed(feed.toMyFeedEntity())
             emit(Unit)
         }
@@ -229,7 +231,11 @@ class FeedRepositoryImpl @Inject constructor(
     }
 
     override suspend fun deleteComment(feedId: String, commentId: String) {
-        remoteDataSource.deleteComment(feedId, commentId)
+        val remainingReplyCount = remoteDataSource.deleteComment(feedId, commentId).value
+        val currentHomeFeed = localDataSource.getHomeFeed(feedId).first()
+        if (currentHomeFeed != null) {
+            localDataSource.updateHomeFeed(currentHomeFeed.copy(commentCount = remainingReplyCount))
+        }
     }
 
     override fun getReplies(commentId: String): Flow<List<Reply>> {
@@ -244,7 +250,23 @@ class FeedRepositoryImpl @Inject constructor(
         user: User,
         comment: String
     ): Reply {
-        return remoteDataSource.replyComment(feedId, commentId, user.toUserDto(), comment).toReply()
+        val addedReply = remoteDataSource.replyComment(feedId, commentId, user.toUserDto(), comment).toReply()
+        val currentHomeFeed = localDataSource.getHomeFeed(feedId).first()
+        if (currentHomeFeed != null) {
+            localDataSource.updateHomeFeed(currentHomeFeed.copy(commentCount = currentHomeFeed.commentCount + 1))
+        }
+
+        return addedReply
+    }
+
+    override suspend fun deleteReply(feedId: String, commentId: String, replyId: String): Reply? {
+        val deletedReply = remoteDataSource.deleteReply(feedId, commentId, replyId)?.toReply()
+        val currentHomeFeed = localDataSource.getHomeFeed(feedId).first()
+        if (currentHomeFeed != null) {
+            localDataSource.updateHomeFeed(currentHomeFeed.copy(commentCount = currentHomeFeed.commentCount - 1))
+        }
+
+        return deletedReply
     }
 
     private fun enqueueLikeWorker(feedId: String) {

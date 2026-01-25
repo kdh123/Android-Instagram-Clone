@@ -1,5 +1,6 @@
 package com.dhkim.add.work
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -21,6 +22,10 @@ import kotlinx.coroutines.flow.flatMapMerge
 import kotlinx.coroutines.flow.toList
 import java.io.ByteArrayOutputStream
 import java.io.File
+import androidx.core.graphics.scale
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.retry
+import java.io.IOException
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltWorker
@@ -31,6 +36,7 @@ class UploadFeedImagesWorker @AssistedInject constructor(
     private val feedRepository: FeedRepository
 ) : CoroutineWorker(context, workerParams) {
 
+    @SuppressLint("RestrictedApi")
     override suspend fun doWork(): Result {
         val feedId = inputData.getString("KEY_FEED_ID") ?: return Result.failure()
         val filePathArray = inputData.getStringArray("KEY_IMAGE_URIS")
@@ -47,13 +53,20 @@ class UploadFeedImagesWorker @AssistedInject constructor(
     }
 
     private suspend fun uploadImages(feedId: String, filePaths: List<String>) = coroutineScope {
-        val downloadImageUrls = filePaths.asFlow()
-            .flatMapMerge(concurrency = 3) { filePath ->
+        val downloadImageUrls = filePaths
+            .mapIndexed { index, path -> index to path }
+            .asFlow()
+            .flatMapMerge(concurrency = 10) { (index, filePath) ->
                 val file = File(filePath)
                 uploadImageUseCase(file)
-                    .catch { emit("") }
-            }.toList()
-            .filter { it.isNotEmpty() }
+                    .retry(2) { e -> e is IOException }
+                    .map { url -> index to url }
+                    .catch { emit(index to "") }
+            }
+            .toList()
+            .filter { it.second.isNotEmpty() }
+            .sortedBy { it.first }
+            .map { it.second }
         val feedUploadStatus = feedRepository.getFeedUploadStatus(feedId).first()?.copy(
             imageUrls = downloadImageUrls,
             uploadState = UploadState.IMAGE_SUCCESS
@@ -83,7 +96,7 @@ class UploadFeedImagesWorker @AssistedInject constructor(
         val file = File(filePath)
         return if (file.exists()) {
             val originalBitmap = BitmapFactory.decodeFile(file.absolutePath)
-            val thumbnail = Bitmap.createScaledBitmap(originalBitmap, 100, 100, true)
+            val thumbnail = originalBitmap.scale(100, 100)
             val outputStream = ByteArrayOutputStream()
             thumbnail.compress(Bitmap.CompressFormat.JPEG, 85, outputStream)
             outputStream.toByteArray()

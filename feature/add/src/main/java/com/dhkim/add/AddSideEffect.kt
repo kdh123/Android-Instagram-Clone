@@ -6,4 +6,5 @@ sealed interface AddSideEffect {
     data object NavigateToHome : AddSideEffect
     data object NavigateToFeedUpload : AddSideEffect
     data class ScrollToItem(val imageUri: String?) : AddSideEffect
+    data object ShowImagesLimitedNotice : AddSideEffect
 }

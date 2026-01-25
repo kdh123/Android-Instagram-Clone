@@ -234,6 +234,7 @@ fun AddFeedImageScreen(
     }
 }
 
+@SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 internal fun PreviewSelectedImage(
     selectImageState: SelectImageState,

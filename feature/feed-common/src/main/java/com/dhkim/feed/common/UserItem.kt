@@ -6,6 +6,7 @@ import androidx.compose.runtime.Immutable
 data class UserItem(
     val id: String = "",
     val name: String = "",
+    val email: String = "",
     val profileImageUrl: String = "",
     val isFollowing: Boolean = false,
 )

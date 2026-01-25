@@ -12,6 +12,7 @@ import com.dhkim.domain.feed.model.Reply
 import com.dhkim.domain.feed.repository.FeedRepository
 import com.dhkim.domain.feed.useCase.AddCommentUseCase
 import com.dhkim.domain.feed.useCase.DeleteCommentUseCase
+import com.dhkim.domain.feed.useCase.DeleteReplyUseCase
 import com.dhkim.domain.feed.useCase.GetCommentsUseCase
 import com.dhkim.domain.feed.useCase.GetFeedUploadStatusesUseCase
 import com.dhkim.domain.feed.useCase.GetFeedsUseCase
@@ -74,6 +75,7 @@ class HomeViewModelTest {
     private val deleteCommentUseCase = DeleteCommentUseCase(feedRepository)
     private val getReliesUseCase = GetRepliesUseCase(feedRepository)
     private val replyCommentUseCase = ReplyCommentUseCase(feedRepository, getUserUseCase)
+    private val deleteReplyUseCase = DeleteReplyUseCase(feedRepository)
     private val connectivityChecker = mockk<ConnectivityChecker>()
 
     private lateinit var viewModel: HomeViewModel
@@ -149,6 +151,7 @@ class HomeViewModelTest {
             deleteCommentUseCase = deleteCommentUseCase,
             getRepliesUseCase = getReliesUseCase,
             replyCommentUseCase = replyCommentUseCase,
+            deleteReplyUseCase = deleteReplyUseCase,
             getUserUseCase = getUserUseCase,
             connectivityChecker = connectivityChecker
         )
@@ -281,10 +284,12 @@ class HomeViewModelTest {
 
         viewModel.onAction(HomeAction.ShowReplies(fakeComments[0].toCommentItem()))
 
-        viewModel.onAction(HomeAction.ReplyComment(
-            comment = fakeComments[0].toCommentItem(),
-            content = "hello"
-        ))
+        viewModel.onAction(
+            HomeAction.ReplyComment(
+                comment = fakeComments[0].toCommentItem(),
+                content = "hello"
+            )
+        )
 
         viewModel.replies.test {
             assertEquals(
@@ -377,7 +382,138 @@ class HomeViewModelTest {
             assertEquals(flowOf(awaitItem()).asSnapshot().size, 9)
         }
     }
-    
+
+    @Test
+    fun whenReplyDeleted_removesReplyFromList() = runTest {
+        val replyFlows = mutableMapOf<String, MutableStateFlow<List<Reply>>>()
+
+        every {
+            feedRepository.getReplies(any())
+        } answers {
+            val commentId = firstArg<String>()
+
+            replyFlows.getOrPut(commentId) {
+                MutableStateFlow(emptyList())
+            }
+        }
+
+        coEvery {
+            feedRepository.replyComment(any(), any(), any(), any())
+        } answers {
+            val commentId = secondArg<String>()
+            val user = thirdArg<User>()
+            val comment = "hello"
+            val reply = Reply(
+                replyId = "replyId",
+                commentId = commentId,
+                user = user,
+                content = comment,
+                timeAt = 123456789L,
+                likeCount = 0
+            )
+
+            val flow = replyFlows.getOrPut(commentId) {
+                MutableStateFlow(emptyList())
+            }
+            flow.update { it + reply }
+            reply
+        }
+
+        coEvery {
+            feedRepository.deleteReply(any(), any(), any())
+        } answers {
+            val comment = "hello"
+            val reply = Reply(
+                replyId = "replyId",
+                commentId = "commentId0",
+                user = testUser,
+                content = comment,
+                timeAt = 123456789L,
+                likeCount = 0
+            )
+
+            val flow = replyFlows.getOrPut("commentId0") {
+                MutableStateFlow(emptyList())
+            }
+            val updateReplies = flow.value.filter { it.replyId != reply.replyId }
+
+            flow.update { updateReplies }
+            reply
+        }
+
+        coEvery { feedRepository.toggleEnableComment(any(), any(), any()) } returns Unit
+        coEvery { feedRepository.toggleLikeCountVisibility(any(), any(), any()) } returns Unit
+        coEvery { feedRepository.getHiddenFeeds() } returns flowOf(setOf(HiddenFeed("feedId1", 1234567890)))
+        coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf(emptyList())
+        coEvery { feedRepository.getMyFeeds() } returns flowOf(myFeeds)
+        coEvery { feedRepository.getHomeFeeds() } returns flowOf(PagingData.from(fakeFeeds))
+        coEvery { feedRepository.getComments(any()) } returns flowOf(PagingData.from(fakeComments))
+        coEvery { userRepository.getUser() } returns flowOf(testUser)
+        coEvery { connectivityChecker.isNetworkAvailable() } returns flowOf(true)
+
+        viewModel.feeds.test {
+            val userId = getUserUseCase().first()?.id ?: ""
+            assertEquals(fakeFeeds.map { it.toFeedItem(userId) }, flowOf(awaitItem()).asSnapshot())
+        }
+
+        viewModel.onAction(HomeAction.ShowComments(fakeFeeds[0].toFeedItem(testUser.id)))
+        viewModel.comments.test {
+            assertEquals(fakeComments.map { it.toCommentItem() }, flowOf(awaitItem()).asSnapshot())
+        }
+
+        viewModel.onAction(HomeAction.ShowReplies(fakeComments[0].toCommentItem()))
+        viewModel.onAction(
+            HomeAction.ReplyComment(
+                comment = fakeComments[0].toCommentItem(),
+                content = "hello"
+            )
+        )
+
+        viewModel.replies.test {
+            assertEquals(
+                awaitItem(),
+                listOf(
+                    ReplyGroup(
+                        commentId = "commentId0",
+                        replies = persistentListOf(
+                            ReplyItem(
+                                replyId = "replyId",
+                                user = testUser.toUserItem(),
+                                content = "hello",
+                                timeAt = 123456789L.toRelativeTime(),
+                                likeCount = 0
+                            )
+                        ),
+                        recentAddedReplies = persistentListOf(
+                            ReplyItem(
+                                replyId = "replyId",
+                                user = testUser.toUserItem(),
+                                content = "hello",
+                                timeAt = 123456789L.toRelativeTime(),
+                                likeCount = 0
+                            )
+                        ),
+                    )
+                )
+            )
+        }
+
+        viewModel.onAction(
+            HomeAction.DeleteReply(
+                comment = fakeComments[0].toCommentItem(), reply = ReplyItem(
+                    replyId = "replyId",
+                    user = testUser.toUserItem(),
+                    content = "hello",
+                    timeAt = 123456789L.toRelativeTime(),
+                    likeCount = 0
+                )
+            )
+        )
+        viewModel.replies.test {
+            assertEquals(awaitItem().size, 0)
+        }
+    }
+
     @After
     fun tearDown() {
         Dispatchers.resetMain()

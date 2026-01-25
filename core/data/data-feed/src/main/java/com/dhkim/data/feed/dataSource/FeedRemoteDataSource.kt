@@ -222,7 +222,7 @@ class FeedRemoteDataSource @Inject constructor(
                     isLikeAt = timestamp
                 )
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             emptyList()
         }
     }
@@ -265,10 +265,22 @@ class FeedRemoteDataSource @Inject constructor(
         return commentDto
     }
 
-    suspend fun deleteComment(feedId: String, commentId: String) {
+    @JvmInline
+    value class RemainingReplyCount(val value: Int)
+
+    suspend fun deleteComment(feedId: String, commentId: String): RemainingReplyCount {
+        val replyCountRef = commentRef.child(feedId).child(commentId).child("replyCount")
+        val currentReplyCount = try {
+            val snapshot = replyCountRef.get().await()
+            snapshot.getValue(Int::class.java) ?: 0
+        } catch (_: Exception) {
+            0
+        }
+
         commentRef.child(feedId).child(commentId).setValue(null).await()
         replyRef.child(commentId).setValue(null).await()
-        decrementCommentCount(feedId).first()
+        val remainingReplyCount = decrementCommentCount(feedId, currentReplyCount).first()
+        return remainingReplyCount
     }
 
     private fun incrementCommentCount(feedId: String): Flow<Boolean> {
@@ -291,21 +303,25 @@ class FeedRemoteDataSource @Inject constructor(
         }
     }
 
-    private fun decrementCommentCount(feedId: String): Flow<Boolean> {
+    private fun decrementCommentCount(feedId: String, currentReplyCount: Int): Flow<RemainingReplyCount> {
         return callbackFlow {
             feedRef.child("feeds_by_feed_id").child(feedId).child("commentCount")
                 .get().addOnSuccessListener { snapshot ->
                     val currentValue = snapshot.getValue(Int::class.java) ?: 0
-                    val newValue = if (currentValue > 0) currentValue - 1 else 0
+                    val newValue = if (currentValue > 0) {
+                        currentValue - 1 - currentReplyCount
+                    } else {
+                        0
+                    }
                     val updates = hashMapOf<String, Any?>(
                         "feeds_by_feed_id/$feedId/commentCount" to newValue,
                     )
 
                     feedRef.updateChildren(updates).addOnCompleteListener { task ->
-                        trySend(task.isSuccessful)
+                        trySend(RemainingReplyCount(value = newValue))
                     }
                 }.addOnFailureListener {
-                    trySend(false)
+                    trySend(RemainingReplyCount(value = currentReplyCount))
                 }
 
             awaitClose()
@@ -353,12 +369,43 @@ class FeedRemoteDataSource @Inject constructor(
         return reply
     }
 
+    suspend fun deleteReply(feedId: String, commentId: String, replyId: String): ReplyDto? {
+        val deletedReply = replyRef.child(commentId).child(replyId).get().await().getValue(ReplyDto::class.java)
+        replyRef.child(commentId).child(replyId).setValue(null).await()
+        decrementReplyCount(feedId, commentId).first()
+        decrementCommentCount(feedId, 0).first()
+
+        return deletedReply
+    }
+
     private fun incrementReplyCount(feedId: String, commentId: String): Flow<Boolean> {
         return callbackFlow {
             commentRef.child(feedId).child(commentId).child("replyCount")
                 .get().addOnSuccessListener { snapshot ->
                     val currentValue = snapshot.getValue(Int::class.java) ?: 0
                     val nextValue = currentValue + 1
+                    val updates = hashMapOf<String, Any?>(
+                        "$feedId/$commentId/replyCount" to nextValue,
+                    )
+
+                    commentRef.updateChildren(updates).addOnCompleteListener { task ->
+                        trySend(task.isSuccessful)
+                    }
+                }.addOnFailureListener {
+                    trySend(false)
+                }
+            awaitClose()
+        }
+    }
+
+    private fun decrementReplyCount(feedId: String, commentId: String): Flow<Boolean> {
+        return callbackFlow {
+            commentRef.child(feedId).child(commentId).child("replyCount")
+                .get().addOnSuccessListener { snapshot ->
+                    val currentValue = snapshot.getValue(Int::class.java) ?: 0
+                    val nextValue = (currentValue - 1).let {
+                        if (it < 0) 0 else it
+                    }
                     val updates = hashMapOf<String, Any?>(
                         "$feedId/$commentId/replyCount" to nextValue,
                     )

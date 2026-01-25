@@ -11,6 +11,7 @@ import com.dhkim.common.restartableStateIn
 import com.dhkim.domain.feed.model.Reply
 import com.dhkim.domain.feed.useCase.AddCommentUseCase
 import com.dhkim.domain.feed.useCase.DeleteCommentUseCase
+import com.dhkim.domain.feed.useCase.DeleteReplyUseCase
 import com.dhkim.domain.feed.useCase.GetCommentsUseCase
 import com.dhkim.domain.feed.useCase.GetFeedUploadStatusesUseCase
 import com.dhkim.domain.feed.useCase.GetFeedsUseCase
@@ -29,6 +30,7 @@ import com.dhkim.domain.user.useCase.GetUserUseCase
 import com.dhkim.feed.common.CommentItem
 import com.dhkim.feed.common.FeedItem
 import com.dhkim.feed.common.ReplyGroup
+import com.dhkim.feed.common.ReplyItem
 import com.dhkim.feed.common.toFeedItem
 import com.dhkim.network.ConnectivityChecker
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -72,6 +74,7 @@ class HomeViewModel @Inject constructor(
     private val deleteCommentUseCase: DeleteCommentUseCase,
     private val getRepliesUseCase: GetRepliesUseCase,
     private val replyCommentUseCase: ReplyCommentUseCase,
+    private val deleteReplyUseCase: DeleteReplyUseCase,
     private val getUserUseCase: GetUserUseCase,
     private val connectivityChecker: ConnectivityChecker
 ) : ViewModel() {
@@ -101,6 +104,7 @@ class HomeViewModel @Inject constructor(
 
     private val targetCommentForReply: MutableStateFlow<CommentItem?> = MutableStateFlow(null)
     private val recentAddedReply: MutableStateFlow<Reply?> = MutableStateFlow(null)
+    private val recentDeletedReply: MutableStateFlow<Reply?> = MutableStateFlow(null)
 
     private val targetFeedForComments: MutableStateFlow<FeedItem?> = MutableStateFlow(null)
     private val refreshCommentTrigger: MutableStateFlow<Int> = MutableStateFlow(0)
@@ -180,10 +184,6 @@ class HomeViewModel @Inject constructor(
                 showFeedMenu(action.feed)
             }
 
-            HomeAction.DismissFeedMenu -> {
-                dismissFeedMenu()
-            }
-
             is HomeAction.ToggleLike -> {
                 toggleLike(action.feedId)
             }
@@ -227,7 +227,25 @@ class HomeViewModel @Inject constructor(
             is HomeAction.ReplyComment -> {
                 replyComment(action.comment, action.content)
             }
+
+            is HomeAction.DeleteReply -> {
+                deleteReply(action.comment, action.reply)
+            }
         }
+    }
+
+    private fun deleteReply(comment: CommentItem, reply: ReplyItem) {
+        viewModelScope.handle(
+            block = {
+                targetCommentForReply.update { comment }
+                val feedId = targetFeedForComments.value?.feedId ?: return@handle
+                val deletedReply = deleteReplyUseCase(feedId, comment.commentId, reply.replyId)
+                recentDeletedReply.update { deletedReply }
+            },
+            onError = {
+                _sideEffect.send(HomeSideEffect.ShowRefreshFeedsFailNotice)
+            }
+        )
     }
 
     private fun deleteComment(comment: CommentItem) {
@@ -261,7 +279,15 @@ class HomeViewModel @Inject constructor(
             recentAddedReply
                 .filterNotNull()
                 .collect { newReply ->
-                    addLocalReplyToGroup(newReply)
+                    addRecentAddedReply(newReply)
+                }
+        }
+
+        viewModelScope.launch {
+            recentDeletedReply
+                .filterNotNull()
+                .collect { deletedReply ->
+                    removeReplyFromList(deletedReply)
                 }
         }
     }
@@ -281,7 +307,7 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private fun addLocalReplyToGroup(newReply: Reply) {
+    private fun addRecentAddedReply(newReply: Reply) {
         _replies.update { currentList ->
             val targetIndex = currentList.indexOfFirst { it.commentId == newReply.commentId }
             if (targetIndex != -1) {
@@ -301,6 +327,27 @@ class HomeViewModel @Inject constructor(
                     recentAddedReplies = persistentListOf(newReply.toReplyItem()) // 내 답글만 넣음
                 )
                 (currentList + persistentListOf(newGroup)).toImmutableList()
+            }
+        }
+    }
+
+    private fun removeReplyFromList(deletedReply: Reply) {
+        _replies.update { currentList ->
+            val targetIndex = currentList.indexOfFirst { it.commentId == deletedReply.commentId }
+            if (targetIndex == -1) return@update currentList
+
+            val targetGroup = currentList[targetIndex]
+            val updatedServerReplies = targetGroup.replies.filter { it.replyId != deletedReply.replyId }.toImmutableList()
+            val updatedRecentReplies = targetGroup.recentAddedReplies.filter { it.replyId != deletedReply.replyId }.toImmutableList()
+
+            if (updatedServerReplies.isEmpty() && updatedRecentReplies.isEmpty()) {
+                currentList.filterIndexed { index, _ -> index != targetIndex }.toImmutableList()
+            } else {
+                val updatedGroup = targetGroup.copy(
+                    replies = updatedServerReplies,
+                    recentAddedReplies = updatedRecentReplies
+                )
+                currentList.updateItem(targetIndex, updatedGroup)
             }
         }
     }
@@ -345,6 +392,7 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun dismissBottomSheet() {
+        menuVisibleFeed.update { null }
         targetFeedForLikers.update { null }
         targetFeedForComments.update { null }
         targetCommentForReply.update { null }
@@ -392,10 +440,6 @@ class HomeViewModel @Inject constructor(
                 _sideEffect.send(HomeSideEffect.ShowRefreshFeedsFailNotice)
             }
         )
-    }
-
-    private fun dismissFeedMenu() {
-        menuVisibleFeed.update { null }
     }
 
     private fun showFeedMenu(feed: FeedItem) {

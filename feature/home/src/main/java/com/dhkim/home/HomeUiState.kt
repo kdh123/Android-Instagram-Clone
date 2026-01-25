@@ -22,9 +22,19 @@ data class HomeUiState(
     val menuVisibleFeed: FeedItem? = null,
     val isNetworkAvailable: Boolean = true
 ) {
-    val shouldShowLikersBottomSheet: Boolean
-        get() = targetFeedForLikers != null
+    val showBottomSheet: HomeBottomSheet?
+        get() {
+            return when {
+                menuVisibleFeed != null -> HomeBottomSheet.MENU
+                targetFeedForLikers != null -> HomeBottomSheet.LIKERS
+                targetFeedForComments != null -> HomeBottomSheet.COMMENTS
+                else -> null
+            }
+        }
+}
 
-    val shouldShowCommentsBottomSheet: Boolean
-        get() = targetFeedForComments != null
+enum class HomeBottomSheet {
+    MENU,
+    LIKERS,
+    COMMENTS
 }

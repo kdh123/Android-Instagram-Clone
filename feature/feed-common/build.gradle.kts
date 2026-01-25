@@ -44,9 +44,11 @@ dependencies {
     implementation(libs.bundles.androidx.paging3)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.core.ktx)
+    implementation(libs.compose.cloudy)
     implementation(libs.hilt)
     ksp(libs.hilt.compiler)
     ksp(libs.android.hilt.compiler)
+
     testImplementation(libs.junit)
     testImplementation(libs.bundles.test)
     androidTestImplementation(libs.androidx.junit)

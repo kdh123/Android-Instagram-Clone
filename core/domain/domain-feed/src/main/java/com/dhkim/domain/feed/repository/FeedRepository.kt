@@ -47,6 +47,8 @@ interface FeedRepository {
     fun getComments(feedId: String): Flow<PagingData<Comment>>
     suspend fun addComment(feedId: String, user: User, comment: String): Comment
     suspend fun deleteComment(feedId: String, commentId: String)
+
     fun getReplies(commentId: String): Flow<List<Reply>>
     suspend fun replyComment(feedId: String, commentId: String, user: User, comment: String): Reply
+    suspend fun deleteReply(feedId: String, commentId: String, replyId: String): Reply?
 }
