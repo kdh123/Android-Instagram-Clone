@@ -46,19 +46,26 @@ Modules are separated according to Clean Architecture principles to ensure the i
 ---
 
 ## 📅 Roadmap & Progress
-Development is progressing step-by-step by feature unit and will be updated upon completion.
+Development is progressing step-by-step by feature unit. Features marked with `[x]` are fully implemented with production-ready logic.
 
-[x] Initial Setup: Multi-module project architecture design and base configuration
-
-[x] Phase 1 ([Auth](https://github.com/kdh123/Android-Instagram-Clone/tree/feature/login)): Implementation of sign-up/login flow based on Firebase Auth
-
-[ ] Phase 2 ([Feed](https://github.com/kdh123/Android-Instagram-Clone/tree/feature/feed)): Image post upload and real-time feed list implementation
-
-[ ] Phase 3 (Social): User search and Follow/Following system construction
-
-[ ] Phase 4 (Interaction): Real-time interactions such as Likes and Comments
-
-[ ] Ongoing Updates: Performance optimization and UI/UX detail enhancement 🚀
+* [x] **Initial Setup**: Multi-module project architecture design and base configuration.
+* [x] **Phase 1 ([Auth](https://github.com/kdh123/Android-Instagram-Clone/tree/feature/login))**: Implementation of sign-up/login flow based on Firebase Auth.
+* [x] **Phase 2 ([Feed & Interaction](https://github.com/kdh123/Android-Instagram-Clone/tree/feature/feed-home))**: Core Feed functionalities and Real-time interactions.
+    * [x] **[Advanced Multi-Image Upload](https://github.com/kdh123/Android-Instagram-Clone/tree/feature/feed-add)**: Parallel processing with **order preservation logic** (up to 10 images).
+    * [x] **Interaction System**: Like/Comment/Reply system with nested business logic and local state management.
+    * [x] **UI Optimization**: Device-independent coordinate calculation and blur overlay effects.
+* [ ] **Phase 3 (Discovery & Search)**: User/Content discovery system.
+    * [ ] Real-time user search with optimized query logic.
+    * [ ] Content discovery feed (Grid-style explorer).
+* [ ] **Phase 4 (Social & Relationship)**: Follow/Following system construction.
+    * [ ] Scalable follow/unfollow relationship management.
+    * [ ] User profile customization and activity stats.
+* [ ] **Phase 5 (Reels)**: Short-form video streaming service.
+    * [ ] Video playback using **ExoPlayer/Media3**.
+    * [ ] Vertical scroll-based UI/UX implementation.
+* [ ] **Ongoing Updates**:
+    * [ ] Performance optimization (Baseline Profiles, R8/D8).
+    * [ ] Enhanced UI/UX details (MotionLayout, Custom Animations). 🚀
 
 ---
 
