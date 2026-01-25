@@ -193,6 +193,9 @@ fun HomeScreen(
                         addReply = { commentItem, content ->
                             onAction(HomeAction.ReplyComment(comment = commentItem, content = content.value))
                         },
+                        deleteReply = { commentItem, reply ->
+                            onAction(HomeAction.DeleteReply(commentItem, reply))
+                        },
                         showReplies = { comment ->
                             onAction(HomeAction.ShowReplies(comment))
                         }

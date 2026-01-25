@@ -12,6 +12,7 @@ fun User.toUserItem(): UserItem {
     return UserItem(
         id = id,
         name = name,
+        email = email,
         profileImageUrl = profileUrl,
         isFollowing = false
     )

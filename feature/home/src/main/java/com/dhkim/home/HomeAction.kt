@@ -2,6 +2,7 @@ package com.dhkim.home
 
 import com.dhkim.feed.common.CommentItem
 import com.dhkim.feed.common.FeedItem
+import com.dhkim.feed.common.ReplyItem
 
 sealed interface HomeAction {
 
@@ -20,5 +21,5 @@ sealed interface HomeAction {
     data class DeleteComment(val comment: CommentItem) : HomeAction
     data class ShowReplies(val comment: CommentItem) : HomeAction
     data class ReplyComment(val comment: CommentItem, val content: String) : HomeAction
-    data class DeleteReply(val comment: CommentItem, val replyId: String) : HomeAction
+    data class DeleteReply(val comment: CommentItem, val reply: ReplyItem) : HomeAction
 }

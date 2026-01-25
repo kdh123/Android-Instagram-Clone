@@ -40,6 +40,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -56,6 +57,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -94,13 +96,12 @@ fun FeedCommentBottomSheet(
     addComment: (String) -> Unit,
     deleteComment: (CommentItem) -> Unit,
     addReply: (CommentItem, Comment) -> Unit,
+    deleteReply: (CommentItem, ReplyItem) -> Unit,
     showReplies: (CommentItem) -> Unit,
 ) {
-    val context = LocalContext.current
     var replyToComment: CommentItem? by rememberSaveable { mutableStateOf(null) }
     var isDragStartedAtTop by rememberSaveable { mutableStateOf(false) }
-    var commentTextFiledHeight by remember { mutableStateOf(0) }
-
+    var commentTextFiledHeight by remember { mutableIntStateOf(0) }
     val nestedScrollConnection = remember {
         object : NestedScrollConnection {
             // 1. Remove onPreScroll (Important!): Ensure the list receives scroll events first.
@@ -129,12 +130,26 @@ fun FeedCommentBottomSheet(
     var focusedComment by remember { mutableStateOf<CommentItem?>(null) }
     var commentYOffset by remember { mutableFloatStateOf(0f) }
 
-    Box {
+    var focusedReply by remember { mutableStateOf<ReplyItem?>(null) }
+    var replyYOffset by remember { mutableFloatStateOf(0f) }
+
+    var shouldBlur by remember(focusedComment) {
+        mutableStateOf(focusedComment != null)
+    }
+
+    var parentWindowY by remember { mutableFloatStateOf(0f) }
+
+    Box(
+        modifier = Modifier
+            .onGloballyPositioned {
+                parentWindowY = it.positionInWindow().y
+            }
+    ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .run {
-                    if (focusedComment != null) {
+                    if (shouldBlur) {
                         cloudy(30)
                     } else {
                         this
@@ -233,13 +248,18 @@ fun FeedCommentBottomSheet(
                                 recentAddedReplies = recentAddedReplies,
                                 onReplyClick = { replyToComment = comment },
                                 showReplies = { showReplies(comment) },
-                                onLongClick = { focusedComment = comment },
-                                modifier = Modifier
+                                onCommentLongClick = { focusedComment = comment },
+                                onReplyLongClick = { reply, childYOffset ->
+                                    focusedComment = comment
+                                    focusedReply = reply
+                                    replyYOffset = childYOffset - parentWindowY
+                                },
+                                commentModifier = Modifier
                                     .onGloballyPositioned {
                                         if (focusedComment != null && focusedComment!!.commentId == comment.commentId) {
                                             commentYOffset = it.positionInParent().y
                                         }
-                                    }
+                                    },
                             )
                         }
                     }
@@ -255,34 +275,10 @@ fun FeedCommentBottomSheet(
                     }
             ) {
                 if (replyToComment != null) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(color = InstagramTheme.colors.secondary)
-                            .padding(8.dp)
-                            .testTag("reply_to_username")
-                    ) {
-                        Text(
-                            text = context.getString(R.string.reply_posting, replyToComment!!.userName),
-                            style = InstagramTheme.typography.bodyMedium,
-                            color = InstagramTheme.colors.onSecondary,
-                            textAlign = TextAlign.Start,
-                            modifier = Modifier
-                                .width(0.dp)
-                                .weight(1f)
-                        )
-
-                        Icon(
-                            imageVector = Icons.Outlined.Close,
-                            contentDescription = "Close",
-                            tint = InstagramTheme.colors.onSecondary,
-                            modifier = Modifier
-                                .noRippleClick {
-                                    replyToComment = null
-                                }
-                        )
-                    }
+                    ReplyToComment(
+                        replyToComment = replyToComment!!,
+                        onClose = { replyToComment = null }
+                    )
                 }
 
                 CommentTextFiled(
@@ -300,28 +296,108 @@ fun FeedCommentBottomSheet(
         }
 
         if (focusedComment != null) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .noRippleClick {
-                        focusedComment = null
-                        commentYOffset = 0f
-                    }
-            ) {
-                if (commentYOffset != 0f) {
-                    Box(
-                        modifier = Modifier
-                            .offset(y = with(LocalDensity.current) { commentYOffset.toDp() })
-                    ) {
-                        FocusedCommentRow(
-                            comment = focusedComment!!,
-                            deleteComment = {
-                                deleteComment(focusedComment!!)
-                                focusedComment = null
-                            },
-                            onDismiss = { focusedComment = null }
-                        )
-                    }
+            FocusedComment(
+                focusedComment = focusedComment!!,
+                focusedReply = focusedReply,
+                commentYOffset = commentYOffset,
+                replyYOffset = replyYOffset,
+                deleteComment = { deleteComment(focusedComment!!) },
+                deleteReply = { deleteReply(focusedComment!!, focusedReply!!) },
+                onDismiss = {
+                    focusedComment = null
+                    focusedReply = null
+                    commentYOffset = 0f
+                    replyYOffset = 0f
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun ReplyToComment(
+    replyToComment: CommentItem,
+    onClose: () -> Unit
+) {
+    val context = LocalContext.current
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(color = InstagramTheme.colors.secondary)
+            .padding(8.dp)
+            .testTag("reply_to_username")
+    ) {
+        Text(
+            text = context.getString(R.string.reply_posting, replyToComment.userName),
+            style = InstagramTheme.typography.bodyMedium,
+            color = InstagramTheme.colors.onSecondary,
+            textAlign = TextAlign.Start,
+            modifier = Modifier
+                .width(0.dp)
+                .weight(1f)
+        )
+
+        Icon(
+            imageVector = Icons.Outlined.Close,
+            contentDescription = "Close",
+            tint = InstagramTheme.colors.onSecondary,
+            modifier = Modifier
+                .noRippleClick(onClose)
+        )
+    }
+}
+
+@Composable
+fun FocusedComment(
+    focusedComment: CommentItem,
+    focusedReply: ReplyItem?,
+    commentYOffset: Float,
+    replyYOffset: Float,
+    deleteComment: () -> Unit,
+    deleteReply: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    if (focusedReply == null) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .noRippleClick(onDismiss)
+        ) {
+            if (commentYOffset != 0f) {
+                Box(
+                    modifier = Modifier
+                        .offset(y = with(LocalDensity.current) { commentYOffset.toDp() })
+                ) {
+                    FocusedCommentRow(
+                        comment = focusedComment,
+                        deleteComment = {
+                            deleteComment()
+                            onDismiss()
+                        },
+                        onDismiss = onDismiss
+                    )
+                }
+            }
+        }
+    } else {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .noRippleClick(onClick = onDismiss)
+        ) {
+            if (replyYOffset != 0f) {
+                Box(
+                    modifier = Modifier
+                        .offset(y = with(LocalDensity.current) { replyYOffset.toDp() })
+                ) {
+                    FocusedReplyRow(
+                        reply = focusedReply,
+                        deleteReply = {
+                            deleteReply(); onDismiss()
+                        },
+                        onDismiss = onDismiss
+                    )
                 }
             }
         }
@@ -336,18 +412,19 @@ fun CommentRow(
     recentAddedReplies: ImmutableList<ReplyItem>,
     onReplyClick: () -> Unit,
     showReplies: () -> Unit,
-    onLongClick: () -> Unit,
-    modifier: Modifier = Modifier
+    onCommentLongClick: () -> Unit,
+    onReplyLongClick: (ReplyItem, Float) -> Unit,
+    commentModifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     var shouldShowReplies by rememberSaveable { mutableStateOf(false) }
 
     Column(
-        modifier = modifier
+        modifier = commentModifier
             .fillMaxWidth()
             .combinedClickable(
                 onClick = {},
-                onLongClick = onLongClick
+                onLongClick = onCommentLongClick
             )
             .testTag("comment_item_${comment.commentId}")
     ) {
@@ -432,12 +509,18 @@ fun CommentRow(
         }
 
         if (recentAddedReplies.isNotEmpty() && !shouldShowReplies) {
-            Replies(replies = recentAddedReplies)
+            Replies(
+                replies = recentAddedReplies,
+                onReplyLongClick = onReplyLongClick,
+            )
         }
 
         if (comment.replyCount > 0) {
             if (shouldShowReplies) {
-                Replies(replies = wholeReplies)
+                Replies(
+                    replies = wholeReplies,
+                    onReplyLongClick = onReplyLongClick
+                )
             } else {
                 Text(
                     text = context.getString(R.string.view_replies, comment.replyCount),
@@ -580,7 +663,8 @@ fun FocusedCommentRow(
 
 @Composable
 fun Replies(
-    replies: ImmutableList<ReplyItem>
+    replies: ImmutableList<ReplyItem>,
+    onReplyLongClick: (ReplyItem, Float) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -588,7 +672,12 @@ fun Replies(
             .padding(top = 12.dp, start = 60.dp)
     ) {
         replies.forEach { item ->
-            ReplyRow(reply = item)
+            ReplyRow(
+                reply = item,
+                onLongClick = { yOffset ->
+                    onReplyLongClick(item, yOffset)
+                },
+            )
         }
     }
 }
@@ -596,12 +685,22 @@ fun Replies(
 @Composable
 fun ReplyRow(
     reply: ReplyItem,
+    onLongClick: (Float) -> Unit,
 ) {
     val context = LocalContext.current
+    var yOffset by remember { mutableFloatStateOf(0f) }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = 8.dp)
+            .onGloballyPositioned {
+                yOffset = it.positionInWindow().y
+            }
+            .combinedClickable(
+                onClick = {},
+                onLongClick = { onLongClick(yOffset) }
+            )
             .testTag("reply_item_${reply.replyId}")
     ) {
         GlideImage(
@@ -669,6 +768,130 @@ fun ReplyRow(
                 text = "${reply.likeCount}",
                 style = InstagramTheme.typography.bodySmallGray
             )
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun FocusedReplyRow(
+    reply: ReplyItem,
+    deleteReply: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val context = LocalContext.current
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(18.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(color = InstagramTheme.colors.secondary)
+                .padding(start = 60.dp, top = 10.dp, bottom = 10.dp)
+                .noRippleClick(onClick = onDismiss)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 10.dp)
+            ) {
+                GlideImage(
+                    imageModel = { reply.user.profileImageUrl },
+                    previewPlaceholder = painterResource(R.drawable.ic_dummy_background),
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .size(42.dp)
+                )
+
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier
+                        .width(0.dp)
+                        .weight(1f)
+                        .padding(start = 8.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                    ) {
+                        Text(
+                            text = reply.user.name,
+                            style = InstagramTheme.typography.bodySmall,
+                            modifier = Modifier
+                                .padding(end = 4.dp)
+                        )
+
+                        val timeAt = when (reply.timeAt) {
+                            is Timestamp.JustNow -> stringResource(R.string.time_just_now)
+                            is Timestamp.MinutesAgo -> context.getString(R.string.time_minutes_ago, reply.timeAt.minutes)
+                            is Timestamp.HoursAgo -> context.getString(R.string.time_hours_ago, reply.timeAt.hours)
+                            is Timestamp.DaysAgo -> context.getString(R.string.time_days_ago, reply.timeAt.days)
+                            is Timestamp.Date -> reply.timeAt.date
+                        }
+
+                        Text(
+                            text = timeAt,
+                            style = InstagramTheme.typography.bodySmallGray,
+                        )
+                    }
+
+                    Text(
+                        text = reply.content,
+                        style = InstagramTheme.typography.bodyMedium
+                    )
+                }
+
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .noRippleClick { }
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.FavoriteBorder,
+                        contentDescription = "Like",
+                        tint = Color.Gray,
+                        modifier = Modifier
+                            .padding(bottom = 4.dp)
+                            .size(16.dp)
+                    )
+                    Text(
+                        text = "${reply.likeCount}",
+                        style = InstagramTheme.typography.bodySmallGray
+                    )
+                }
+            }
+        }
+
+        Card(
+            shape = RoundedCornerShape(24.dp),
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .fillMaxWidth()
+                .background(color = InstagramTheme.colors.secondary)
+                .padding(10.dp)
+                .noRippleClick(onClick = deleteReply)
+                .testTag("delete_reply_button_${reply.replyId}")
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_delete),
+                    tint = InstagramTheme.colors.error,
+                    contentDescription = "deleteComment",
+                    modifier = Modifier
+                        .padding(end = 4.dp)
+                )
+                Text(
+                    text = stringResource(R.string.delete),
+                    style = InstagramTheme.typography.bodyMedium,
+                    color = InstagramTheme.colors.error
+                )
+            }
         }
     }
 }
@@ -797,6 +1020,7 @@ private fun FeedCommentBottomSheetPreview() {
                 addComment = {},
                 deleteComment = {},
                 addReply = { _, _ -> },
+                deleteReply = { _, _ -> },
                 showReplies = {}
             )
         }

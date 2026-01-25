@@ -8,7 +8,7 @@ class DeleteReplyUseCase @Inject constructor(
     private val feedRepository: FeedRepository
 ) {
 
-    suspend operator fun invoke(feedId: String, replyId: String): Reply {
-        return feedRepository.deleteReply(feedId, replyId)
+    suspend operator fun invoke(feedId: String, commentId: String, replyId: String): Reply? {
+        return feedRepository.deleteReply(feedId, commentId, replyId)
     }
 }

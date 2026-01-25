@@ -30,6 +30,7 @@ import com.dhkim.domain.user.useCase.GetUserUseCase
 import com.dhkim.feed.common.CommentItem
 import com.dhkim.feed.common.FeedItem
 import com.dhkim.feed.common.ReplyGroup
+import com.dhkim.feed.common.ReplyItem
 import com.dhkim.feed.common.toFeedItem
 import com.dhkim.network.ConnectivityChecker
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -228,17 +229,17 @@ class HomeViewModel @Inject constructor(
             }
 
             is HomeAction.DeleteReply -> {
-                deleteReply(action.comment, action.replyId)
+                deleteReply(action.comment, action.reply)
             }
         }
     }
 
-    private fun deleteReply(comment: CommentItem, replyId: String) {
+    private fun deleteReply(comment: CommentItem, reply: ReplyItem) {
         viewModelScope.handle(
             block = {
                 targetCommentForReply.update { comment }
                 val feedId = targetFeedForComments.value?.feedId ?: return@handle
-                val deletedReply = deleteReplyUseCase(feedId, replyId)
+                val deletedReply = deleteReplyUseCase(feedId, comment.commentId, reply.replyId)
                 recentDeletedReply.update { deletedReply }
             },
             onError = {

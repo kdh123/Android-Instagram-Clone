@@ -50,5 +50,5 @@ interface FeedRepository {
 
     fun getReplies(commentId: String): Flow<List<Reply>>
     suspend fun replyComment(feedId: String, commentId: String, user: User, comment: String): Reply
-    suspend fun deleteReply(feedId: String, replyId: String): Reply
+    suspend fun deleteReply(feedId: String, commentId: String, replyId: String): Reply?
 }

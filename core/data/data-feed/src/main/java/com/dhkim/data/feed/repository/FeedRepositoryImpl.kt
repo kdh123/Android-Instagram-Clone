@@ -248,11 +248,23 @@ class FeedRepositoryImpl @Inject constructor(
         user: User,
         comment: String
     ): Reply {
-        return remoteDataSource.replyComment(feedId, commentId, user.toUserDto(), comment).toReply()
+        val addedReply = remoteDataSource.replyComment(feedId, commentId, user.toUserDto(), comment).toReply()
+        val currentHomeFeed = localDataSource.getHomeFeed(feedId).first()
+        if (currentHomeFeed != null) {
+            localDataSource.updateHomeFeed(currentHomeFeed.copy(commentCount = currentHomeFeed.commentCount + 1))
+        }
+
+        return addedReply
     }
 
-    override suspend fun deleteReply(feedId: String, replyId: String): Reply {
-        TODO()
+    override suspend fun deleteReply(feedId: String, commentId: String, replyId: String): Reply? {
+        val deletedReply = remoteDataSource.deleteReply(feedId, commentId, replyId)?.toReply()
+        val currentHomeFeed = localDataSource.getHomeFeed(feedId).first()
+        if (currentHomeFeed != null) {
+            localDataSource.updateHomeFeed(currentHomeFeed.copy(commentCount = currentHomeFeed.commentCount - 1))
+        }
+
+        return deletedReply
     }
 
     private fun enqueueLikeWorker(feedId: String) {

@@ -517,4 +517,140 @@ class HomeScreenTest {
         composeRule.onNodeWithTag("delete_comment_button_commentId0").performSemanticsAction(SemanticsActions.OnClick)
         composeRule.onNodeWithText("Test Comment 0").assertDoesNotExist()
     }
+
+    @OptIn(ExperimentalMaterial3Api::class)
+    @Test
+    fun whenReplyDeleted_thenReplyRemovedFromList() = runTest {
+        coEvery { feedRepository.getAllLikedFeeds(any()) } returns flowOf(setOf(LikeFeed("feedId1", "userId1")))
+        coEvery { feedRepository.toggleEnableComment(any(), any(), any()) } returns Unit
+        coEvery { feedRepository.toggleLikeCountVisibility(any(), any(), any()) } returns Unit
+        coEvery { feedRepository.getHiddenFeeds() } returns flowOf(setOf(HiddenFeed("feedId1", 1234567890)))
+        coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf(emptyList())
+        coEvery { feedRepository.getMyFeeds() } returns flowOf(myFeeds)
+        coEvery { feedRepository.getHomeFeeds() } returns flowOf(PagingData.from(fakeFeeds))
+        coEvery { feedRepository.getComments(any()) } returns flowOf(PagingData.from(fakeComments))
+        coEvery { userRepository.getUser() } returns flowOf(testUser)
+        coEvery { connectivityChecker.isNetworkAvailable() } returns flowOf(true)
+        val replyFlows = mutableMapOf<String, MutableStateFlow<List<Reply>>>()
+
+        every {
+            feedRepository.getReplies(any())
+        } answers {
+            val commentId = firstArg<String>()
+
+            replyFlows.getOrPut(commentId) {
+                MutableStateFlow(emptyList())
+            }
+        }
+
+        coEvery {
+            feedRepository.replyComment(any(), any(), any(), any())
+        } answers {
+            val commentId = secondArg<String>()
+            val user = thirdArg<User>()
+            val comment = "hello"
+
+            val reply = Reply(
+                replyId = "replyId",
+                commentId = commentId,
+                user = user,
+                content = comment,
+                timeAt = 123456789L,
+                likeCount = 0
+            )
+
+            val flow = replyFlows.getOrPut(commentId) {
+                MutableStateFlow(emptyList())
+            }
+            flow.update { it + reply }
+            reply
+        }
+
+        coEvery {
+            feedRepository.deleteReply(any(), any(), any())
+        } answers {
+            val commentId = secondArg<String>()
+            val replyId = thirdArg<String>()
+            val comment = "hello"
+
+            val reply = Reply(
+                replyId = replyId,
+                commentId = commentId,
+                user = testUser,
+                content = comment,
+                timeAt = 123456789L,
+                likeCount = 0
+            )
+
+            val flow = replyFlows.getOrPut(commentId) {
+                MutableStateFlow(emptyList())
+            }
+            val updateReplies = flow.value.filter { it.replyId != replyId }
+            flow.update { updateReplies }
+            reply
+        }
+
+
+        composeRule.setContent {
+            val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+            val feeds = viewModel.feeds.collectAsLazyPagingItems()
+            val likers = viewModel.likers.collectAsLazyPagingItems()
+            val comments = viewModel.comments.collectAsLazyPagingItems()
+            val replies by viewModel.replies.collectAsStateWithLifecycle()
+            val feedState = rememberLazyListState()
+            val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(
+                bottomSheetState = rememberStandardBottomSheetState(
+                    initialValue = SheetValue.Hidden,
+                    skipHiddenState = false
+                )
+            )
+
+            HomeScreen(
+                uiState = uiState,
+                feedState = feedState,
+                bottomSheetScaffoldState = bottomSheetScaffoldState,
+                feeds = feeds,
+                likers = likers,
+                comments = comments,
+                replies = replies,
+                onAction = viewModel::onAction,
+                onFeedLayoutChange = {}
+            )
+        }
+
+        composeRule.waitUntilAtLeastOneExists(
+            hasText("Tester0"),
+            300
+        )
+
+        val commentIcon = composeRule.onNodeWithTag(
+            "comment_icon_${fakeFeeds[0].feedId}",
+            useUnmergedTree = true
+        )
+        commentIcon.assertExists().assertHasClickAction()
+        commentIcon.performSemanticsAction(SemanticsActions.OnClick)
+
+        composeRule.waitUntilAtLeastOneExists(
+            hasText("Test Comment 0"),
+            300
+        )
+
+        composeRule.onNodeWithTag("reply_button_commentId0").performSemanticsAction(SemanticsActions.OnClick)
+        composeRule.onNodeWithTag("reply_to_username").assertExists()
+        composeRule.onNodeWithTag("comment_text_field").performSemanticsAction(SemanticsActions.OnClick)
+        composeRule.onNodeWithTag("comment_text_field").performTextInput("hello")
+        composeRule.onNodeWithTag("add_comment_button").performSemanticsAction(SemanticsActions.OnClick)
+
+        composeRule.waitUntilAtLeastOneExists(
+            hasText("hello"),
+            300
+        )
+        composeRule.onNodeWithTag("reply_item_replyId").performSemanticsAction(SemanticsActions.OnLongClick)
+        composeRule.onNodeWithTag("delete_reply_button_replyId").assertExists()
+        composeRule.onNodeWithTag("delete_reply_button_replyId").performSemanticsAction(SemanticsActions.OnClick)
+        composeRule.waitUntilDoesNotExist(
+            hasTestTag("reply_item_replyId"),
+            300
+        )
+    }
 }

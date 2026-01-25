@@ -420,7 +420,7 @@ class HomeViewModelTest {
         }
 
         coEvery {
-            feedRepository.deleteReply(any(), any())
+            feedRepository.deleteReply(any(), any(), any())
         } answers {
             val comment = "hello"
             val reply = Reply(
@@ -498,7 +498,17 @@ class HomeViewModelTest {
             )
         }
 
-        viewModel.onAction(HomeAction.DeleteReply(comment = fakeComments[0].toCommentItem(), replyId = "replyId"))
+        viewModel.onAction(
+            HomeAction.DeleteReply(
+                comment = fakeComments[0].toCommentItem(), reply = ReplyItem(
+                    replyId = "replyId",
+                    user = testUser.toUserItem(),
+                    content = "hello",
+                    timeAt = 123456789L.toRelativeTime(),
+                    likeCount = 0
+                )
+            )
+        )
         viewModel.replies.test {
             assertEquals(awaitItem().size, 0)
         }
