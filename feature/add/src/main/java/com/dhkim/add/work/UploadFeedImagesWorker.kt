@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.toList
 import java.io.ByteArrayOutputStream
 import java.io.File
 import androidx.core.graphics.scale
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.retry
 import java.io.IOException
 
@@ -52,14 +53,20 @@ class UploadFeedImagesWorker @AssistedInject constructor(
     }
 
     private suspend fun uploadImages(feedId: String, filePaths: List<String>) = coroutineScope {
-        val downloadImageUrls = filePaths.asFlow()
-            .flatMapMerge(concurrency = 10) { filePath ->
+        val downloadImageUrls = filePaths
+            .mapIndexed { index, path -> index to path }
+            .asFlow()
+            .flatMapMerge(concurrency = 10) { (index, filePath) ->
                 val file = File(filePath)
                 uploadImageUseCase(file)
                     .retry(2) { e -> e is IOException }
-                    .catch { emit("") }
-            }.toList()
-            .filter { it.isNotEmpty() }
+                    .map { url -> index to url }
+                    .catch { emit(index to "") }
+            }
+            .toList()
+            .filter { it.second.isNotEmpty() }
+            .sortedBy { it.first }
+            .map { it.second }
         val feedUploadStatus = feedRepository.getFeedUploadStatus(feedId).first()?.copy(
             imageUrls = downloadImageUrls,
             uploadState = UploadState.IMAGE_SUCCESS

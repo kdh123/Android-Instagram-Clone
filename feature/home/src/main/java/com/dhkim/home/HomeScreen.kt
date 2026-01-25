@@ -238,6 +238,15 @@ fun HomeScreen(
                             onFeedLayoutChange(it.size != IntSize.Zero)
                         }
                 ) {
+                    item {
+                        Text(
+                            text = "Instagram",
+                            style = InstagramTheme.typography.titleLarge,
+                            modifier = Modifier
+                                .padding(horizontal = 10.dp)
+                        )
+                    }
+
                     items(
                         count = feeds.itemCount + feedUploadStatuses.size,
                         key = { index ->
@@ -255,6 +264,8 @@ fun HomeScreen(
                             }
                         }
                     ) { index ->
+
+
                         if (index < feedUploadStatuses.size) {
                             FeedUploadStatusContent(feedUploadStatus = feedUploadStatuses[index])
                         } else {
