@@ -1,4 +1,5 @@
 ## 🔐 Feature: Google Login & Authentication
+🇰🇷 **[Read this in Korean](./README_ko.md)**
 
 This branch (`feature/login`) implements a secure and seamless user authentication flow using **Firebase Authentication** and **Google Identity Services**.
 
