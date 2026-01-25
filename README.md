@@ -1,5 +1,28 @@
 ## 🛠 Core Features & Technical Challenges
 
+<table table-layout="fixed">
+  <tr>
+    <td align="center"><b>Light Mode UI</b></td>
+    <td align="center"><b>Dark Mode UI</b></td>
+    <td align="center"><b>Core Interactions</b></td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/bf864a37-1277-45f2-ac3a-dc02781c8c65" width="250"><br>
+      <sub>Feed list in Light Mode</sub>
+    </td>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/a3a84877-c5c5-453d-af4d-88460703bd3e" width="250"><br>
+      <sub>Feed list in Dark Mode</sub>
+    </td>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/c466309f-ccab-4153-b766-bd9317dc0339" width="250"><br>
+      <sub>Likes, Comments, and Replies</sub>
+    </td>
+  </tr>
+</table>
+
+
 ### 1. Feed: Seamless Offline Experience (Paging 3 + RemoteMediator)
 To ensure a high-quality user experience even in poor network environments, I implemented a "Local-first" strategy inspired by [Instagram's Background Prefetching](https://medium.com/instagram-engineering/improving-performance-with-background-data-prefetching-b191acb39898).
 
