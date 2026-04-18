@@ -1,11 +1,12 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.hilt)
+    alias(libs.plugins.ksp)
 }
 
 android {
-    namespace = "com.dhkim.reels"
+    namespace = "com.dhkim.data.reels"
     compileSdk {
         version = release(36)
     }
@@ -33,13 +34,25 @@ android {
 }
 
 dependencies {
-    implementation(project(":core:designsystem"))
+    implementation(project(":core:common"))
+    implementation(project(":core:data:data-common"))
+    implementation(project(":core:database"))
+    implementation(project(":core:domain:domain-user"))
+    implementation(project(":core:domain:domain-reels"))
 
-    implementation(libs.bundles.androidx.compose.main)
-    implementation(libs.bundles.androidx.compose.side)
-    implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.core.ktx)
-    implementation(libs.bundles.androidx.media3)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.material)
+    implementation(platform(libs.google.firebase.bom))
+    implementation(libs.google.firebase.database.ktx)
+    implementation(libs.google.firebase.storage)
+    implementation(libs.bundles.androidx.workManager)
+    implementation(libs.androidx.paging.common)
+    implementation(libs.bundles.androidx.room)
+    implementation(libs.hilt)
+    ksp(libs.hilt.compiler)
+    ksp(libs.android.hilt.compiler)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

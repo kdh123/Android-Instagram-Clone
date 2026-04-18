@@ -50,7 +50,7 @@ class UploadFeedContentWorker @AssistedInject constructor(
                 }
             }
 
-        return Result.Success()
+        return Result.success()
     }
 
     private suspend fun updateFeedUploadSuccessStatus(feedId: String) {

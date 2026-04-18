@@ -58,6 +58,7 @@ dependencies {
     implementation(project(":core:data:data-login"))
     implementation(project(":core:data:data-user"))
     implementation(project(":core:data:data-feed"))
+    implementation(project(":core:data:data-reels"))
 
     implementation(libs.bundles.androidx.compose.main)
     implementation(libs.bundles.androidx.compose.side)

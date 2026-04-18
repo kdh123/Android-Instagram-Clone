@@ -58,6 +58,7 @@ credentials = "1.3.0"
 googleIdentity = "1.1.1"
 mockk = "1.14.7"
 cloudy = "0.2.7"
+exoPlayer = "1.5.1"
 
 
 [libraries]
@@ -158,6 +159,10 @@ androidx-benchmark-macro-junit4 = { group = "androidx.benchmark", name = "benchm
 androidx-profileinstaller = { group = "androidx.profileinstaller", name = "profileinstaller", version.ref = "profileinstaller" }
 compose-cloudy = { module = "com.github.skydoves:cloudy", version.ref = "cloudy" }
 
+androidx-media3-exoplayer = { module = "androidx.media3:media3-exoplayer", version.ref = "exoPlayer" }
+androidx-media3-ui = { module = "androidx.media3:media3-ui", version.ref = "exoPlayer" }
+androidx-media3-common = { module = "androidx.media3:media3-common", version.ref = "exoPlayer" }
+
 app-cash-turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 mockk-android = { module = "io.mockk:mockk-android", version.ref = "mockk" }
@@ -245,6 +250,12 @@ androidx-paging3 = [
 
 google-permission = [
     "google-permission"
+]
+
+androidx-media3 = [
+    "androidx-media3-exoplayer",
+    "androidx-media3-ui",
+    "androidx-media3-common"
 ]
 
 androidx-datastore = [
