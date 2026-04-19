@@ -1,5 +1,7 @@
 package com.dhkim.data.reels.repository
 
+import androidx.annotation.OptIn
+import androidx.media3.common.util.UnstableApi
 import com.dhkim.data.reels.dataSource.ReelsRemoteDataSource
 import com.dhkim.domain.reels.model.Reels
 import com.dhkim.domain.reels.repository.ReelsRepository
@@ -13,5 +15,10 @@ class ReelsRepositoryImpl @Inject constructor(
 
     override fun getReels(): Flow<List<Reels>> {
         return remoteDataSource.getReels().map { it.map { it.toReels() } }
+    }
+
+    @OptIn(UnstableApi::class)
+    override suspend fun prefetchVideo(url: String) {
+        remoteDataSource.prefetchVideo(url)
     }
 }

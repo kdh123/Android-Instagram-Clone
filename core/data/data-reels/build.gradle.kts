@@ -39,6 +39,7 @@ dependencies {
     implementation(project(":core:database"))
     implementation(project(":core:domain:domain-user"))
     implementation(project(":core:domain:domain-reels"))
+    implementation(project(":core:video"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
@@ -47,6 +48,7 @@ dependencies {
     implementation(libs.google.firebase.database.ktx)
     implementation(libs.google.firebase.storage)
     implementation(libs.bundles.androidx.workManager)
+    implementation(libs.bundles.androidx.media3)
     implementation(libs.androidx.paging.common)
     implementation(libs.bundles.androidx.room)
     implementation(libs.hilt)

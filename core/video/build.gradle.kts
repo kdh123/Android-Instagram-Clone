@@ -1,13 +1,12 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
 }
 
 android {
-    namespace = "com.dhkim.reels"
+    namespace = "com.dhkim.video"
     compileSdk {
         version = release(36)
     }
@@ -35,18 +34,11 @@ android {
 }
 
 dependencies {
-    implementation(project(":core:designsystem"))
-    implementation(project(":core:ui"))
-    implementation(project(":core:common"))
-    implementation(project(":core:domain:domain-reels"))
-    implementation(project(":core:video"))
-
-    implementation(libs.bundles.androidx.compose.main)
-    implementation(libs.bundles.androidx.compose.side)
-    implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.core.ktx)
-    implementation(libs.bundles.androidx.media3)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.material)
     implementation(libs.hilt)
+    implementation(libs.bundles.androidx.media3)
     ksp(libs.hilt.compiler)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

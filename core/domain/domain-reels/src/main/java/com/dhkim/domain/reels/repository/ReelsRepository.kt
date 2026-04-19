@@ -6,4 +6,5 @@ import kotlinx.coroutines.flow.Flow
 interface ReelsRepository {
 
     fun getReels(): Flow<List<Reels>>
+    suspend fun prefetchVideo(url: String)
 }
