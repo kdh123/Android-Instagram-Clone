@@ -64,6 +64,7 @@ class MainActivity : ComponentActivity() {
                     if (isLoggedIn == true && !hasNavigatedAfterLogin) {
                         appState.navigateToHomeFromLogin()
                         hasNavigatedAfterLogin = true
+                        viewModel.prefetchReelsUseCase()
                     }
                 }
 
