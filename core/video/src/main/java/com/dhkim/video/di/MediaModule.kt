@@ -1,6 +1,8 @@
 package com.dhkim.video.di
 
 import android.content.Context
+import androidx.annotation.OptIn
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.cache.Cache
@@ -20,6 +22,7 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object MediaModule {
 
+    @OptIn(UnstableApi::class)
     @Provides
     @Singleton
     fun provideVideoCache(@ApplicationContext context: Context): Cache {

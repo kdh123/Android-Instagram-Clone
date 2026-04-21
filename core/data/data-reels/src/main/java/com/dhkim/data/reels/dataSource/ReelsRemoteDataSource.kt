@@ -1,6 +1,7 @@
 package com.dhkim.data.reels.dataSource
 
 import android.content.Context
+import androidx.annotation.OptIn
 import androidx.core.net.toUri
 import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.cache.CacheDataSource
@@ -18,7 +19,8 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
-class ReelsRemoteDataSource @Inject constructor(
+class ReelsRemoteDataSource @OptIn(androidx.media3.common.util.UnstableApi::class)
+@Inject constructor(
     private val firebaseDatabase: FirebaseDatabase,
     private val storage: FirebaseStorage,
     private val cacheDataSourceFactory: CacheDataSource.Factory,
@@ -29,7 +31,7 @@ class ReelsRemoteDataSource @Inject constructor(
 
     fun getReels(): Flow<List<ReelsDto>> {
         return flow {
-            val reelsNames = listOf("sample1.mp4", "sample2.mp4", "sample3.mp4")
+            val reelsNames = listOf("sample1.mp4", "sample2.mp4", "sample4.mp4")
             val reelsUrls = reelsNames.map {
                 ReelsDto(
                     id = "${System.currentTimeMillis()}",
