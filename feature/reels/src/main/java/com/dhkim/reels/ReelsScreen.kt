@@ -54,7 +54,6 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
@@ -73,7 +72,6 @@ import kotlinx.coroutines.launch
 @Composable
 fun ReelsScreen(
     uiState: ReelsUiState,
-    mediaSourceFactory: DefaultMediaSourceFactory,
     onAction: (ReelsAction) -> Unit,
 ) {
     Box(
@@ -365,8 +363,6 @@ fun rememberPlayerView(exoPlayer: ExoPlayer): PlayerView {
 private fun ReelsScreenPreview(
     @PreviewParameter(ReelsPreviewProvider::class) uiState: ReelsUiState
 ) {
-    val context = LocalContext.current
-
     InstagramTheme {
         Surface(
             modifier = Modifier.fillMaxSize(),
@@ -374,7 +370,6 @@ private fun ReelsScreenPreview(
         ) {
             ReelsScreen(
                 uiState = uiState,
-                mediaSourceFactory = DefaultMediaSourceFactory(context),
                 onAction = {}
             )
         }
@@ -390,7 +385,12 @@ class ReelsPreviewProvider : PreviewParameterProvider<ReelsUiState> {
             add(
                 Reel(
                     id = "id$it",
-                    url = "url$it"
+                    url = "url$it",
+                    caption = "caption$it",
+                    likeCount = it,
+                    userId = "userId$it",
+                    userName = "userName$it",
+                    userProfileImage = "userProfileImage$it",
                 )
             )
         }

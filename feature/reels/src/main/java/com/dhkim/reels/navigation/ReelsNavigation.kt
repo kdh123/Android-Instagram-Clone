@@ -13,11 +13,9 @@ fun NavGraphBuilder.reels() {
     composable(REELS_ROUTE) {
         val viewModel = hiltViewModel<ReelsViewModel>()
         val uiState = viewModel.uiState.collectAsStateWithLifecycle()
-        val mediaSourceFactory = viewModel.mediaSourceFactory
 
         ReelsScreen(
             uiState = uiState.value,
-            mediaSourceFactory = mediaSourceFactory,
             onAction = viewModel::onAction
         )
     }

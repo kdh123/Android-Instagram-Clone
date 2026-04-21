@@ -3,7 +3,6 @@ package com.dhkim.reels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import com.dhkim.common.handle
 import com.dhkim.domain.reels.useCase.GetReelsUseCase
 import com.dhkim.domain.reels.useCase.PrefetchReelsUseCase
@@ -22,7 +21,6 @@ import javax.inject.Inject
 class ReelsViewModel @Inject constructor(
     private val getReelsUseCase: GetReelsUseCase,
     private val prefetchReelsUseCase: PrefetchReelsUseCase,
-    val mediaSourceFactory: DefaultMediaSourceFactory,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ReelsUiState())

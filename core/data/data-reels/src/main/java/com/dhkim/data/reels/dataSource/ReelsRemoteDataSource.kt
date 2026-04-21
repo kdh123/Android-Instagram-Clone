@@ -6,7 +6,7 @@ import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.CacheWriter
 import com.dhkim.common.retryWithDelay
-import com.dhkim.data.reels.model.ReelsDto
+import com.dhkim.data.reels.model.ReelDto
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.storage.FirebaseStorage
 import dagger.hilt.android.UnstableApi
@@ -24,18 +24,15 @@ class ReelsRemoteDataSource @OptIn(androidx.media3.common.util.UnstableApi::clas
     private val cacheDataSourceFactory: CacheDataSource.Factory,
 ) {
 
+    private val reelsRef = firebaseDatabase.getReference("reels")
     private val storageRef = storage.reference
 
-    fun getReels(): Flow<List<ReelsDto>> {
+    fun getReels(): Flow<List<ReelDto>> {
         return flow {
-            val reelsNames = listOf("sample1.mp4", "sample2.mp4", "sample3.mp4", "sample4.mp4", "sample5.mp4", "sample6.mp4")
-            val reelsUrls = reelsNames.map {
-                ReelsDto(
-                    id = "${System.currentTimeMillis()}",
-                    url = "${storageRef.child("reels/$it").downloadUrl.await()}"
-                )
-            }
-            emit(reelsUrls)
+            val snapshot = reelsRef.child("reels_by_reel_id").get().await()
+            val reels = snapshot.children
+                .mapNotNull { it.getValue(ReelDto::class.java) }
+            emit(reels)
         }.retryWithDelay()
     }
 

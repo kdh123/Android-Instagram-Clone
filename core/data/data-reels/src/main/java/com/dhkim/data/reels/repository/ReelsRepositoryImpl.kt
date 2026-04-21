@@ -14,7 +14,7 @@ class ReelsRepositoryImpl @Inject constructor(
 ) : ReelsRepository {
 
     override fun getReels(): Flow<List<Reel>> {
-        return remoteDataSource.getReels().map { it.map { it.toReels() } }
+        return remoteDataSource.getReels().map { it.map { it.toReel() } }
     }
 
     @OptIn(UnstableApi::class)
