@@ -12,23 +12,32 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -36,9 +45,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
@@ -61,7 +73,9 @@ import androidx.media3.ui.PlayerView.SHOW_BUFFERING_ALWAYS
 import com.dhkim.designsystem.InstagramTheme
 import com.dhkim.domain.reels.model.Reel
 import com.dhkim.ui.LoadingSpinner
+import com.dhkim.ui.noRippleClick
 import com.dhkim.video.VideoCacheManager
+import com.skydoves.landscapist.glide.GlideImage
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.delay
@@ -111,11 +125,6 @@ fun ReelsContent(
     var isMuted by remember {
         mutableStateOf(false)
     }
-    val isFirstItem by remember(pagerState) {
-        derivedStateOf {
-            pagerState.currentPage == 0
-        }
-    }
 
     LaunchedEffect(key1 = pagerState) {
         snapshotFlow { pagerState.currentPage }.distinctUntilChanged().collect { page ->
@@ -123,32 +132,147 @@ fun ReelsContent(
         }
     }
 
-    Box {
-        VerticalPager(
-            state = pagerState,
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) { index ->
-            val shouldPlay by remember(pagerState) {
-                derivedStateOf {
-                    pagerState.currentPage == index || pagerState.targetPage == index
-                }
+    VerticalPager(
+        state = pagerState,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) { index ->
+        val shouldPlay by remember(pagerState) {
+            derivedStateOf {
+                pagerState.currentPage == index || pagerState.targetPage == index
             }
-            ReelPlayer(
-                reel = reels[index],
-                shouldPlay = shouldPlay,
-                isMuted = isMuted,
-                isScrolling = pagerState.isScrollInProgress,
-                onMuted = {
-                    isMuted = it
-                },
-                onDoubleTap = {
-                    onAction(ReelsAction.ToggleLike(reelUrl = reels[index].url))
-                },
-                savePlaybackPosition = {
-                    onAction(ReelsAction.SavePlaybackPosition(reels[index].url, it))
-                }
+        }
+        Box {
+            if (!LocalInspectionMode.current) {
+                ReelPlayer(
+                    reel = reels[index],
+                    shouldPlay = shouldPlay,
+                    isMuted = isMuted,
+                    isScrolling = pagerState.isScrollInProgress,
+                    onMuted = { isMuted = it },
+                    onDoubleTap = { onAction(ReelsAction.ToggleLike(reelUrl = reels[index].url)) },
+                    onAction = onAction
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                )
+            }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+            ) {
+                ReelOptions(
+                    modifier = Modifier
+                        .align(Alignment.End)
+                        .padding(end = 8.dp)
+                )
+                ReelProfile(
+                    userName = reels[index].userName,
+                    profileImage = reels[index].userProfileImage,
+                    caption = "Hello World!",
+                    onProfileClick = {
+                        //reels[index].userId
+                    },
+                    modifier = Modifier
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ReelProgressBar(
+    exoPlayer: ExoPlayer,
+    modifier: Modifier = Modifier
+) {
+    var currentProgress by remember { mutableFloatStateOf(0f) }
+
+    LaunchedEffect(exoPlayer) {
+        while (true) {
+            val duration = exoPlayer.duration
+            currentProgress = if (duration > 0) {
+                exoPlayer.currentPosition.toFloat() / duration.toFloat()
+            } else {
+                0f
+            }
+            delay(50)
+        }
+    }
+
+    LinearProgressIndicator(
+        progress = { currentProgress },
+        color = Color.LightGray,
+        modifier = modifier
+            .fillMaxWidth(),
+    )
+}
+
+@Composable
+fun ReelOptions(
+    modifier: Modifier = Modifier
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = modifier
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.FavoriteBorder,
+            contentDescription = null,
+            tint = Color.White,
+            modifier = modifier
+                .size(32.dp)
+        )
+        Icon(
+            painter = painterResource(R.drawable.ic_comment),
+            contentDescription = null,
+            tint = Color.White,
+            modifier = modifier
+                .size(32.dp)
+        )
+    }
+}
+
+@Composable
+fun ReelProfile(
+    userName: String,
+    profileImage: String,
+    caption: String,
+    onProfileClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+        ) {
+            GlideImage(
+                imageModel = { profileImage },
+                previewPlaceholder = painterResource(com.dhkim.ui.R.drawable.ic_dummy_background),
+                modifier = modifier
+                    .clip(CircleShape)
+                    .size(36.dp)
+                    .noRippleClick(onClick = onProfileClick)
+            )
+            Text(
+                text = userName,
+                style = InstagramTheme.typography.labelMediumBold,
+                modifier = Modifier
             )
         }
+        Text(
+            text = caption,
+            style = InstagramTheme.typography.bodyMedium,
+            modifier = Modifier
+        )
     }
 }
 
@@ -156,7 +280,7 @@ fun ReelsContent(
 @Composable
 fun rememberExoPlayerWithLifecycle(
     reelUrl: String,
-    position: Long,
+    position: Long
 ): ExoPlayer {
 
     val context = LocalContext.current
@@ -184,9 +308,7 @@ fun rememberExoPlayerWithLifecycle(
 
             setMediaSource(source)
             prepare()
-            if (position > 0) {
-                seekTo(position)
-            }
+            if (position > 0) seekTo(position)
         }
     }
     var appInBackground by remember {
@@ -245,7 +367,7 @@ fun ReelPlayer(
     onMuted: (Boolean) -> Unit,
     onDoubleTap: (Boolean) -> Unit,
     isScrolling: Boolean,
-    savePlaybackPosition: (Long) -> Unit
+    onAction: (ReelsAction) -> Unit
 ) {
     val exoPlayer = rememberExoPlayerWithLifecycle(reel.url, reel.playbackPosition)
     val playerView = rememberPlayerView(exoPlayer)
@@ -299,6 +421,11 @@ fun ReelPlayer(
             }
         )
 
+        ReelProgressBar(
+            exoPlayer = exoPlayer,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
+
         AnimatedVisibility(
             visible = likeIconVisibility,
             enter = scaleIn(
@@ -331,7 +458,7 @@ fun ReelPlayer(
 
     DisposableEffect(key1 = true) {
         onDispose {
-            savePlaybackPosition(exoPlayer.currentPosition)
+            onAction(ReelsAction.SavePlaybackPosition(reelUrl = reel.url, position = exoPlayer.currentPosition))
             exoPlayer.release()
         }
     }
