@@ -6,18 +6,27 @@ import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.DraggableState
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.VerticalPager
@@ -37,7 +46,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -47,6 +55,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
@@ -80,6 +90,7 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -116,15 +127,22 @@ fun ReelsScreen(
 
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ReelsContent(
     reels: ImmutableList<Reel>,
     onAction: (ReelsAction) -> Unit,
 ) {
     val pagerState = rememberPagerState { reels.size }
-    var isMuted by remember {
-        mutableStateOf(false)
+    val coroutineScope = rememberCoroutineScope()
+    var isMuted by remember { mutableStateOf(false) }
+    val density = LocalDensity.current
+    val sheetMaxHeightPx = with(density) { 400.dp.toPx() }
+    var sheetOffsetPx by remember { mutableFloatStateOf(0f) }
+    val draggableState = rememberDraggableState { delta ->
+        sheetOffsetPx = (sheetOffsetPx - delta).coerceIn(0f, sheetMaxHeightPx)
     }
+    val commentHeight = with(density) { sheetOffsetPx.toDp() }
 
     LaunchedEffect(key1 = pagerState) {
         snapshotFlow { pagerState.currentPage }.distinctUntilChanged().collect { page ->
@@ -132,53 +150,83 @@ fun ReelsContent(
         }
     }
 
-    VerticalPager(
-        state = pagerState,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) { index ->
-        val shouldPlay by remember(pagerState) {
-            derivedStateOf {
-                pagerState.currentPage == index || pagerState.targetPage == index
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+    ) {
+        Box(
+            modifier = Modifier
+                .weight(1f)
+        ) {
+            VerticalPager(
+                state = pagerState,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) { index ->
+                val shouldPlay by remember(pagerState) {
+                    derivedStateOf {
+                        pagerState.currentPage == index || pagerState.targetPage == index
+                    }
+                }
+                Box(modifier = Modifier.fillMaxSize()) {
+                    if (!LocalInspectionMode.current) {
+                        ReelPlayer(
+                            reel = reels[index],
+                            shouldPlay = shouldPlay,
+                            isMuted = isMuted,
+                            isScrolling = pagerState.isScrollInProgress,
+                            onMuted = { isMuted = it },
+                            onDoubleTap = { onAction(ReelsAction.ToggleLike(reelUrl = reels[index].url)) },
+                            onAction = onAction
+                        )
+                    }
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .align(Alignment.BottomCenter)
+                    ) {
+                        ReelOptions(
+                            onCommentClick = {
+                                coroutineScope.launch {
+                                    animate(
+                                        initialValue = sheetOffsetPx,
+                                        targetValue = sheetMaxHeightPx,
+                                        animationSpec = spring(stiffness = 300f, dampingRatio = 0.8f)
+                                    ) { value, _ -> sheetOffsetPx = value }
+                                }
+                            },
+                            modifier = Modifier
+                                .align(Alignment.End)
+                                .padding(end = 8.dp)
+                        )
+                        ReelProfile(
+                            userName = reels[index].userName,
+                            profileImage = reels[index].userProfileImage,
+                            caption = "Hello World!",
+                            onProfileClick = {},
+                            modifier = Modifier
+                        )
+                    }
+                }
             }
         }
-        Box {
-            if (!LocalInspectionMode.current) {
-                ReelPlayer(
-                    reel = reels[index],
-                    shouldPlay = shouldPlay,
-                    isMuted = isMuted,
-                    isScrolling = pagerState.isScrollInProgress,
-                    onMuted = { isMuted = it },
-                    onDoubleTap = { onAction(ReelsAction.ToggleLike(reelUrl = reels[index].url)) },
-                    onAction = onAction
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                )
-            }
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.BottomCenter)
-            ) {
-                ReelOptions(
-                    modifier = Modifier
-                        .align(Alignment.End)
-                        .padding(end = 8.dp)
-                )
-                ReelProfile(
-                    userName = reels[index].userName,
-                    profileImage = reels[index].userProfileImage,
-                    caption = "Hello World!",
-                    onProfileClick = {
-                        //reels[index].userId
-                    },
-                    modifier = Modifier
-                )
-            }
-        }
+        CommentBottomSheet(
+            draggableState = draggableState,
+            onDragStopped = { velocity ->
+                val target = if (sheetOffsetPx < sheetMaxHeightPx * 0.5f || velocity > 500f) {
+                    0f
+                } else {
+                    sheetMaxHeightPx
+                }
+                animate(
+                    initialValue = sheetOffsetPx,
+                    targetValue = target,
+                    animationSpec = spring(stiffness = 300f, dampingRatio = 0.8f)
+                ) { value, _ -> sheetOffsetPx = value }
+            },
+            modifier = Modifier
+                .height(commentHeight.coerceAtLeast(0.dp))
+        )
     }
 }
 
@@ -188,14 +236,19 @@ fun ReelProgressBar(
     modifier: Modifier = Modifier
 ) {
     var currentProgress by remember { mutableFloatStateOf(0f) }
+    var isDragging by remember { mutableStateOf(false) }
+    var dragStartProgress by remember { mutableFloatStateOf(0f) }
+    var accumulatedDragPx by remember { mutableFloatStateOf(0f) }
 
     LaunchedEffect(exoPlayer) {
         while (true) {
-            val duration = exoPlayer.duration
-            currentProgress = if (duration > 0) {
-                exoPlayer.currentPosition.toFloat() / duration.toFloat()
-            } else {
-                0f
+            if (!isDragging) {
+                val duration = exoPlayer.duration
+                currentProgress = if (duration > 0) {
+                    exoPlayer.currentPosition.toFloat() / duration.toFloat()
+                } else {
+                    0f
+                }
             }
             delay(50)
         }
@@ -204,13 +257,45 @@ fun ReelProgressBar(
     LinearProgressIndicator(
         progress = { currentProgress },
         color = Color.LightGray,
+        strokeCap = StrokeCap.Square,
         modifier = modifier
-            .fillMaxWidth(),
+            .fillMaxWidth()
+            .height(6.dp)
+            .pointerInput(Unit) {
+                detectDragGestures(
+                    onDragStart = {
+                        isDragging = true
+                        dragStartProgress = currentProgress
+                        accumulatedDragPx = 0f
+                        exoPlayer.pause()
+                    },
+                    onDragEnd = {
+                        isDragging = false
+                        val duration = exoPlayer.duration
+                        if (duration > 0) {
+                            exoPlayer.seekTo((currentProgress * duration).toLong())
+                        }
+                        exoPlayer.play()
+                    },
+                    onDragCancel = {
+                        isDragging = false
+                        currentProgress = dragStartProgress
+                        exoPlayer.play()
+                    },
+                    onDrag = { change, dragAmount ->
+                        change.consume()
+                        accumulatedDragPx += dragAmount.x
+                        currentProgress = (dragStartProgress + accumulatedDragPx / size.width)
+                            .coerceIn(0f, 1f)
+                    }
+                )
+            },
     )
 }
 
 @Composable
 fun ReelOptions(
+    onCommentClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -221,16 +306,54 @@ fun ReelOptions(
             imageVector = Icons.Outlined.FavoriteBorder,
             contentDescription = null,
             tint = Color.White,
-            modifier = modifier
-                .size(32.dp)
+            modifier = Modifier.size(32.dp)
         )
         Icon(
             painter = painterResource(R.drawable.ic_comment),
             contentDescription = null,
             tint = Color.White,
-            modifier = modifier
+            modifier = Modifier
                 .size(32.dp)
+                .noRippleClick(onClick = onCommentClick)
         )
+    }
+}
+
+@Composable
+fun CommentBottomSheet(
+    draggableState: DraggableState,
+    onDragStopped: suspend CoroutineScope.(velocity: Float) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface)
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
+                .draggable(
+                    state = draggableState,
+                    orientation = Orientation.Vertical,
+                    onDragStopped = onDragStopped
+                )
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(width = 40.dp, height = 4.dp)
+                    .clip(CircleShape)
+                    .background(Color.Gray.copy(alpha = 0.5f))
+            )
+        }
+        Text(
+            text = "댓글",
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
