@@ -4,7 +4,7 @@ import com.dhkim.domain.user.model.User
 
 data class Comment(
     val commentId:String,
-    val feedId: String,
+    val targetId: String,
     val user: User,
     val content: String,
     val timeAt: Long,

@@ -111,7 +111,7 @@ class HomeViewModelTest {
     private val fakeComments = List(10) {
         Comment(
             commentId = "commentId$it",
-            feedId = "feedId$it",
+            targetId = "feedId$it",
             user = User(
                 id = "user$it",
                 name = "Tester$it",
@@ -339,7 +339,7 @@ class HomeViewModelTest {
             val content = thirdArg<String>()
             val comment = Comment(
                 commentId = "commentId_0",
-                feedId = feedId,
+                targetId = feedId,
                 user = user,
                 content = content,
                 timeAt = 123456789L,

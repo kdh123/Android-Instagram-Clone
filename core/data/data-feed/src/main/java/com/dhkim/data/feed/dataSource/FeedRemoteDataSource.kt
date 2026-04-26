@@ -254,7 +254,7 @@ class FeedRemoteDataSource @Inject constructor(
 
     suspend fun addComment(feedId: String, userDto: UserDto, content: String): CommentDto {
         val commentDto = CommentDto(
-            feedId = feedId,
+            targetId = feedId,
             user = userDto,
             content = content
         )

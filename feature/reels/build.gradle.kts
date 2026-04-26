@@ -38,14 +38,18 @@ dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:ui"))
     implementation(project(":core:common"))
+    implementation(project(":core:domain:domain-user"))
     implementation(project(":core:domain:domain-reels"))
     implementation(project(":core:video"))
+    implementation(project(":feature:feed-common"))
+
 
     implementation(libs.bundles.androidx.compose.main)
     implementation(libs.bundles.androidx.compose.side)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.core.ktx)
     implementation(libs.bundles.androidx.media3)
+    implementation(libs.bundles.androidx.paging3)
     implementation(libs.hilt)
     ksp(libs.hilt.compiler)
     testImplementation(libs.junit)

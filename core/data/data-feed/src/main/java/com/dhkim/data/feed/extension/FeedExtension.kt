@@ -264,7 +264,7 @@ fun UserDto.toUser(): User {
 fun CommentDto.toComment(): Comment {
     return Comment(
         commentId = commentId,
-        feedId = feedId,
+        targetId = targetId,
         user = user.toUser(),
         content = content,
         timeAt = timeAt,
