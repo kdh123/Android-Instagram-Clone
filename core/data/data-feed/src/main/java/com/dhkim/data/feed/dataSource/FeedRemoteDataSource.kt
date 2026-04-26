@@ -6,12 +6,13 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import com.dhkim.common.retryWithDelay
-import com.dhkim.data.feed.model.CommentDto
+import com.dhkim.data.comment.dataSource.CommentPagingSource
+import com.dhkim.data.comment.model.CommentDto
+import com.dhkim.data.comment.model.ReplyDto
 import com.dhkim.data.feed.model.HiddenFeedDto
 import com.dhkim.data.feed.model.LikeFeedDto
-import com.dhkim.data.feed.model.ReplyDto
-import com.dhkim.data.feed.model.UserDto
 import com.dhkim.data.feed.model.toDto
+import com.dhkim.data.user.model.UserDto
 import com.dhkim.database.AppDatabase
 import com.dhkim.database.entity.HomeFeedEntity
 import com.dhkim.domain.feed.model.Feed

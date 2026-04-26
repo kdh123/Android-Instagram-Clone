@@ -21,24 +21,30 @@ import androidx.paging.LoadState
 import androidx.paging.LoadStates
 import androidx.paging.PagingData
 import androidx.paging.compose.collectAsLazyPagingItems
-import com.dhkim.domain.feed.model.Comment
+import com.dhkim.domain.comment.model.Comment
+import com.dhkim.domain.comment.model.CommentType
+import com.dhkim.domain.comment.model.Reply
+import com.dhkim.domain.comment.repository.CommentRepository
+import com.dhkim.domain.comment.useCase.AddCommentUseCase
+import com.dhkim.domain.comment.useCase.DeleteCommentUseCase
+import com.dhkim.domain.comment.useCase.DeleteReplyUseCase
+import com.dhkim.domain.comment.useCase.GetCommentsUseCase
+import com.dhkim.domain.comment.useCase.GetRepliesUseCase
+import com.dhkim.domain.comment.useCase.ReplyCommentUseCase
 import com.dhkim.domain.feed.model.Feed
 import com.dhkim.domain.feed.model.HiddenFeed
 import com.dhkim.domain.feed.model.LikeFeed
-import com.dhkim.domain.feed.model.Reply
 import com.dhkim.domain.feed.repository.FeedRepository
-import com.dhkim.domain.feed.useCase.AddCommentUseCase
-import com.dhkim.domain.feed.useCase.DeleteCommentUseCase
-import com.dhkim.domain.feed.useCase.DeleteReplyUseCase
-import com.dhkim.domain.feed.useCase.GetCommentsUseCase
+import com.dhkim.domain.feed.useCase.AddFeedCommentUseCase
+import com.dhkim.domain.feed.useCase.DeleteFeedCommentUseCase
+import com.dhkim.domain.feed.useCase.DeleteFeedReplyUseCase
 import com.dhkim.domain.feed.useCase.GetFeedUploadStatusesUseCase
 import com.dhkim.domain.feed.useCase.GetFeedsUseCase
 import com.dhkim.domain.feed.useCase.GetLikeFeedsUseCase
 import com.dhkim.domain.feed.useCase.GetLikersUseCase
 import com.dhkim.domain.feed.useCase.GetMyFeedsUseCase
-import com.dhkim.domain.feed.useCase.GetRepliesUseCase
 import com.dhkim.domain.feed.useCase.HideFeedUseCase
-import com.dhkim.domain.feed.useCase.ReplyCommentUseCase
+import com.dhkim.domain.feed.useCase.ReplyFeedCommentUseCase
 import com.dhkim.domain.feed.useCase.ToggleEnableCommentUseCase
 import com.dhkim.domain.feed.useCase.ToggleFeedLikeCountVisibilityUseCase
 import com.dhkim.domain.feed.useCase.ToggleFeedLikeUseCase
@@ -72,6 +78,7 @@ class HomeScreenTest {
 
     private val testDispatcher = UnconfinedTestDispatcher()
     private val feedRepository = mockk<FeedRepository>()
+    private val commentRepository = mockk<CommentRepository>()
     private val userRepository = mockk<UserRepository>()
     private val getFeedsUseCase = GetFeedsUseCase(feedRepository)
     private val getUserUseCase = GetUserUseCase(userRepository)
@@ -84,12 +91,16 @@ class HomeScreenTest {
     private val toggleEnableCommentUseCase = ToggleEnableCommentUseCase(feedRepository, getUserUseCase)
     private val getMyFeedsUseCase = GetMyFeedsUseCase(feedRepository)
     private val getLikeFeedsUseCase = GetLikeFeedsUseCase(feedRepository, getUserUseCase)
-    private val getCommentUseCase = GetCommentsUseCase(feedRepository)
-    private val addCommentUseCase = AddCommentUseCase(feedRepository, getUserUseCase)
-    private val deleteCommentUseCase = DeleteCommentUseCase(feedRepository)
-    private val getReliesUseCase = GetRepliesUseCase(feedRepository)
-    private val replyCommentUseCase = ReplyCommentUseCase(feedRepository, getUserUseCase)
-    private val deleteReplyUseCase = DeleteReplyUseCase(feedRepository)
+    private val getCommentUseCase = GetCommentsUseCase(commentRepository)
+    private val addCommentUseCase = AddCommentUseCase(commentRepository, getUserUseCase)
+    private val addFeedCommentUseCase = AddFeedCommentUseCase(addCommentUseCase, feedRepository)
+    private val deleteCommentUseCase = DeleteCommentUseCase(commentRepository)
+    private val deleteFeedCommentUseCase = DeleteFeedCommentUseCase(deleteCommentUseCase, feedRepository)
+    private val getReliesUseCase = GetRepliesUseCase(commentRepository)
+    private val replyCommentUseCase = ReplyCommentUseCase(commentRepository, getUserUseCase)
+    private val replyFeedCommentUseCase = ReplyFeedCommentUseCase(replyCommentUseCase, feedRepository)
+    private val deleteReplyUseCase = DeleteReplyUseCase(commentRepository)
+    private val deleteFeedReplyUseCase = DeleteFeedReplyUseCase(deleteReplyUseCase, feedRepository)
     private val connectivityChecker = mockk<ConnectivityChecker>()
 
     @get:Rule
@@ -164,12 +175,12 @@ class HomeScreenTest {
             getLikeFeedsUseCase = getLikeFeedsUseCase,
             getLikersUseCase = getLikersUseCase,
             getCommentsUseCase = getCommentUseCase,
-            addCommentUseCase = addCommentUseCase,
-            deleteCommentUseCase = deleteCommentUseCase,
+            addCommentUseCase = addFeedCommentUseCase,
+            deleteCommentUseCase = deleteFeedCommentUseCase,
             getUserUseCase = getUserUseCase,
             getRepliesUseCase = getReliesUseCase,
-            replyCommentUseCase = replyCommentUseCase,
-            deleteReplyUseCase = deleteReplyUseCase,
+            replyCommentUseCase = replyFeedCommentUseCase,
+            deleteReplyUseCase = deleteFeedReplyUseCase,
             connectivityChecker = connectivityChecker
         )
     }
@@ -290,13 +301,15 @@ class HomeScreenTest {
         coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf(emptyList())
         coEvery { feedRepository.getMyFeeds() } returns flowOf(myFeeds)
         coEvery { feedRepository.getHomeFeeds() } returns flowOf(PagingData.from(fakeFeeds))
-        coEvery { feedRepository.getComments(any()) } returns flowOf(PagingData.from(fakeComments))
+        coEvery { feedRepository.getHomeFeed(any()) } returns flowOf(fakeFeeds[0])
+        coEvery { feedRepository.updateHomeFeed(any()) } returns Unit
+        coEvery { commentRepository.getComments(any()) } returns flowOf(PagingData.from(fakeComments))
         coEvery { userRepository.getUser() } returns flowOf(testUser)
         coEvery { connectivityChecker.isNetworkAvailable() } returns flowOf(true)
         val replyFlows = mutableMapOf<String, MutableStateFlow<List<Reply>>>()
 
         every {
-            feedRepository.getReplies(any())
+            commentRepository.getReplies(any())
         } answers {
             val commentId = firstArg<String>()
 
@@ -306,7 +319,7 @@ class HomeScreenTest {
         }
 
         coEvery {
-            feedRepository.replyComment(any(), any(), any(), any())
+            commentRepository.replyComment(any(), any(), any(), any(), CommentType.FEED)
         } answers {
             val commentId = secondArg<String>()
             val user = thirdArg<User>()
@@ -395,12 +408,14 @@ class HomeScreenTest {
         coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf(emptyList())
         coEvery { feedRepository.getMyFeeds() } returns flowOf(myFeeds)
         coEvery { feedRepository.getHomeFeeds() } returns flowOf(PagingData.from(fakeFeeds))
+        coEvery { feedRepository.getHomeFeed(any()) } returns flowOf(fakeFeeds[0])
+        coEvery { feedRepository.updateHomeFeed(any()) } returns Unit
         coEvery { userRepository.getUser() } returns flowOf(testUser)
         coEvery { connectivityChecker.isNetworkAvailable() } returns flowOf(true)
         val replyFlows = mutableMapOf<String, MutableStateFlow<List<Reply>>>()
 
         every {
-            feedRepository.getReplies(any())
+            commentRepository.getReplies(any())
         } answers {
             val commentId = firstArg<String>()
 
@@ -410,7 +425,7 @@ class HomeScreenTest {
         }
 
         coEvery {
-            feedRepository.replyComment(any(), any(), any(), any())
+            commentRepository.replyComment(any(), any(), any(), any(), CommentType.FEED)
         } answers {
             val commentId = secondArg<String>()
             val user = thirdArg<User>()
@@ -435,13 +450,13 @@ class HomeScreenTest {
         val comments = MutableStateFlow(fakeComments)
 
         every {
-            feedRepository.getComments(any())
+            commentRepository.getComments(any())
         } answers {
             flowOf(PagingData.from(comments.value))
         }
 
         coEvery {
-            feedRepository.addComment(any(), any(), any())
+            commentRepository.addComment(any(), any(), any(), CommentType.FEED)
         } answers {
             val feedId = firstArg<String>()
             val user = secondArg<User>()
@@ -460,11 +475,12 @@ class HomeScreenTest {
         }
 
         coEvery {
-            feedRepository.deleteComment(any(), any())
+            commentRepository.deleteComment(any(), any(), CommentType.FEED)
         } answers {
             val commentId = secondArg<String>()
             val updateComments = comments.value.filter { it.commentId != commentId }
             comments.update { updateComments }
+            comments.value.size
         }
 
 
@@ -528,13 +544,15 @@ class HomeScreenTest {
         coEvery { feedRepository.getFeedUploadStatuses() } returns flowOf(emptyList())
         coEvery { feedRepository.getMyFeeds() } returns flowOf(myFeeds)
         coEvery { feedRepository.getHomeFeeds() } returns flowOf(PagingData.from(fakeFeeds))
-        coEvery { feedRepository.getComments(any()) } returns flowOf(PagingData.from(fakeComments))
+        coEvery { feedRepository.getHomeFeed(any()) } returns flowOf(fakeFeeds[0])
+        coEvery { feedRepository.updateHomeFeed(any()) } returns Unit
+        coEvery { commentRepository.getComments(any()) } returns flowOf(PagingData.from(fakeComments))
         coEvery { userRepository.getUser() } returns flowOf(testUser)
         coEvery { connectivityChecker.isNetworkAvailable() } returns flowOf(true)
         val replyFlows = mutableMapOf<String, MutableStateFlow<List<Reply>>>()
 
         every {
-            feedRepository.getReplies(any())
+            commentRepository.getReplies(any())
         } answers {
             val commentId = firstArg<String>()
 
@@ -544,7 +562,7 @@ class HomeScreenTest {
         }
 
         coEvery {
-            feedRepository.replyComment(any(), any(), any(), any())
+            commentRepository.replyComment(any(), any(), any(), any(), CommentType.FEED)
         } answers {
             val commentId = secondArg<String>()
             val user = thirdArg<User>()
@@ -567,7 +585,7 @@ class HomeScreenTest {
         }
 
         coEvery {
-            feedRepository.deleteReply(any(), any(), any())
+            commentRepository.deleteReply(any(), any(), any(), CommentType.FEED)
         } answers {
             val commentId = secondArg<String>()
             val replyId = thirdArg<String>()

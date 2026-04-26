@@ -1,12 +1,10 @@
 package com.dhkim.domain.feed.repository
 
 import androidx.paging.PagingData
-import com.dhkim.domain.feed.model.Comment
 import com.dhkim.domain.feed.model.Feed
 import com.dhkim.domain.feed.model.FeedUploadStatus
 import com.dhkim.domain.feed.model.HiddenFeed
 import com.dhkim.domain.feed.model.LikeFeed
-import com.dhkim.domain.feed.model.Reply
 import com.dhkim.domain.user.model.User
 import kotlinx.coroutines.flow.Flow
 import java.io.File
@@ -15,6 +13,8 @@ interface FeedRepository {
 
     fun getMyFeeds(): Flow<Set<Feed>>
     fun getHomeFeeds(): Flow<PagingData<Feed>>
+    fun getHomeFeed(feedId: String): Flow<Feed?>
+    suspend fun updateHomeFeed(feed: Feed)
 
     fun uploadFeed(feed: Feed, userId: String): Flow<Unit>
     fun uploadImage(storagePath: String, file: File): Flow<String>
@@ -43,12 +43,4 @@ interface FeedRepository {
 
     suspend fun toggleEnableComment(feedId: String, userId: String, isEnabled: Boolean)
     fun getLikeUsers(feedId: String): Flow<PagingData<User>>
-
-    fun getComments(feedId: String): Flow<PagingData<Comment>>
-    suspend fun addComment(feedId: String, user: User, comment: String): Comment
-    suspend fun deleteComment(feedId: String, commentId: String)
-
-    fun getReplies(commentId: String): Flow<List<Reply>>
-    suspend fun replyComment(feedId: String, commentId: String, user: User, comment: String): Reply
-    suspend fun deleteReply(feedId: String, commentId: String, replyId: String): Reply?
 }

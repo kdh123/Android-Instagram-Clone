@@ -49,6 +49,7 @@ dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:domain:domain-user"))
     implementation(project(":core:domain:domain-feed"))
+    implementation(project(":core:domain:domain-comment"))
     implementation(project(":feature:feed-common"))
 
     implementation(libs.bundles.androidx.compose.main)

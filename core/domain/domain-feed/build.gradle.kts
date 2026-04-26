@@ -15,6 +15,7 @@ kotlin {
 }
 dependencies {
     implementation(project(":core:domain:domain-user"))
+    implementation(project(":core:domain:domain-comment"))
 
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.androidx.paging.common)

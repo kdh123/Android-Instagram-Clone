@@ -38,7 +38,10 @@ dependencies {
     implementation(project(":core:data:data-common"))
     implementation(project(":core:database"))
     implementation(project(":core:domain:domain-feed"))
+    implementation(project(":core:domain:domain-comment"))
+    implementation(project(":core:data:data-comment"))
     implementation(project(":core:domain:domain-user"))
+    implementation(project(":core:data:data-user"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)

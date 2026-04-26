@@ -10,25 +10,21 @@ import androidx.work.WorkManager
 import androidx.work.workDataOf
 import com.dhkim.data.feed.dataSource.FeedLocalDataSource
 import com.dhkim.data.feed.dataSource.FeedRemoteDataSource
-import com.dhkim.data.feed.extension.toComment
 import com.dhkim.data.feed.extension.toEntity
 import com.dhkim.data.feed.extension.toFeed
 import com.dhkim.data.feed.extension.toFeedUploadStatus
 import com.dhkim.data.feed.extension.toHiddenFeed
 import com.dhkim.data.feed.extension.toHomeEntity
 import com.dhkim.data.feed.extension.toLikeFeed
-import com.dhkim.data.feed.extension.toUser
-import com.dhkim.data.feed.extension.toUserDto
 import com.dhkim.data.feed.extension.toMyFeedEntity
-import com.dhkim.data.feed.extension.toReply
 import com.dhkim.data.feed.work.FeedLikeSyncWorker
+import com.dhkim.data.user.extension.toUser
+import com.dhkim.data.user.extension.toUserDto
 import com.dhkim.database.entity.LikeEntity
-import com.dhkim.domain.feed.model.Comment
 import com.dhkim.domain.feed.model.Feed
 import com.dhkim.domain.feed.model.FeedUploadStatus
 import com.dhkim.domain.feed.model.HiddenFeed
 import com.dhkim.domain.feed.model.LikeFeed
-import com.dhkim.domain.feed.model.Reply
 import com.dhkim.domain.feed.repository.FeedRepository
 import com.dhkim.domain.user.model.User
 import kotlinx.coroutines.flow.Flow
@@ -54,6 +50,14 @@ class FeedRepositoryImpl @Inject constructor(
         return remoteDataSource.getHomeFeed().map { feeds ->
             feeds.map { it.toFeed() }
         }
+    }
+
+    override fun getHomeFeed(feedId: String): Flow<Feed?> {
+        return localDataSource.getHomeFeed(feedId).map { it?.toFeed() }
+    }
+
+    override suspend fun updateHomeFeed(feed: Feed) {
+        localDataSource.updateHomeFeed(feed.toHomeEntity())
     }
 
     override fun uploadFeed(feed: Feed, userId: String): Flow<Unit> {
@@ -212,61 +216,6 @@ class FeedRepositoryImpl @Inject constructor(
         return remoteDataSource.getLikeUsers(feedId).map { pagingData ->
             pagingData.map { it.toUser() }
         }
-    }
-
-    override fun getComments(feedId: String): Flow<PagingData<Comment>> {
-        return remoteDataSource.getComments(feedId).map { pagingData ->
-            pagingData.map { it.toComment() }
-        }
-    }
-
-    override suspend fun addComment(feedId: String, user: User, comment: String): Comment {
-        val addedComment = remoteDataSource.addComment(feedId, user.toUserDto(), comment).toComment()
-        val currentHomeFeed = localDataSource.getHomeFeed(feedId).first()
-        if (currentHomeFeed != null) {
-            val commentCount = currentHomeFeed.commentCount
-            localDataSource.updateHomeFeed(currentHomeFeed.copy(commentCount = commentCount + 1))
-        }
-        return addedComment
-    }
-
-    override suspend fun deleteComment(feedId: String, commentId: String) {
-        val remainingReplyCount = remoteDataSource.deleteComment(feedId, commentId).value
-        val currentHomeFeed = localDataSource.getHomeFeed(feedId).first()
-        if (currentHomeFeed != null) {
-            localDataSource.updateHomeFeed(currentHomeFeed.copy(commentCount = remainingReplyCount))
-        }
-    }
-
-    override fun getReplies(commentId: String): Flow<List<Reply>> {
-        return remoteDataSource.getReplies(commentId).map { replies ->
-            replies.map { it.toReply() }
-        }
-    }
-
-    override suspend fun replyComment(
-        feedId: String,
-        commentId: String,
-        user: User,
-        comment: String
-    ): Reply {
-        val addedReply = remoteDataSource.replyComment(feedId, commentId, user.toUserDto(), comment).toReply()
-        val currentHomeFeed = localDataSource.getHomeFeed(feedId).first()
-        if (currentHomeFeed != null) {
-            localDataSource.updateHomeFeed(currentHomeFeed.copy(commentCount = currentHomeFeed.commentCount + 1))
-        }
-
-        return addedReply
-    }
-
-    override suspend fun deleteReply(feedId: String, commentId: String, replyId: String): Reply? {
-        val deletedReply = remoteDataSource.deleteReply(feedId, commentId, replyId)?.toReply()
-        val currentHomeFeed = localDataSource.getHomeFeed(feedId).first()
-        if (currentHomeFeed != null) {
-            localDataSource.updateHomeFeed(currentHomeFeed.copy(commentCount = currentHomeFeed.commentCount - 1))
-        }
-
-        return deletedReply
     }
 
     private fun enqueueLikeWorker(feedId: String) {

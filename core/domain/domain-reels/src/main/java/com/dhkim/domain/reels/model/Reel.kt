@@ -5,6 +5,7 @@ data class Reel(
     val url: String,
     val caption: String,
     val likeCount: Int,
+    val commentCount: Int,
     val userId: String,
     val userName: String,
     val userProfileImage: String,

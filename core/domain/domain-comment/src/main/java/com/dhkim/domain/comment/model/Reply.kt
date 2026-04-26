@@ -1,13 +1,12 @@
-package com.dhkim.domain.feed.model
+package com.dhkim.domain.comment.model
 
 import com.dhkim.domain.user.model.User
 
-data class Comment(
-    val commentId:String,
-    val targetId: String,
+data class Reply(
+    val replyId:String,
+    val commentId: String,
     val user: User,
     val content: String,
     val timeAt: Long,
-    val replyCount: Int,
     val likeCount: Int
 )

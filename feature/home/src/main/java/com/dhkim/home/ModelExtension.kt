@@ -1,7 +1,7 @@
 package com.dhkim.home
 
-import com.dhkim.domain.feed.model.Comment
-import com.dhkim.domain.feed.model.Reply
+import com.dhkim.domain.comment.model.Comment
+import com.dhkim.domain.comment.model.Reply
 import com.dhkim.domain.user.model.User
 import com.dhkim.feed.common.CommentItem
 import com.dhkim.feed.common.ReplyItem

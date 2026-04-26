@@ -1,13 +1,13 @@
-package com.dhkim.data.feed.dataSource
+package com.dhkim.data.comment.dataSource
 
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
-import com.dhkim.data.feed.model.CommentDto
+import com.dhkim.data.comment.model.CommentDto
 import com.google.firebase.database.DatabaseReference
 import kotlinx.coroutines.tasks.await
 
 class CommentPagingSource(
-    private val query: DatabaseReference,
+    private val dbRef: DatabaseReference,
     private val pageSize: Int
 ) : PagingSource<String, CommentDto>() {
 
@@ -16,9 +16,9 @@ class CommentPagingSource(
             val lastKey = params.key
 
             val currentQuery = if (lastKey == null) {
-                query.orderByKey().limitToFirst(pageSize)
+                dbRef.orderByKey().limitToFirst(pageSize)
             } else {
-                query.orderByKey().startAfter(lastKey).limitToFirst(pageSize)
+                dbRef.orderByKey().startAfter(lastKey).limitToFirst(pageSize)
             }
 
             val snapshot = currentQuery.get().await()

@@ -1,4 +1,4 @@
-package com.dhkim.data.feed.model
+package com.dhkim.data.user.model
 
 import com.google.firebase.database.IgnoreExtraProperties
 

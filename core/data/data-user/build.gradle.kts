@@ -41,6 +41,7 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     implementation(platform(libs.google.firebase.bom))
+    implementation(libs.google.firebase.database.ktx)
     implementation(libs.google.firebase.auth)
     implementation(libs.bundles.crendentials)
     implementation(libs.google.identity.googleid)

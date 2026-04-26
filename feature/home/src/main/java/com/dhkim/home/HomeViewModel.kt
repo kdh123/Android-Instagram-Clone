@@ -8,19 +8,19 @@ import androidx.paging.map
 import com.dhkim.common.RestartableStateFlow
 import com.dhkim.common.handle
 import com.dhkim.common.restartableStateIn
-import com.dhkim.domain.feed.model.Reply
-import com.dhkim.domain.feed.useCase.AddCommentUseCase
-import com.dhkim.domain.feed.useCase.DeleteCommentUseCase
-import com.dhkim.domain.feed.useCase.DeleteReplyUseCase
-import com.dhkim.domain.feed.useCase.GetCommentsUseCase
+import com.dhkim.domain.comment.model.Reply
+import com.dhkim.domain.comment.useCase.GetCommentsUseCase
+import com.dhkim.domain.comment.useCase.GetRepliesUseCase
+import com.dhkim.domain.feed.useCase.AddFeedCommentUseCase
+import com.dhkim.domain.feed.useCase.DeleteFeedCommentUseCase
+import com.dhkim.domain.feed.useCase.DeleteFeedReplyUseCase
 import com.dhkim.domain.feed.useCase.GetFeedUploadStatusesUseCase
 import com.dhkim.domain.feed.useCase.GetFeedsUseCase
 import com.dhkim.domain.feed.useCase.GetLikeFeedsUseCase
 import com.dhkim.domain.feed.useCase.GetLikersUseCase
 import com.dhkim.domain.feed.useCase.GetMyFeedsUseCase
-import com.dhkim.domain.feed.useCase.GetRepliesUseCase
 import com.dhkim.domain.feed.useCase.HideFeedUseCase
-import com.dhkim.domain.feed.useCase.ReplyCommentUseCase
+import com.dhkim.domain.feed.useCase.ReplyFeedCommentUseCase
 import com.dhkim.domain.feed.useCase.ToggleEnableCommentUseCase
 import com.dhkim.domain.feed.useCase.ToggleFeedLikeCountVisibilityUseCase
 import com.dhkim.domain.feed.useCase.ToggleFeedLikeUseCase
@@ -70,11 +70,11 @@ class HomeViewModel @Inject constructor(
     private val getLikeFeedsUseCase: GetLikeFeedsUseCase,
     private val getLikersUseCase: GetLikersUseCase,
     private val getCommentsUseCase: GetCommentsUseCase,
-    private val addCommentUseCase: AddCommentUseCase,
-    private val deleteCommentUseCase: DeleteCommentUseCase,
+    private val addCommentUseCase: AddFeedCommentUseCase,
+    private val deleteCommentUseCase: DeleteFeedCommentUseCase,
     private val getRepliesUseCase: GetRepliesUseCase,
-    private val replyCommentUseCase: ReplyCommentUseCase,
-    private val deleteReplyUseCase: DeleteReplyUseCase,
+    private val replyCommentUseCase: ReplyFeedCommentUseCase,
+    private val deleteReplyUseCase: DeleteFeedReplyUseCase,
     private val getUserUseCase: GetUserUseCase,
     private val connectivityChecker: ConnectivityChecker
 ) : ViewModel() {
@@ -365,6 +365,7 @@ class HomeViewModel @Inject constructor(
                 recentAddedReply.update { reply }
             },
             onError = {
+                println("error ${it.message}")
                 _sideEffect.send(HomeSideEffect.ShowRefreshFeedsFailNotice)
             }
         )

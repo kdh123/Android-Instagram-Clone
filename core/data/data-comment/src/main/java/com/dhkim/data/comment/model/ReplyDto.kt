@@ -1,5 +1,6 @@
-package com.dhkim.data.feed.model
+package com.dhkim.data.comment.model
 
+import com.dhkim.data.user.model.UserDto
 import com.google.firebase.database.IgnoreExtraProperties
 
 @IgnoreExtraProperties

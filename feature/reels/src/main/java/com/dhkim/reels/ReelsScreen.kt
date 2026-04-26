@@ -641,6 +641,8 @@ class ReelsPreviewProvider : PreviewParameterProvider<ReelsUiState> {
                     userId = "userId$it",
                     userName = "userName$it",
                     userProfileImage = "userProfileImage$it",
+                    commentCount = 0,
+                    isLiked = it % 2 == 0
                 )
             )
         }

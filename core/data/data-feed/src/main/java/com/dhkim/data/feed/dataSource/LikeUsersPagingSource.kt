@@ -2,7 +2,7 @@ package com.dhkim.data.feed.dataSource
 
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
-import com.dhkim.data.feed.model.UserDto
+import com.dhkim.data.user.model.UserDto
 import com.google.firebase.database.DatabaseReference
 import kotlinx.coroutines.tasks.await
 
